@@ -31,6 +31,19 @@ Abra <http://localhost:8080>. O modo **Demonstração** gera um relevo sintétic
 - segure **Shift** e arraste para fazer chover
 - **1–5** trocam de cenário, **F** entra em tela cheia, **espaço** pausa, **C** seca a água
 
+## Publicar na Vercel
+
+O projeto é estático, sem etapa de build. Na Vercel: importe o repositório,
+framework **Other**, deixe o comando de build vazio e o diretório de saída
+como a raiz. O `vercel.json` já cuida do cache (cenários e código sempre
+revalidados, para o professor receber atualização sem limpar nada).
+
+Com o site em HTTPS, vale saber: o navegador bloqueia `ws://` vindo de página
+segura, **exceto para localhost**. Ou seja, a Vercel funciona bem para demonstrar
+os modos e para a versão sem sensor; com o Kinect, prefira o executável ou o
+`npm run web` na própria máquina da caixa. Se tentar um endereço que o
+navegador vai barrar, a interface avisa em vez de falhar em silêncio.
+
 ## Com o Kinect
 
 O navegador não consegue falar com o Kinect diretamente: o Chrome não

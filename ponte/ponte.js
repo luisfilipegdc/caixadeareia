@@ -120,6 +120,17 @@ let sensor = null;
 
 servidor.on('connection', (socket) => {
   clientes.add(socket);
+  // Controle de fluxo: só mandamos o próximo quadro depois que o navegador
+  // confirmou o anterior. Sem isso, um PC fraco vai acumulando quadros
+  // atrasados — a areia responde com atraso e a queda da ponte demora a
+  // aparecer, porque a fila ainda está sendo consumida.
+  socket.pronto = true;
+  socket.enviadoEm = 0;
+
+  socket.on('message', (dados, binario) => {
+    if (!binario && dados.toString() === 'pronto') socket.pronto = true;
+  });
+
   console.log(`[ponte] navegador conectado (${clientes.size} ativo(s))`);
   socket.send(JSON.stringify({
     tipo: 'ola',
@@ -150,11 +161,19 @@ function transmitir(profundidade) {
   Buffer.from(profundidade.buffer, profundidade.byteOffset, profundidade.length * 2)
     .copy(pacote, CABECALHO);
 
+  const agora = Date.now();
   for (const cliente of clientes) {
-    // Descarta o quadro se o cliente está atrasado: relevo velho não serve.
-    if (cliente.readyState === cliente.OPEN && cliente.bufferedAmount < pacote.length * 3) {
-      cliente.send(pacote, { binary: true });
-    }
+    if (cliente.readyState !== cliente.OPEN) continue;
+
+    // Descarta o quadro se o cliente ainda não confirmou o anterior: relevo
+    // velho não serve para nada. A janela de 250ms evita travar de vez caso
+    // uma confirmação se perca.
+    const atrasado = !cliente.pronto && agora - cliente.enviadoEm < 250;
+    if (atrasado || cliente.bufferedAmount > pacote.length) continue;
+
+    cliente.pronto = false;
+    cliente.enviadoEm = agora;
+    cliente.send(pacote, { binary: true });
   }
 }
 
@@ -173,10 +192,12 @@ for (const sinal of ['SIGINT', 'SIGTERM']) {
     console.log('\n[ponte] encerrando');
     sensor?.parar();
     // Fecha os navegadores explicitamente: server.close() só para de aceitar
-    // conexões novas, e sem isso o cliente demora a perceber a queda.
+    // conexões novas, e sem isso o cliente demora a perceber a queda. O
+    // process.exit precisa esperar o quadro de fechamento sair da fila, senão
+    // o navegador só descobre a queda quando o TCP expira.
     for (const cliente of clientes) cliente.close(1001, 'ponte encerrando');
     servidor.close();
-    process.exit(0);
+    setTimeout(() => process.exit(0), 150);
   });
 }
 

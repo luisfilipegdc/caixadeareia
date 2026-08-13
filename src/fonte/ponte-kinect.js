@@ -34,6 +34,20 @@ export class PonteKinect extends EventTarget {
 
   _abrir() {
     this.desligar(false);
+
+    // Página servida por HTTPS (Vercel, GitHub Pages) falando com uma ponte
+    // local: o navegador só libera quando o destino é localhost, que conta
+    // como origem confiável. Qualquer outro endereço é bloqueado como
+    // conteúdo misto, e o erro que aparece no console não explica isso.
+    if (location.protocol === 'https:' && this.url.startsWith('ws://')
+        && !/^wss?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|$|\/)/.test(this.url)) {
+      this._avisar('erro', {
+        mensagem: 'O navegador bloqueia ws:// vindo de uma página https, exceto para localhost. '
+          + 'Use o executável, rode o site local (npm run web) ou coloque a ponte atrás de wss://.',
+      });
+      return;
+    }
+
     let ws;
     try {
       ws = new WebSocket(this.url);
@@ -97,6 +111,12 @@ export class PonteKinect extends EventTarget {
 
     this.quadro = quadro;
     this.profundidade = new Uint16Array(buffer, 12, largura * altura);
+
+    // Confirma o recebimento: a ponte só manda o próximo quadro depois disso,
+    // então quem não dá conta do ritmo simplesmente recebe menos quadros em
+    // vez de acumular atraso.
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send('pronto');
+
     this._avisar('quadro', { largura, altura, quadro });
   }
 
