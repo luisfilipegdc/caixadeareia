@@ -172,6 +172,9 @@ for (const sinal of ['SIGINT', 'SIGTERM']) {
   process.on(sinal, () => {
     console.log('\n[ponte] encerrando');
     sensor?.parar();
+    // Fecha os navegadores explicitamente: server.close() só para de aceitar
+    // conexões novas, e sem isso o cliente demora a perceber a queda.
+    for (const cliente of clientes) cliente.close(1001, 'ponte encerrando');
     servidor.close();
     process.exit(0);
   });

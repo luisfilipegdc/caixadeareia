@@ -12,15 +12,16 @@
     "empacotar": "electron-builder --win --x64"
   },
   "dependencies": {
-    "ws": "^8.18.0"
+    "ws": "^8.21.3"
   },
   "optionalDependencies": {
     "kinect2": "^0.3.1"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
+    "electron": "^33.4.11",
     "electron-builder": "^25.1.8"
   },
+  "author": "Projeto Caixa de Areia Interativa",
   "build": {
     "appId": "br.caixadeareia.interativa",
     "productName": "Caixa de Areia Interativa",
@@ -35,8 +36,19 @@
       "app/**",
       "servidor-local.js"
     ],
+    "asarUnpack": [
+      "node_modules/kinect2/**",
+      "node_modules/freenect/**"
+    ],
     "win": {
-      "target": [{ "target": "portable", "arch": ["x64"] }]
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "portable": {
       "artifactName": "CaixaDeAreia-${version}.exe"

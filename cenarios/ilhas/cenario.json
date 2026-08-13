@@ -1,0 +1,26 @@
+{
+  "id": "ilhas",
+  "nome": "Ilhas e arquipélagos",
+  "categoria": "educacao",
+  "descricao": "Linha de costa, praias e ondas quebrando",
+  "paleta": [
+    { "h": 0.00, "cor": "#02243f" },
+    { "h": 0.10, "cor": "#04477a" },
+    { "h": 0.20, "cor": "#0a74ad" },
+    { "h": 0.27, "cor": "#37b0cf" },
+    { "h": 0.31, "cor": "#f3e2b3" },
+    { "h": 0.36, "cor": "#dcc98d" },
+    { "h": 0.48, "cor": "#7fa653" },
+    { "h": 0.68, "cor": "#3f7a3c" },
+    { "h": 0.86, "cor": "#7d6b58" },
+    { "h": 1.00, "cor": "#e8eef2" }
+  ],
+  "curvasDeNivel": { "ativas": true, "intervalo": 0.05 },
+  "agua": { "ativa": false },
+  "overlay": "overlay.frag",
+  "notasDoProfessor": [
+    "Peça uma ilha só e depois um arquipélago: o que muda na linha de costa?",
+    "Cave um canal ligando dois mares e veja a ilha virar duas.",
+    "A faixa clara é a praia. Pergunte por que ela aparece sempre na mesma altura."
+  ]
+}

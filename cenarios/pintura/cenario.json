@@ -1,0 +1,24 @@
+{
+  "id": "pintura",
+  "nome": "Pintura na areia",
+  "categoria": "criatividade",
+  "descricao": "A altura vira cor, sem regra nenhuma",
+  "paleta": [
+    { "h": 0.00, "cor": "#2b0f4a" },
+    { "h": 0.16, "cor": "#5b1e8a" },
+    { "h": 0.32, "cor": "#c02f7a" },
+    { "h": 0.48, "cor": "#f2624a" },
+    { "h": 0.64, "cor": "#f8a940" },
+    { "h": 0.80, "cor": "#f5e05c" },
+    { "h": 0.92, "cor": "#9be36a" },
+    { "h": 1.00, "cor": "#5ce2d6" }
+  ],
+  "curvasDeNivel": { "ativas": false, "intervalo": 0.05 },
+  "agua": { "ativa": false },
+  "overlay": "overlay.frag",
+  "notasDoProfessor": [
+    "Sem certo nem errado: a areia é a tela e a altura é a cor.",
+    "Bom para os primeiros minutos, enquanto a turma se acostuma com a caixa.",
+    "As cores giram devagar sozinhas — peça que persigam um tom específico."
+  ]
+}

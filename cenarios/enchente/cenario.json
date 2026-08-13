@@ -1,0 +1,25 @@
+{
+  "id": "enchente",
+  "nome": "Enchente",
+  "categoria": "educacao",
+  "descricao": "O rio sobe e mostra as áreas de risco",
+  "paleta": [
+    { "h": 0.00, "cor": "#12303f" },
+    { "h": 0.16, "cor": "#2b5a6b" },
+    { "h": 0.32, "cor": "#6d8f6a" },
+    { "h": 0.50, "cor": "#95a56a" },
+    { "h": 0.68, "cor": "#a89170" },
+    { "h": 0.86, "cor": "#8b7d73" },
+    { "h": 1.00, "cor": "#dfe4e6" }
+  ],
+  "curvasDeNivel": { "ativas": true, "intervalo": 0.04 },
+  "agua": { "ativa": false },
+  "overlay": "overlay.frag",
+  "marcadores": { "ativos": true, "rotulo": "Marcar casa" },
+  "notasDoProfessor": [
+    "O nível sobe e desce sozinho, em ciclos de cerca de meio minuto.",
+    "Peça que marquem casas antes da cheia e observem quais alagam.",
+    "As faixas vermelhas são a cota de inundação máxima — a área de risco.",
+    "Construam um dique de areia e testem se ele segura a cheia."
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "marte",
+  "nome": "Marte",
+  "categoria": "educacao",
+  "descricao": "Relevo marciano, crateras e tempestade de poeira",
+  "paleta": [
+    { "h": 0.00, "cor": "#3a1c12" },
+    { "h": 0.18, "cor": "#5e2c18" },
+    { "h": 0.36, "cor": "#8a4423" },
+    { "h": 0.54, "cor": "#b06134" },
+    { "h": 0.72, "cor": "#c9813f" },
+    { "h": 0.88, "cor": "#d9a06a" },
+    { "h": 1.00, "cor": "#f0dcc2" }
+  ],
+  "curvasDeNivel": { "ativas": true, "intervalo": 0.05 },
+  "agua": { "ativa": false },
+  "overlay": "overlay.frag",
+  "marcadores": { "ativos": true, "rotulo": "Pousar sonda" },
+  "notasDoProfessor": [
+    "O relevo de Marte tem o maior vulcão e o maior cânion do sistema solar.",
+    "Peça um cânion profundo e compare com o vale que fizeram na Terra.",
+    "Marque o pouso das sondas e discuta por que se escolhe terreno plano."
+  ]
+}

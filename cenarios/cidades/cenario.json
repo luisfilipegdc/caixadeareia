@@ -1,0 +1,30 @@
+{
+  "id": "cidades",
+  "nome": "Cidades e áreas de proteção",
+  "categoria": "educacao",
+  "descricao": "Ocupação regular e irregular perto da água",
+  "paleta": [
+    { "h": 0.00, "cor": "#123b52" },
+    { "h": 0.18, "cor": "#1f6b6b" },
+    { "h": 0.30, "cor": "#3f8f5f" },
+    { "h": 0.46, "cor": "#7fa855" },
+    { "h": 0.64, "cor": "#b7a05e" },
+    { "h": 0.82, "cor": "#96796a" },
+    { "h": 1.00, "cor": "#e6e6e6" }
+  ],
+  "curvasDeNivel": { "ativas": true, "intervalo": 0.04 },
+  "agua": {
+    "ativa": true,
+    "corRaso": "#5ec8e8",
+    "corFundo": "#0a3f6b",
+    "evaporacao": 0.001
+  },
+  "overlay": "overlay.frag",
+  "marcadores": { "ativos": true, "rotulo": "Fundar cidade" },
+  "notasDoProfessor": [
+    "Faça chover até formar rios e lagos antes de fundar as cidades.",
+    "Cada aluno funda a sua cidade com Alt + clique.",
+    "Círculo branco: ocupação regular. X vermelho: dentro da área de proteção.",
+    "A faixa verde brilhante ao longo da água é a mata ciliar protegida."
+  ]
+}

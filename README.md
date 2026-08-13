@@ -67,8 +67,14 @@ mesmo gesto do projeto original.
 ## Executável para a escola
 
 O `.github/workflows/build.yml` compila o `.exe` no Windows a cada push; o
-arquivo sai nos *artifacts* da execução. Para gerar localmente, em uma máquina
-Windows:
+arquivo sai nos *artifacts* da execução. Um push de tag `v*` publica o
+executável direto na aba Releases:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+Para gerar localmente, em uma máquina Windows:
 
 ```bash
 npm install
@@ -110,11 +116,23 @@ para.
 | Nascente de água | relaxamento | correnteza com espuma, cheias, barragens |
 | Bacias hidrográficas | educação | destaca os divisores de água |
 | Ecossistemas | educação | biomas que respondem à umidade |
+| Ilhas e arquipélagos | educação | linha de costa, praia e rebentação |
+| Cidades e áreas de proteção | educação | ocupação regular e irregular junto da água |
+| Enchente | educação | cheia cíclica revelando as áreas de risco |
 | Safári | educação | savana que vira deserto rachado quando seca |
+| Inverno | relaxamento | neve que só gruda em encosta suave, água que congela |
+| Marte | educação | regolito, crateras e tempestade de poeira |
 | Vulcão | jogos | lava incandescente com crosta esfriando |
+| Dinossauros | jogos | pântano, samambaias e pegadas no barro |
 | Jardineiro | jogos | plantar sementes, regar, ver a planta viver ou murchar |
 | Formas e cores | criatividade | camadas do arco-íris e formas geométricas guia |
+| Pintura na areia | criatividade | modo livre, a altura vira cor |
 | Quiz do ciclo da água | educação | perguntas conduzidas pelo professor |
+
+O modo **Cidades e áreas de proteção** reproduz a atividade descrita no
+material da FURB: os alunos fundam cidades, e o sistema marca com círculo
+branco as que respeitam a mata ciliar e com vermelho pulsante as que invadem a
+área protegida.
 
 Cada modo declara sua categoria, e o painel filtra por ela. Modos com
 `"marcadores"` habilitam o gesto **Alt + clique**, que planta sementes, abre
