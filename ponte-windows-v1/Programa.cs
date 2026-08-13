@@ -91,6 +91,7 @@ namespace CaixaDeAreia
             Console.CancelKeyPress += (s, e) => { e.Cancel = true; encerrar.Set(); };
 
             uint numeroDoQuadro = 0;
+            int vaziosSeguidos = 0;
             var relogio = Stopwatch.StartNew();
             var ultimoAviso = TimeSpan.Zero;
             int quadrosDesdeAviso = 0;
@@ -109,7 +110,18 @@ namespace CaixaDeAreia
                     veio = sensor.LerQuadro(profundidade);
                 }
 
-                if (!veio) continue;
+                if (!veio)
+                {
+                    // Sensor aberto e mudo é sintoma próprio: quase sempre
+                    // outro programa segurando a câmera, ou cabo USB ruim.
+                    if (++vaziosSeguidos == 10)
+                    {
+                        Console.Error.WriteLine("[ponte] o sensor abriu mas não está mandando quadros. "
+                            + "Feche o Kinect Studio ou outro programa que use a câmera, e troque a porta USB.");
+                    }
+                    continue;
+                }
+                vaziosSeguidos = 0;
 
                 EscreverUInt32(pacote, 8, ++numeroDoQuadro);
                 Buffer.BlockCopy(profundidade, 0, pacote, Cabecalho, profundidade.Length * 2);

@@ -46,7 +46,8 @@ namespace CaixaDeAreia
         /// Abre o primeiro sensor conectado. Devolve null quando não há sensor
         /// ou o SDK não está instalado, com o motivo em <paramref name="motivo"/>.
         /// </summary>
-        public static Sensor Abrir(bool modoPerto, int anguloDesejado, out string motivo)
+        public static Sensor Abrir(bool modoPerto, int anguloDesejado, out string motivo,
+                                   int segundosDeEspera = 40)
         {
             Assembly kinect = CarregarBiblioteca(out motivo);
             if (kinect == null) return null;
@@ -60,26 +61,20 @@ namespace CaixaDeAreia
                     return null;
                 }
 
-                var colecao = (IEnumerable)tipoSensor
-                    .GetProperty("KinectSensors", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null, null);
+                PropertyInfo listaDeSensores = tipoSensor
+                    .GetProperty("KinectSensors", BindingFlags.Public | BindingFlags.Static);
 
-                object escolhido = null;
-                int vistos = 0;
-                foreach (object candidato in colecao)
-                {
-                    vistos++;
-                    object estado = candidato.GetType().GetProperty("Status").GetValue(candidato, null);
-                    if (estado != null && estado.ToString() == "Connected") { escolhido = candidato; break; }
-                    Console.Error.WriteLine($"[ponte] sensor ignorado, estado = {estado}");
-                }
+                object escolhido = EsperarSensorPronto(listaDeSensores, segundosDeEspera,
+                                                       out int vistos, out string ultimoEstado);
 
                 if (escolhido == null)
                 {
                     motivo = vistos == 0
-                        ? "Nenhum Kinect encontrado. Confira a fonte de energia (o sensor não liga só pelo USB) e o cabo."
-                        : "O Kinect foi encontrado mas não está pronto. O estado acima diz o que falta — "
-                          + "NotPowered significa fonte desligada, DeviceNotSupported significa modelo incompatível com o SDK 1.8.";
+                        ? "Nenhum Kinect encontrado. Confira a fonte de energia (o sensor não liga só pelo USB), "
+                          + "o cabo e se o driver aparece no Gerenciador de Dispositivos."
+                        : $"O Kinect foi encontrado mas não ficou pronto em {segundosDeEspera}s — último estado: {ultimoEstado}. "
+                          + "NotPowered é fonte desligada; DeviceNotSupported é modelo incompatível com o SDK 1.8; "
+                          + "Initializing preso costuma ser cabo USB ruim ou porta sem energia suficiente.";
                     return null;
                 }
 
@@ -111,6 +106,56 @@ namespace CaixaDeAreia
             {
                 motivo = "Falha ao abrir o sensor: " + PrimeiraLinha(erro);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Espera o sensor sair de Initializing e chegar em Connected.
+        ///
+        /// O Kinect v1 leva alguns segundos para acordar depois que o driver
+        /// energiza a câmera, e o estado no primeiro instante é sempre
+        /// Initializing. Conferir uma vez só e desistir faz o programa
+        /// concluir que não há sensor justamente quando ele está a caminho.
+        /// </summary>
+        private static object EsperarSensorPronto(PropertyInfo listaDeSensores, int segundos,
+                                                  out int vistos, out string ultimoEstado)
+        {
+            DateTime limite = DateTime.UtcNow.AddSeconds(segundos);
+            string estadoAnunciado = null;
+            ultimoEstado = "nenhum";
+            vistos = 0;
+
+            while (true)
+            {
+                var colecao = (IEnumerable)listaDeSensores.GetValue(null, null);
+
+                int quantos = 0;
+                foreach (object candidato in colecao)
+                {
+                    quantos++;
+                    string estado = candidato.GetType().GetProperty("Status").GetValue(candidato, null)?.ToString();
+                    ultimoEstado = estado ?? "desconhecido";
+
+                    if (estado == "Connected")
+                    {
+                        vistos = quantos;
+                        return candidato;
+                    }
+
+                    // Só anuncia quando o estado muda, para não encher a tela.
+                    if (estado != estadoAnunciado)
+                    {
+                        estadoAnunciado = estado;
+                        Console.Error.WriteLine(estado == "Initializing"
+                            ? "[ponte] sensor acordando (Initializing), aguardando ficar pronto..."
+                            : $"[ponte] sensor em estado {estado}, aguardando...");
+                    }
+                }
+
+                vistos = Math.Max(vistos, quantos);
+
+                if (DateTime.UtcNow >= limite) return null;
+                System.Threading.Thread.Sleep(500);
             }
         }
 
