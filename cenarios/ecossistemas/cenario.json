@@ -1,0 +1,28 @@
+{
+  "id": "ecossistemas",
+  "nome": "Ecossistemas",
+  "descricao": "Biomas por altitude e umidade",
+  "paleta": [
+    { "h": 0.00, "cor": "#0d3b66" },
+    { "h": 0.16, "cor": "#3d7ea6" },
+    { "h": 0.24, "cor": "#f4d58d" },
+    { "h": 0.34, "cor": "#88a35a" },
+    { "h": 0.52, "cor": "#2f6b3a" },
+    { "h": 0.70, "cor": "#4b7c52" },
+    { "h": 0.84, "cor": "#8d8577" },
+    { "h": 0.94, "cor": "#d8d8d8" },
+    { "h": 1.00, "cor": "#ffffff" }
+  ],
+  "curvasDeNivel": { "ativas": false, "intervalo": 0.06 },
+  "agua": {
+    "ativa": true,
+    "corRaso": "#63d0e8",
+    "corFundo": "#0a3d62",
+    "evaporacao": 0.003
+  },
+  "overlay": "overlay.frag",
+  "notasDoProfessor": [
+    "Cada faixa de cor é um bioma: peça que identifiquem antes de explicar.",
+    "Molhe uma encosta e mostre a vegetação aparecendo onde a água ficou."
+  ]
+}

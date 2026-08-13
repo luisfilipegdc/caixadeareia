@@ -1,0 +1,77 @@
+{
+  "id": "quiz-agua",
+  "nome": "Quiz do ciclo da água",
+  "descricao": "Perguntas para responder na caixa",
+  "paleta": [
+    { "h": 0.00, "cor": "#173f5f" },
+    { "h": 0.20, "cor": "#3caea3" },
+    { "h": 0.38, "cor": "#f6d55c" },
+    { "h": 0.60, "cor": "#ed9b40" },
+    { "h": 0.82, "cor": "#a1683a" },
+    { "h": 1.00, "cor": "#f7f7f7" }
+  ],
+  "curvasDeNivel": { "ativas": true, "intervalo": 0.05 },
+  "agua": {
+    "ativa": true,
+    "corRaso": "#4dd0e1",
+    "corFundo": "#01579b",
+    "evaporacao": 0.006
+  },
+  "quiz": [
+    {
+      "pergunta": "A chuva caiu no topo do morro. Para onde a água vai?",
+      "alternativas": [
+        "Fica parada onde caiu",
+        "Escorre para as partes mais baixas",
+        "Sobe para o topo",
+        "Some imediatamente"
+      ],
+      "correta": 1,
+      "explicacao": "A água sempre desce pelo caminho de maior declive, até encontrar uma depressão."
+    },
+    {
+      "pergunta": "O que as linhas desenhadas na areia representam?",
+      "alternativas": [
+        "Estradas",
+        "Rios",
+        "Curvas de nível (pontos de mesma altitude)",
+        "Divisas de município"
+      ],
+      "correta": 2,
+      "explicacao": "Curvas de nível ligam pontos de mesma altitude. Quanto mais juntas, mais íngreme o terreno."
+    },
+    {
+      "pergunta": "Onde é mais provável ocorrer alagamento?",
+      "alternativas": [
+        "No topo do morro",
+        "Na encosta íngreme",
+        "Nas áreas baixas e planas",
+        "Em qualquer lugar, é aleatório"
+      ],
+      "correta": 2,
+      "explicacao": "A água se acumula nas baixadas, por isso ocupações em áreas planas próximas a rios alagam."
+    },
+    {
+      "pergunta": "O que é um divisor de águas?",
+      "alternativas": [
+        "Uma barragem construída",
+        "A linha de cume que separa duas bacias",
+        "O ponto mais baixo do rio",
+        "A margem do rio"
+      ],
+      "correta": 1,
+      "explicacao": "É a linha alta que separa para qual bacia a chuva vai escorrer."
+    },
+    {
+      "pergunta": "Na paleta de cores da caixa, o azul escuro indica:",
+      "alternativas": [
+        "As áreas mais altas",
+        "As áreas mais baixas",
+        "Áreas de vegetação",
+        "Áreas urbanas"
+      ],
+      "correta": 1,
+      "explicacao": "Na convenção cartográfica usada aqui, o azul marca as menores altitudes e o branco as maiores."
+    }
+  ]
+}

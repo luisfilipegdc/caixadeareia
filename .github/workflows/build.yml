@@ -1,0 +1,52 @@
+name: Empacotar
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Executável Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # As dependências nativas do Kinect são opcionais: sem elas a ponte cai
+      # no modo simulado e o executável continua utilizável.
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund
+        continue-on-error: true
+
+      - name: Gerar o .exe
+        run: npx electron-builder --win --x64 --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CaixaDeAreia-windows
+          path: dist/*.exe
+          if-no-files-found: error
+
+  publicar-web:
+    name: Publicar versão web
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4
