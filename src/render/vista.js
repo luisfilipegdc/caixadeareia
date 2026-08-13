@@ -17,6 +17,7 @@ out vec4 saida;
 
 uniform sampler2D u_terreno;
 uniform sampler2D u_agua;
+uniform sampler2D u_marcadores;
 uniform sampler2D u_paleta;
 uniform vec2 u_texel;
 uniform float u_tempo;
@@ -29,6 +30,22 @@ uniform vec3 u_corFundo;
 
 float alturaEm(vec2 uv) { return texture(u_terreno, uv).r; }
 float aguaEm(vec2 uv) { return texture(u_agua, uv).r; }
+float marcadorEm(vec2 uv) { return texture(u_marcadores, uv).r; }
+
+// Ruído barato para texturas de terreno, vegetação e areia.
+float aleatorio(vec2 p) {
+  return fract(sin(dot(floor(p), vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float ruido(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(aleatorio(i), aleatorio(i + vec2(1.0, 0.0)), u.x),
+    mix(aleatorio(i + vec2(0.0, 1.0)), aleatorio(i + vec2(1.0, 1.0)), u.x),
+    u.y);
+}
 `;
 
 const CENARIO_PADRAO = `
@@ -150,10 +167,11 @@ export class Vista {
     this.paleta.enviar(dados);
   }
 
-  desenhar({ terreno, agua, tempo, texel }) {
+  desenhar({ terreno, agua, marcadores, tempo, texel }) {
     this.programa.usar().setTodos({
       u_terreno: terreno,
       u_agua: agua,
+      u_marcadores: marcadores,
       u_paleta: this.paleta,
       u_texel: texel,
       u_tempo: tempo,

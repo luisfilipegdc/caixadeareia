@@ -1,0 +1,31 @@
+{
+  "id": "safari",
+  "nome": "Safári",
+  "categoria": "educacao",
+  "descricao": "A savana que vira deserto quando a água acaba",
+  "paleta": [
+    { "h": 0.00, "cor": "#2a5c6b" },
+    { "h": 0.14, "cor": "#7a8f5c" },
+    { "h": 0.26, "cor": "#b8a55f" },
+    { "h": 0.44, "cor": "#d9b667" },
+    { "h": 0.62, "cor": "#c99a53" },
+    { "h": 0.80, "cor": "#a8763f" },
+    { "h": 1.00, "cor": "#8a5c34" }
+  ],
+  "curvasDeNivel": { "ativas": false, "intervalo": 0.06 },
+  "agua": {
+    "ativa": true,
+    "corRaso": "#57c4c8",
+    "corFundo": "#12525c",
+    "evaporacao": 0.012,
+    "chuvaInicial": 0.08
+  },
+  "overlay": "overlay.frag",
+  "marcadores": { "ativos": true, "rotulo": "Colocar rebanho" },
+  "notasDoProfessor": [
+    "Comece com chuva alta: a savana fica verde e cheia de vida.",
+    "Baixe a chuva e mostre a terra rachando — é a seca chegando.",
+    "Os poços que sobram são onde os animais se juntam. Pergunte por quê.",
+    "Marque rebanhos perto e longe da água e compare o que acontece."
+  ]
+}

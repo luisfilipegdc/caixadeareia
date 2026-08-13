@@ -187,6 +187,10 @@ export class Terreno {
     };
     this.mascara = new PingPong(gl, escalar);
 
+    // Campo livre para os modos: sementes do jardineiro, marcadores de cidade,
+    // pontos de nascente. Os shaders leem por marcadorEm(uv).
+    this.marcadores = new PingPong(gl, escalar);
+
     this.progDemo = criarPrograma(gl, FS_DEMO);
     this.progPincel = criarPrograma(gl, FS_PINCEL);
     this.progKinect = criarPrograma(gl, FS_KINECT);
@@ -205,6 +209,7 @@ export class Terreno {
 
   get textura() { return this.campo.leitura; }
   get texturaChuva() { return this.mascara.leitura; }
+  get texturaMarcadores() { return this.marcadores.leitura; }
 
   gerar(semente = Math.random() * 100) {
     this.campo.escrita.ligar();
@@ -290,5 +295,22 @@ export class Terreno {
 
   limparChuva() {
     this.mascara.limpar();
+  }
+
+  marcar(u, v, raio = 0.02) {
+    this.marcadores.escrita.ligar();
+    this.progPincelChuva.usar().setTodos({
+      u_anterior: this.marcadores.leitura,
+      u_centro: [u, v],
+      u_proporcao: this.proporcao,
+      u_raio: raio,
+    });
+    this.quad.desenhar();
+    this.marcadores.trocar();
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+  }
+
+  limparMarcadores() {
+    this.marcadores.limpar();
   }
 }

@@ -1,9 +1,13 @@
 {
   "cenarios": [
     "topografia",
+    "nascente",
     "bacias",
-    "vulcao",
     "ecossistemas",
+    "safari",
+    "vulcao",
+    "jardineiro",
+    "formas-e-cores",
     "quiz-agua"
   ]
 }

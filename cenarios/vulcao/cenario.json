@@ -1,17 +1,42 @@
 {
   "id": "vulcao",
   "nome": "Vulcão",
+  "categoria": "jogos",
   "descricao": "Rocha, lava e crateras",
   "paleta": [
-    { "h": 0.00, "cor": "#1a1a1a" },
-    { "h": 0.25, "cor": "#3d2b23" },
-    { "h": 0.45, "cor": "#5d4037" },
-    { "h": 0.65, "cor": "#7a4b2a" },
-    { "h": 0.80, "cor": "#a9603a" },
-    { "h": 0.92, "cor": "#4e342e" },
-    { "h": 1.00, "cor": "#2b2b2b" }
+    {
+      "h": 0.0,
+      "cor": "#1a1a1a"
+    },
+    {
+      "h": 0.25,
+      "cor": "#3d2b23"
+    },
+    {
+      "h": 0.45,
+      "cor": "#5d4037"
+    },
+    {
+      "h": 0.65,
+      "cor": "#7a4b2a"
+    },
+    {
+      "h": 0.8,
+      "cor": "#a9603a"
+    },
+    {
+      "h": 0.92,
+      "cor": "#4e342e"
+    },
+    {
+      "h": 1.0,
+      "cor": "#2b2b2b"
+    }
   ],
-  "curvasDeNivel": { "ativas": false, "intervalo": 0.05 },
+  "curvasDeNivel": {
+    "ativas": false,
+    "intervalo": 0.05
+  },
   "agua": {
     "ativa": true,
     "corRaso": "#ff9800",

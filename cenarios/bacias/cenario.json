@@ -1,17 +1,42 @@
 {
   "id": "bacias",
   "nome": "Bacias hidrográficas",
+  "categoria": "educacao",
   "descricao": "Divisores de água e caminho da chuva",
   "paleta": [
-    { "h": 0.00, "cor": "#14323f" },
-    { "h": 0.20, "cor": "#256d7b" },
-    { "h": 0.35, "cor": "#4f9d8a" },
-    { "h": 0.55, "cor": "#a9c46c" },
-    { "h": 0.75, "cor": "#e0a458" },
-    { "h": 0.90, "cor": "#a35c3a" },
-    { "h": 1.00, "cor": "#f2e9e4" }
+    {
+      "h": 0.0,
+      "cor": "#14323f"
+    },
+    {
+      "h": 0.2,
+      "cor": "#256d7b"
+    },
+    {
+      "h": 0.35,
+      "cor": "#4f9d8a"
+    },
+    {
+      "h": 0.55,
+      "cor": "#a9c46c"
+    },
+    {
+      "h": 0.75,
+      "cor": "#e0a458"
+    },
+    {
+      "h": 0.9,
+      "cor": "#a35c3a"
+    },
+    {
+      "h": 1.0,
+      "cor": "#f2e9e4"
+    }
   ],
-  "curvasDeNivel": { "ativas": true, "intervalo": 0.03 },
+  "curvasDeNivel": {
+    "ativas": true,
+    "intervalo": 0.03
+  },
   "agua": {
     "ativa": true,
     "corRaso": "#5ad2f4",

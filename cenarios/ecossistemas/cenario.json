@@ -1,19 +1,50 @@
 {
   "id": "ecossistemas",
   "nome": "Ecossistemas",
+  "categoria": "educacao",
   "descricao": "Biomas por altitude e umidade",
   "paleta": [
-    { "h": 0.00, "cor": "#0d3b66" },
-    { "h": 0.16, "cor": "#3d7ea6" },
-    { "h": 0.24, "cor": "#f4d58d" },
-    { "h": 0.34, "cor": "#88a35a" },
-    { "h": 0.52, "cor": "#2f6b3a" },
-    { "h": 0.70, "cor": "#4b7c52" },
-    { "h": 0.84, "cor": "#8d8577" },
-    { "h": 0.94, "cor": "#d8d8d8" },
-    { "h": 1.00, "cor": "#ffffff" }
+    {
+      "h": 0.0,
+      "cor": "#0d3b66"
+    },
+    {
+      "h": 0.16,
+      "cor": "#3d7ea6"
+    },
+    {
+      "h": 0.24,
+      "cor": "#f4d58d"
+    },
+    {
+      "h": 0.34,
+      "cor": "#88a35a"
+    },
+    {
+      "h": 0.52,
+      "cor": "#2f6b3a"
+    },
+    {
+      "h": 0.7,
+      "cor": "#4b7c52"
+    },
+    {
+      "h": 0.84,
+      "cor": "#8d8577"
+    },
+    {
+      "h": 0.94,
+      "cor": "#d8d8d8"
+    },
+    {
+      "h": 1.0,
+      "cor": "#ffffff"
+    }
   ],
-  "curvasDeNivel": { "ativas": false, "intervalo": 0.06 },
+  "curvasDeNivel": {
+    "ativas": false,
+    "intervalo": 0.06
+  },
   "agua": {
     "ativa": true,
     "corRaso": "#63d0e8",

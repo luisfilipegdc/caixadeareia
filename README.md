@@ -97,12 +97,28 @@ vec4 cenario(vec2 uv, float altura, float agua, float tempo, vec4 cor) {
 }
 ```
 
-Dentro dela estão disponíveis `alturaEm(uv)`, `aguaEm(uv)` e `u_texel`.
-Depois, acrescente o id em `cenarios/index.json`. Um shader com erro é
-rejeitado e o cenário cai na exibição padrão — a aula não para.
+Dentro dela estão disponíveis `alturaEm(uv)`, `aguaEm(uv)`, `marcadorEm(uv)`,
+`ruido(p)` e `u_texel`. Depois, acrescente o id em `cenarios/index.json`. Um
+shader com erro é rejeitado e o cenário cai na exibição padrão — a aula não
+para.
 
-Cenários que acompanham o projeto: topografia, bacias hidrográficas, vulcão,
-ecossistemas e um quiz do ciclo da água.
+## Modos incluídos
+
+| Modo | Categoria | O que faz |
+|---|---|---|
+| Topografia | educação | cores por altitude e curvas de nível |
+| Nascente de água | relaxamento | correnteza com espuma, cheias, barragens |
+| Bacias hidrográficas | educação | destaca os divisores de água |
+| Ecossistemas | educação | biomas que respondem à umidade |
+| Safári | educação | savana que vira deserto rachado quando seca |
+| Vulcão | jogos | lava incandescente com crosta esfriando |
+| Jardineiro | jogos | plantar sementes, regar, ver a planta viver ou murchar |
+| Formas e cores | criatividade | camadas do arco-íris e formas geométricas guia |
+| Quiz do ciclo da água | educação | perguntas conduzidas pelo professor |
+
+Cada modo declara sua categoria, e o painel filtra por ela. Modos com
+`"marcadores"` habilitam o gesto **Alt + clique**, que planta sementes, abre
+nascentes ou posiciona rebanhos conforme o modo.
 
 ## Como funciona por dentro
 

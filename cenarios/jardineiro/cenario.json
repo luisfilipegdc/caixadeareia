@@ -1,0 +1,28 @@
+{
+  "id": "jardineiro",
+  "nome": "Jardineiro",
+  "categoria": "jogos",
+  "descricao": "Plante sementes e regue para elas crescerem",
+  "paleta": [
+    { "h": 0.00, "cor": "#3a2c1e" },
+    { "h": 0.22, "cor": "#5b4429" },
+    { "h": 0.40, "cor": "#6d5433" },
+    { "h": 0.60, "cor": "#7d6440" },
+    { "h": 0.80, "cor": "#8f7752" },
+    { "h": 1.00, "cor": "#a68c66" }
+  ],
+  "curvasDeNivel": { "ativas": false, "intervalo": 0.06 },
+  "agua": {
+    "ativa": true,
+    "corRaso": "#6fd3ea",
+    "corFundo": "#0d5878",
+    "evaporacao": 0.01
+  },
+  "overlay": "overlay.frag",
+  "marcadores": { "ativos": true, "rotulo": "Plantar semente" },
+  "notasDoProfessor": [
+    "Cada criança planta a própria semente antes de começar a regar.",
+    "Semente sem água murcha: espere secar e mostre a diferença.",
+    "Pergunte por que as sementes plantadas no alto morrem primeiro."
+  ]
+}

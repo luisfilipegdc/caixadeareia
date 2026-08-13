@@ -121,6 +121,37 @@ button:active { transform: translateY(1px); }
 
 .cenarios { display: grid; gap: 6px; }
 
+.filtros { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.filtros button {
+  width: auto;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--suave);
+}
+.filtros button.ativo {
+  border-color: var(--destaque);
+  color: var(--texto);
+  background: #16233c;
+}
+
+.cenario .categoria {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--suave);
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  padding: 0 6px;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.notas { margin: 0; padding-left: 18px; color: var(--suave); font-size: 12px; }
+.notas li { margin: 5px 0; }
+
 .cenario {
   display: flex;
   align-items: center;

@@ -1,16 +1,38 @@
 {
   "id": "quiz-agua",
   "nome": "Quiz do ciclo da água",
+  "categoria": "educacao",
   "descricao": "Perguntas para responder na caixa",
   "paleta": [
-    { "h": 0.00, "cor": "#173f5f" },
-    { "h": 0.20, "cor": "#3caea3" },
-    { "h": 0.38, "cor": "#f6d55c" },
-    { "h": 0.60, "cor": "#ed9b40" },
-    { "h": 0.82, "cor": "#a1683a" },
-    { "h": 1.00, "cor": "#f7f7f7" }
+    {
+      "h": 0.0,
+      "cor": "#173f5f"
+    },
+    {
+      "h": 0.2,
+      "cor": "#3caea3"
+    },
+    {
+      "h": 0.38,
+      "cor": "#f6d55c"
+    },
+    {
+      "h": 0.6,
+      "cor": "#ed9b40"
+    },
+    {
+      "h": 0.82,
+      "cor": "#a1683a"
+    },
+    {
+      "h": 1.0,
+      "cor": "#f7f7f7"
+    }
   ],
-  "curvasDeNivel": { "ativas": true, "intervalo": 0.05 },
+  "curvasDeNivel": {
+    "ativas": true,
+    "intervalo": 0.05
+  },
   "agua": {
     "ativa": true,
     "corRaso": "#4dd0e1",

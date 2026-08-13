@@ -79,29 +79,99 @@ function aplicarCenario(cenario) {
     agua.evaporacao = cfgAgua.evaporacao;
     el('evaporacao').value = String(cfgAgua.evaporacao / 0.02);
   }
+  if (typeof cfgAgua.chuvaInicial === 'number') {
+    agua.taxaChuva = cfgAgua.chuvaInicial * 0.35;
+    el('chuva').value = String(cfgAgua.chuvaInicial);
+  }
+
+  const marcadores = cenario.marcadores ?? {};
+  el('secaoMarcadores').hidden = !marcadores.ativos;
+  el('tituloMarcadores').textContent = marcadores.rotulo ?? 'Marcadores';
+  terreno.limparMarcadores();
 
   quiz.definir(cenario.quiz);
+  mostrarNotas(cenario);
 
   for (const botao of document.querySelectorAll('.cenario')) {
     botao.classList.toggle('ativo', botao.dataset.id === cenario.id);
   }
 }
 
-function montarListaDeCenarios(cenarios) {
+function montarListaDeCenarios(cenarios, categoria = 'todos') {
   const lista = el('listaCenarios');
   lista.textContent = '';
-  for (const cenario of cenarios) {
+
+  const visiveis = categoria === 'todos'
+    ? cenarios
+    : cenarios.filter((c) => (c.categoria ?? 'educacao') === categoria);
+
+  for (const cenario of visiveis) {
     const botao = document.createElement('button');
     botao.className = 'cenario';
     botao.dataset.id = cenario.id;
-    botao.innerHTML = `
-      <span class="amostra" style="background:${corDeAmostra(cenario)}"></span>
-      <span>
-        <span class="nome">${cenario.nome}</span><br>
-        <span class="desc">${cenario.descricao ?? ''}</span>
-      </span>`;
+    botao.classList.toggle('ativo', cenario.id === estado.cenario?.id);
+
+    const amostra = document.createElement('span');
+    amostra.className = 'amostra';
+    amostra.style.background = corDeAmostra(cenario);
+
+    const texto = document.createElement('span');
+    const nome = document.createElement('span');
+    nome.className = 'nome';
+    nome.textContent = cenario.nome;
+
+    const marca = document.createElement('span');
+    marca.className = 'categoria';
+    marca.textContent = ROTULOS[cenario.categoria ?? 'educacao'] ?? '';
+
+    const desc = document.createElement('span');
+    desc.className = 'desc';
+    desc.textContent = cenario.descricao ?? '';
+
+    texto.append(nome, marca, document.createElement('br'), desc);
+    botao.append(amostra, texto);
     botao.addEventListener('click', () => aplicarCenario(cenario));
     lista.appendChild(botao);
+  }
+}
+
+const ROTULOS = {
+  educacao: 'educação',
+  jogos: 'jogos',
+  criatividade: 'criatividade',
+  relaxamento: 'relaxamento',
+};
+
+function montarFiltros(cenarios) {
+  const caixa = el('filtros');
+  caixa.textContent = '';
+
+  const presentes = [...new Set(cenarios.map((c) => c.categoria ?? 'educacao'))];
+  const opcoes = [['todos', 'todos'], ...presentes.map((c) => [c, ROTULOS[c] ?? c])];
+
+  for (const [valor, rotulo] of opcoes) {
+    const botao = document.createElement('button');
+    botao.textContent = rotulo;
+    botao.classList.toggle('ativo', valor === 'todos');
+    botao.addEventListener('click', () => {
+      for (const outro of caixa.querySelectorAll('button')) outro.classList.remove('ativo');
+      botao.classList.add('ativo');
+      montarListaDeCenarios(cenarios, valor);
+    });
+    caixa.appendChild(botao);
+  }
+}
+
+function mostrarNotas(cenario) {
+  const secao = el('secaoNotas');
+  const lista = el('notas');
+  lista.textContent = '';
+  const notas = cenario.notasDoProfessor ?? [];
+  secao.hidden = notas.length === 0;
+  for (const nota of notas) {
+    const item = document.createElement('li');
+    item.textContent = nota;
+    lista.appendChild(item);
   }
 }
 
@@ -161,6 +231,7 @@ el('chuva').addEventListener('input', (e) => { agua.taxaChuva = Number(e.target.
 el('evaporacao').addEventListener('input', (e) => { agua.evaporacao = Number(e.target.value) * 0.02; });
 el('dilluvio').addEventListener('click', () => agua.encher(0.05));
 el('secar').addEventListener('click', () => { agua.zerar(); terreno.limparChuva(); });
+el('limparMarcadores').addEventListener('click', () => terreno.limparMarcadores());
 
 el('curvas').addEventListener('change', (e) => { vista.curvas = e.target.checked; });
 el('intervalo').addEventListener('input', (e) => { vista.intervalo = Number(e.target.value); });
@@ -218,7 +289,8 @@ canvas.addEventListener('pointercancel', () => { arrastando = 0; });
 
 function pincelar(evento) {
   const [u, v] = posicaoNoCampo(evento);
-  if (evento.shiftKey) terreno.chover(u, v, 0.05);
+  if (evento.altKey) terreno.marcar(u, v, 0.03);
+  else if (evento.shiftKey) terreno.chover(u, v, 0.05);
   else if (estado.fonte === 'demo') terreno.esculpir(u, v, 0.07, arrastando * 0.035);
 }
 
@@ -260,6 +332,7 @@ function laco(agora) {
   vista.desenhar({
     terreno: terreno.textura,
     agua: agua.textura,
+    marcadores: terreno.texturaMarcadores,
     tempo: estado.tempo,
     texel: [1 / GRADE_L, 1 / GRADE_A],
   });
@@ -278,8 +351,9 @@ function laco(agora) {
 listarCenarios()
   .then((cenarios) => {
     estado.cenarios = cenarios;
-    montarListaDeCenarios(cenarios);
+    montarFiltros(cenarios);
     aplicarCenario(cenarios[0]);
+    montarListaDeCenarios(cenarios);
   })
   .catch((erro) => avisar(erro.message));
 
