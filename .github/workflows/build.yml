@@ -10,6 +10,8 @@ jobs:
   windows:
     name: Executável Windows
     runs-on: windows-latest
+    permissions:
+      contents: write   # necessário para anexar o .exe à release
     steps:
       - uses: actions/checkout@v4
 
@@ -17,11 +19,12 @@ jobs:
         with:
           node-version: 20
 
-      # As dependências nativas do Kinect são opcionais: sem elas a ponte cai
-      # no modo simulado e o executável continua utilizável.
+      # O driver do Kinect é um módulo nativo que só compila em máquina com o
+      # SDK do sensor instalado — o runner do GitHub não tem. Por isso ele
+      # fica de fora do executável público, que sai com o modo demonstração
+      # completo e pronto para falar com uma ponte externa. Ver README.
       - name: Instalar dependências
-        run: npm install --no-audit --no-fund
-        continue-on-error: true
+        run: npm install --omit=optional --no-audit --no-fund
 
       - name: Gerar o .exe
         run: npx electron-builder --win --x64 --publish never

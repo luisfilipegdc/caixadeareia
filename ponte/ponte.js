@@ -150,6 +150,18 @@ servidor.on('listening', () => {
   console.log(`[ponte] escutando em ws://localhost:${PORTA}`);
 });
 
+servidor.on('error', (erro) => {
+  if (erro.code === 'EADDRINUSE') {
+    // Já existe uma ponte na porta. Isso é normal quando o executável sobe a
+    // sua ponte interna e o usuário já tinha aberto a dele, com o driver do
+    // sensor instalado. A ponte de fora é a boa: saímos de cena em silêncio.
+    console.log(`[ponte] porta ${PORTA} já está em uso; deixando a ponte existente atender`);
+    process.exit(0);
+  }
+  console.error(`[ponte] erro no servidor: ${erro.message}`);
+  process.exit(1);
+});
+
 function transmitir(profundidade) {
   if (!clientes.size) return;
 

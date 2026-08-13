@@ -97,6 +97,21 @@ npm run empacotar
 O executável sobe o servidor local, sobe a ponte e abre em tela cheia,
 preferindo o segundo monitor (o projetor) quando existe.
 
+### Sobre o driver do Kinect no executável público
+
+O `kinect2` é um módulo nativo: para compilar, a máquina precisa do Kinect for
+Windows SDK v2 instalado, e o runner do GitHub não tem. Por isso o `.exe`
+publicado sai **sem** o driver embutido — ele traz os 16 modos e o modo
+demonstração completos, e serve para avaliar o sistema em qualquer PC.
+
+Para usar com o sensor, há dois caminhos:
+
+1. **Compilar na máquina da caixa** — instale o Kinect SDK v2 e rode
+   `npm install && npm run empacotar`. O driver entra no executável.
+2. **Ponte por fora** — rode `npm run ponte` antes de abrir o `.exe`. A ponte
+   interna percebe que a porta já está ocupada, sai de cena em silêncio, e o
+   aplicativo conversa com a sua ponte.
+
 ## Criar um cenário
 
 Um cenário é uma pasta. Nenhum código do motor precisa mudar.
