@@ -79,7 +79,37 @@ Sensores suportados pela ponte:
 | Qualquer um, por programa externo | entrada padrão | ver abaixo |
 | Nenhum | simulado | desenvolvimento e demonstração |
 
-### Kinect v1 no Windows
+### Kinect v1 no Windows — caminho recomendado
+
+Use a **ponte em C#** (`ponte-windows-v1/`), que fala com o sensor pelo Kinect
+for Windows SDK 1.8, o driver oficial do modelo 1517. Ela substitui a ponte em
+Node: é um `.exe` só, sem Node, sem npm, sem compilar módulo nativo.
+
+1. Instale o **Kinect for Windows SDK 1.8** e o **Runtime 1.8** da Microsoft
+2. Baixe o `PonteKinect.exe` (artifacts do GitHub Actions ou a aba Releases)
+3. Rode:
+
+```
+PonteKinect.exe
+PonteKinect.exe --perto           40cm a 3m, aproveita o modo perto do 1517
+PonteKinect.exe --angulo -15      inclina o motor para a caixa
+PonteKinect.exe --simulado        testa sem sensor
+```
+
+4. Abra a caixa em `http://localhost:8080` (`npm run web`) ou o executável
+   principal, escolha **Kinect (via ponte)** e conecte em `ws://localhost:8787`
+
+Ela também sabe alimentar a ponte em Node, se você preferir:
+
+```
+PonteKinect.exe --saida-padrao | node ponte/ponte.js
+```
+
+Um detalhe que economiza uma tarde: o runtime do Kinect 1.8 é de 32 bits, por
+isso o projeto compila em **x86**. Se aparecer erro de arquitetura ao carregar
+`Microsoft.Kinect.dll`, é isso.
+
+### Kinect v1 pelos drivers em Node
 
 O driver do v1 é a libfreenect, e os pacotes npm que a empacotam são antigos:
 no Linux compilam sem drama, no Windows costumam falhar. Em ordem de esforço:

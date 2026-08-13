@@ -43,6 +43,32 @@ jobs:
           files: dist/*.exe
           generate_release_notes: true
 
+  ponte-kinect-v1:
+    name: Ponte Kinect v1 (C#)
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Compila sem o SDK do Kinect instalado: a biblioteca do sensor é
+      # carregada por reflexão em tempo de execução, então o CI consegue
+      # verificar o código mesmo sem hardware nem SDK.
+      - name: Compilar a ponte
+        run: dotnet build ponte-windows-v1/PonteKinect.csproj -c Release -o dist-ponte
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PonteKinect-v1-windows
+          path: dist-ponte/PonteKinect.exe
+          if-no-files-found: error
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-ponte/PonteKinect.exe
+
   publicar-web:
     name: Publicar versão web
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'

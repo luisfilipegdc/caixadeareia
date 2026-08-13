@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Ponte para o Kinect v1 (modelo 1517, Kinect for Windows) usando o SDK 1.8.
+
+    Alvo é o .NET Framework 4.8, que já vem no Windows 10 e 11 — a escola não
+    instala runtime nenhum.
+
+    Repare que NÃO existe referência a Microsoft.Kinect.dll aqui: a biblioteca
+    é carregada por reflexão em tempo de execução. Isso tem duas consequências
+    boas: o projeto compila em qualquer máquina (inclusive no CI, que não tem o
+    SDK do sensor), e o mesmo executável roda em PC sem Kinect, no modo
+    simulado, sem estourar.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>PonteKinect</AssemblyName>
+    <RootNamespace>CaixaDeAreia</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x86</PlatformTarget>
+    <!-- x86 de propósito: o runtime do Kinect 1.8 é de 32 bits. -->
+    <AssemblyTitle>Ponte Kinect - Caixa de Areia Interativa</AssemblyTitle>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+</Project>
