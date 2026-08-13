@@ -31,6 +31,7 @@ namespace CaixaDeAreia
             bool perto = Tem(argumentos, "--perto");
             bool simulado = Tem(argumentos, "--simulado");
             bool saidaPadrao = Tem(argumentos, "--saida-padrao");
+            bool naRede = Tem(argumentos, "--rede");
 
             Console.Error.WriteLine("Ponte Kinect v1 — Caixa de Areia Interativa\n");
 
@@ -68,7 +69,7 @@ namespace CaixaDeAreia
             {
                 try
                 {
-                    servidor = new ServidorWebSocket(porta)
+                    servidor = new ServidorWebSocket(porta, naRede)
                     {
                         MensagemDeBoasVindas = "{\"tipo\":\"ola\",\"sensor\":\""
                             + (simulado ? "simulado" : "kinect-v1")
@@ -77,6 +78,15 @@ namespace CaixaDeAreia
                                 : "Kinect v1 transmitindo pelo SDK 1.8.") + "\"}",
                     };
                     Console.Error.WriteLine($"[ponte] escutando em ws://localhost:{porta}");
+                    if (naRede)
+                    {
+                        foreach (string endereco in EnderecosDaMaquina())
+                        {
+                            Console.Error.WriteLine($"[ponte] na rede local: ws://{endereco}:{porta}");
+                        }
+                        Console.Error.WriteLine("[ponte] libere a porta no Firewall do Windows se o outro "
+                            + "computador não conseguir conectar");
+                    }
                 }
                 catch (Exception erro)
                 {
@@ -215,6 +225,27 @@ namespace CaixaDeAreia
             destino[posicao + 1] = (byte)(valor >> 8);
             destino[posicao + 2] = (byte)(valor >> 16);
             destino[posicao + 3] = (byte)(valor >> 24);
+        }
+
+        /// <summary>Endereços IPv4 desta máquina, para mostrar a quem vai conectar de fora.</summary>
+        private static System.Collections.Generic.IEnumerable<string> EnderecosDaMaquina()
+        {
+            var achados = new System.Collections.Generic.List<string>();
+            try
+            {
+                foreach (var endereco in System.Net.Dns.GetHostAddresses(System.Net.Dns.GetHostName()))
+                {
+                    if (endereco.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    {
+                        achados.Add(endereco.ToString());
+                    }
+                }
+            }
+            catch
+            {
+                // Sem rede configurada: seguimos com o que der.
+            }
+            return achados;
         }
 
         private static bool Tem(string[] argumentos, string nome)

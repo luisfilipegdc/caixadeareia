@@ -118,8 +118,32 @@ com ninguém. Se a ponte relatar `InsufficientBandwidth`, não é software:
   em hub nem em porta de teclado/monitor
 - desconecte webcam, HD externo e headset USB enquanto testa
 - troque de porta: frente e trás costumam ser controladoras diferentes
-- em notebook quase todas as portas compartilham a mesma controladora, e aí a
-  saída costuma ser uma placa USB PCIe ou outro computador
+- em notebook quase todas as portas compartilham a mesma controladora, e aí
+  nenhuma troca de porta resolve — veja a seção seguinte
+
+Um hub USB, mesmo com fonte própria, **não** ajuda: a banda que falta é da
+controladora, não do hub.
+
+#### Sensor num computador, projeção em outro
+
+Quando a máquina da projeção não dá conta do sensor — o caso típico é
+notebook, onde todas as portas dividem a mesma controladora — o sensor pode
+ficar em outro computador, mesmo velho, ligado na mesma rede.
+
+No computador com o Kinect:
+
+```
+PonteKinect.exe --rede
+```
+
+Ela imprime o endereço a usar, por exemplo `ws://192.168.0.42:8787`. No
+computador do projetor, rode a caixa com `npm run web`, escolha **Kinect (via
+ponte)** e informe esse endereço.
+
+Duas condições: os dois na mesma rede, e a porta 8787 liberada no Firewall do
+Windows (ele pergunta na primeira execução — basta permitir em redes
+privadas). Use o site local, não o publicado em HTTPS: navegador em página
+segura recusa `ws://` para endereços que não sejam localhost.
 
 Os estados que a ponte relata (`NotPowered`, `InsufficientBandwidth`,
 `DeviceNotSupported`, `Initializing` preso) vêm com a orientação específica de

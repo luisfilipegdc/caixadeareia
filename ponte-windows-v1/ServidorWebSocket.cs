@@ -40,10 +40,16 @@ namespace CaixaDeAreia
             public DateTime EnviadoEm = DateTime.MinValue;
         }
 
-        public ServidorWebSocket(int porta)
+        /// <param name="naRede">
+        /// Quando falso, atende só a própria máquina. Quando verdadeiro, aceita
+        /// conexões da rede local — é o que permite deixar o sensor num
+        /// computador e a projeção em outro, saída para notebooks cuja
+        /// controladora USB não dá conta do Kinect.
+        /// </param>
+        public ServidorWebSocket(int porta, bool naRede = false)
         {
             Porta = porta;
-            _escuta = new TcpListener(IPAddress.Loopback, porta);
+            _escuta = new TcpListener(naRede ? IPAddress.Any : IPAddress.Loopback, porta);
             _escuta.Start();
             AceitarProximo();
         }
