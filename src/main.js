@@ -202,7 +202,15 @@ ponte.addEventListener('erro', (e) => {
 });
 ponte.addEventListener('status', (e) => {
   if (e.detail?.mensagem) el('statusPonte').textContent = e.detail.mensagem;
+  // O relevo simulado é convincente demais para passar despercebido: sem
+  // aviso na tela, o professor calibra uma areia que não existe.
+  if (e.detail?.sensor) marcarSimulado(e.detail.sensor === 'simulado');
 });
+
+function marcarSimulado(simulado) {
+  estado.simulado = simulado;
+  el('selo').hidden = !simulado || estado.fonte !== 'ponte';
+}
 
 // --------------------------------------------------------------- interface
 
@@ -211,6 +219,7 @@ function trocarFonte(fonte) {
   el('modoAtual').textContent = fonte;
   el('controlesDemo').hidden = fonte !== 'demo';
   el('controlesPonte').hidden = fonte !== 'ponte';
+  el('selo').hidden = !(fonte === 'ponte' && estado.simulado);
   if (fonte !== 'ponte') ponte.desligar();
 }
 
@@ -220,6 +229,7 @@ el('conectarPonte').addEventListener('click', () => ponte.conectar(el('ponteUrl'
 
 el('planoBase').addEventListener('input', (e) => { terreno.baseMm = Number(e.target.value) * 10; });
 el('alturaUtil').addEventListener('input', (e) => { terreno.utilMm = Number(e.target.value) * 10; });
+el('suavizacao').addEventListener('input', (e) => { terreno.suavizacao = Number(e.target.value); });
 el('recortar').addEventListener('click', () => {
   iniciarCalibracao(canvas, (matriz) => {
     terreno.recorte = matriz;

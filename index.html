@@ -16,6 +16,11 @@
 
 <div id="aviso" class="aviso" hidden></div>
 
+<div id="selo" class="selo" hidden>
+  <strong>SENSOR SIMULADO</strong>
+  <span>Este relevo é gerado pelo computador — não é a sua caixa de areia.</span>
+</div>
+
 <aside id="painel" class="painel">
   <header>
     <h1>Caixa de Areia</h1>
@@ -67,6 +72,10 @@
       <label class="linha">
         <span>Altura útil (cm)</span>
         <input id="alturaUtil" type="range" min="5" max="60" step="1" value="30">
+      </label>
+      <label class="linha">
+        <span>Suavização</span>
+        <input id="suavizacao" type="range" min="0" max="0.95" step="0.05" value="0.55">
       </label>
       <label class="linha">
         <span>Recorte da areia</span>
