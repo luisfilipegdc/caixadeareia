@@ -109,6 +109,22 @@ Um detalhe que economiza uma tarde: o runtime do Kinect 1.8 é de 32 bits, por
 isso o projeto compila em **x86**. Se aparecer erro de arquitetura ao carregar
 `Microsoft.Kinect.dll`, é isso.
 
+#### A porta USB importa mais que tudo
+
+O Kinect v1 consome quase toda a banda de uma controladora USB e não divide
+com ninguém. Se a ponte relatar `InsufficientBandwidth`, não é software:
+
+- ligue o sensor **direto na placa-mãe**, nas portas de trás do gabinete, nunca
+  em hub nem em porta de teclado/monitor
+- desconecte webcam, HD externo e headset USB enquanto testa
+- troque de porta: frente e trás costumam ser controladoras diferentes
+- em notebook quase todas as portas compartilham a mesma controladora, e aí a
+  saída costuma ser uma placa USB PCIe ou outro computador
+
+Os estados que a ponte relata (`NotPowered`, `InsufficientBandwidth`,
+`DeviceNotSupported`, `Initializing` preso) vêm com a orientação específica de
+cada um na própria tela.
+
 ### Kinect v1 pelos drivers em Node
 
 O driver do v1 é a libfreenect, e os pacotes npm que a empacotam são antigos:

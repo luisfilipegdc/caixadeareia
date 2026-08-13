@@ -72,9 +72,8 @@ namespace CaixaDeAreia
                     motivo = vistos == 0
                         ? "Nenhum Kinect encontrado. Confira a fonte de energia (o sensor não liga só pelo USB), "
                           + "o cabo e se o driver aparece no Gerenciador de Dispositivos."
-                        : $"O Kinect foi encontrado mas não ficou pronto em {segundosDeEspera}s — último estado: {ultimoEstado}. "
-                          + "NotPowered é fonte desligada; DeviceNotSupported é modelo incompatível com o SDK 1.8; "
-                          + "Initializing preso costuma ser cabo USB ruim ou porta sem energia suficiente.";
+                        : $"O Kinect não ficou pronto em {segundosDeEspera}s — estado: {ultimoEstado}.\n"
+                          + "        " + Conselho(ultimoEstado);
                     return null;
                 }
 
@@ -106,6 +105,43 @@ namespace CaixaDeAreia
             {
                 motivo = "Falha ao abrir o sensor: " + PrimeiraLinha(erro);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Traduz o estado do SDK no que a pessoa precisa fazer. Cada um destes
+        /// tem causa e solução próprias, e o texto genérico só atrapalha.
+        /// </summary>
+        private static string Conselho(string estado)
+        {
+            switch (estado)
+            {
+                case "InsufficientBandwidth":
+                    return "A controladora USB não tem banda para o sensor. O Kinect v1 consome quase toda a banda "
+                         + "de uma controladora e não divide com ninguém.\n"
+                         + "        1. Ligue o Kinect numa porta USB atrás do gabinete, direto na placa-mãe — nunca em hub.\n"
+                         + "        2. Desconecte webcam, HD externo, headset USB e o que mais estiver ligado.\n"
+                         + "        3. Se não resolver, troque de porta: as da frente e as de trás costumam ser\n"
+                         + "           controladoras diferentes, e o sensor precisa de uma só para ele.\n"
+                         + "        4. Em notebook, quase sempre todas as portas compartilham a mesma controladora;\n"
+                         + "           aí a saída é uma placa USB PCIe ou outro computador.";
+                case "NotPowered":
+                    return "Fonte de energia desligada. O adaptador do Kinect tem uma caixa no meio do cabo que "
+                         + "precisa estar na tomada — só o USB não acorda o sensor.";
+                case "NotReady":
+                    return "O sensor está no meio da inicialização. Desconecte e reconecte o USB, e rode de novo.";
+                case "DeviceNotSupported":
+                    return "Este modelo não é compatível com o SDK 1.8 — provavelmente é um Kinect v2, "
+                         + "que precisa do SDK 2.0 e do driver kinect2.";
+                case "DeviceNotGenuine":
+                    return "O Windows não reconheceu o sensor como original. Costuma ser cabo adaptador genérico.";
+                case "Initializing":
+                    return "Ficou preso acordando. Quase sempre é cabo USB ruim, extensão longa demais, "
+                         + "ou porta sem energia suficiente.";
+                case "Error":
+                    return "O driver relatou erro. Desconecte o sensor, reinicie o computador e conecte de novo.";
+                default:
+                    return "Estado incomum. Desconecte o sensor, reinicie o computador e tente novamente.";
             }
         }
 
