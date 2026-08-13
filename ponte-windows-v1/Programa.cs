@@ -128,7 +128,12 @@ namespace CaixaDeAreia
                 quadrosDesdeAviso++;
                 if (relogio.Elapsed - ultimoAviso > TimeSpan.FromSeconds(10))
                 {
-                    Console.Error.WriteLine($"[ponte] {quadrosDesdeAviso / 10} quadros por segundo, "
+                    // A origem vai em toda linha de propósito: o começo da
+                    // execução some do terminal em minutos, e sem isso não dá
+                    // para saber se o que está na tela é a areia ou o relevo
+                    // de mentira.
+                    Console.Error.WriteLine($"[ponte] {(simulado ? "SIMULADO (sem sensor)" : "Kinect v1")} — "
+                        + $"{quadrosDesdeAviso / 10} quadros por segundo, "
                         + (servidor != null ? $"{servidor.Conectados} navegador(es)" : "encadeado"));
                     quadrosDesdeAviso = 0;
                     ultimoAviso = relogio.Elapsed;
@@ -141,18 +146,47 @@ namespace CaixaDeAreia
             return 0;
         }
 
-        /// <summary>Um morro que respira, para validar a cadeia inteira sem sensor.</summary>
+        private static double[] _morroFixo;
+
+        /// <summary>
+        /// Um morro que respira, para validar a cadeia inteira sem sensor.
+        ///
+        /// A parte fixa é calculada uma vez só: fazendo exponencial em 300 mil
+        /// pixels a cada quadro, o modo simulado rodava a 9 quadros por segundo
+        /// e chegava a ser confundido com sensor real lendo mal.
+        /// </summary>
         private static void GerarRelevoFalso(ushort[] destino, double t)
         {
+            if (_morroFixo == null)
+            {
+                _morroFixo = new double[Largura * Altura];
+                for (int y = 0; y < Altura; y++)
+                {
+                    double v = (double)y / Altura - 0.5;
+                    for (int x = 0; x < Largura; x++)
+                    {
+                        double u = (double)x / Largura - 0.5;
+                        _morroFixo[y * Largura + x] = Math.Exp(-((u + 0.2) * (u + 0.2) + v * v) * 12) * 180;
+                    }
+                }
+            }
+
+            // A onda vira produto de dois vetores, um por eixo: 1120 senos por
+            // quadro em vez de 600 mil.
+            var porColuna = new double[Largura];
+            for (int x = 0; x < Largura; x++)
+            {
+                porColuna[x] = Math.Sin(((double)x / Largura - 0.5) * 9 + t);
+            }
+
             for (int y = 0; y < Altura; y++)
             {
-                double v = (double)y / Altura - 0.5;
+                double porLinha = Math.Cos(((double)y / Altura - 0.5) * 7 - t * 0.6) * 25;
+                int inicio = y * Largura;
                 for (int x = 0; x < Largura; x++)
                 {
-                    double u = (double)x / Largura - 0.5;
-                    double morro = Math.Exp(-((u + 0.2) * (u + 0.2) + v * v) * 12) * 180;
-                    double onda = Math.Sin(u * 9 + t) * Math.Cos(v * 7 - t * 0.6) * 25;
-                    destino[y * Largura + x] = (ushort)Math.Max(0, 1000 - morro - onda - 60);
+                    double valor = 1000 - _morroFixo[inicio + x] - porColuna[x] * porLinha - 60;
+                    destino[inicio + x] = (ushort)Math.Max(0, valor);
                 }
             }
         }

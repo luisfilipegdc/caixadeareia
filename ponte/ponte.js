@@ -206,7 +206,13 @@ servidor.on('error', (erro) => {
   process.exit(1);
 });
 
+let quadrosCapturados = 0;
+
 function transmitir(profundidade) {
+  // Contado antes da saída antecipada: a taxa que interessa no relatório é a
+  // do sensor, não a do envio, senão sem navegador aberto parece que a
+  // captura parou.
+  quadrosCapturados++;
   if (!clientes.size) return;
 
   const pacote = Buffer.allocUnsafe(CABECALHO + profundidade.length * 2);
@@ -233,6 +239,19 @@ function transmitir(profundidade) {
   }
 }
 
+// Relatório periódico. A origem aparece em toda linha porque o começo da
+// execução some do terminal em poucos minutos, e é justamente ali que fica a
+// informação de o relevo ser real ou simulado.
+function relatarPeriodicamente() {
+  let ultimo = quadrosCapturados;
+  setInterval(() => {
+    const taxa = Math.round((quadrosCapturados - ultimo) / 10);
+    ultimo = quadrosCapturados;
+    const origem = sensor?.nome === 'simulado' ? 'SIMULADO (sem sensor)' : (sensor?.nome ?? 'sem sensor');
+    console.log(`[ponte] ${origem} — ${taxa} quadros por segundo, ${clientes.size} navegador(es)`);
+  }, 10000).unref();
+}
+
 async function principal() {
   sensor = argumentos.simulado ? sensorSimulado() : await abrirSensor().catch((erro) => {
     console.error(`[ponte] ${erro.message}`);
@@ -241,6 +260,7 @@ async function principal() {
   });
 
   sensor.iniciar(transmitir);
+  relatarPeriodicamente();
 }
 
 for (const sinal of ['SIGINT', 'SIGTERM']) {
