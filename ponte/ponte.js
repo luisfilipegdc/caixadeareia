@@ -51,7 +51,8 @@ const DRIVERS = [
   },
   {
     nome: 'freenect',
-    // Kinect for Xbox 360 (modelos 1414 e 1473), via libfreenect
+    // Kinect v1: Xbox 360 (1414 e 1473) e Kinect for Windows (1517), via
+    // libfreenect. É o driver que o AR Sandbox original usa.
     async carregar() {
       const { default: freenect } = await import('freenect');
       const contexto = freenect.createContext();
@@ -64,6 +65,49 @@ const DRIVERS = [
           contexto.resume();
         },
         parar() { contexto.pause(); },
+      };
+    },
+  },
+  {
+    nome: 'kinect',
+    // node-kinect, outra ligação com a libfreenect. Serve de alternativa
+    // quando o pacote "freenect" não compila na máquina.
+    async carregar() {
+      const { default: kinect } = await import('kinect');
+      const sensor = kinect();
+      return {
+        iniciar(aoQuadro) {
+          sensor.on('depth', (buffer) => {
+            aoQuadro(new Uint16Array(buffer.buffer, buffer.byteOffset, buffer.length / 2));
+          });
+          sensor.resume();
+        },
+        parar() { sensor.pause(); },
+      };
+    },
+  },
+  {
+    nome: 'ponte-externa',
+    // Escotilha de emergência: qualquer programa que escreva quadros de
+    // profundidade crus (uint16, 640x480) na entrada padrão da ponte serve
+    // como driver. Útil quando o único jeito de falar com o sensor na
+    // máquina é um executável próprio.
+    async carregar() {
+      if (process.env.PONTE_STDIN !== '1') throw new Error('desligado (defina PONTE_STDIN=1)');
+      return {
+        iniciar(aoQuadro) {
+          const esperado = 640 * 480 * 2;
+          let acumulado = Buffer.alloc(0);
+          process.stdin.on('data', (pedaco) => {
+            acumulado = Buffer.concat([acumulado, pedaco]);
+            while (acumulado.length >= esperado) {
+              const quadro = acumulado.subarray(0, esperado);
+              acumulado = acumulado.subarray(esperado);
+              aoQuadro(new Uint16Array(quadro.buffer, quadro.byteOffset, esperado / 2));
+            }
+          });
+        },
+        parar() { process.stdin.pause(); },
       };
     },
   },

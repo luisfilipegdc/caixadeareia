@@ -74,9 +74,32 @@ Sensores suportados pela ponte:
 
 | Sensor | Driver | Observação |
 |---|---|---|
-| Kinect for Xbox One / Windows v2 | `kinect2` | melhor resolução |
-| Kinect for Xbox 360 (1414/1473) | `freenect` | o mais barato de achar usado |
+| Kinect for Xbox One / Windows v2 | `kinect2` | melhor resolução, exige USB 3.0 |
+| Kinect v1: Xbox 360 (1414/1473) e for Windows (1517) | `freenect` ou `kinect` | o mais barato de achar usado |
+| Qualquer um, por programa externo | entrada padrão | ver abaixo |
 | Nenhum | simulado | desenvolvimento e demonstração |
+
+### Kinect v1 no Windows
+
+O driver do v1 é a libfreenect, e os pacotes npm que a empacotam são antigos:
+no Linux compilam sem drama, no Windows costumam falhar. Em ordem de esforço:
+
+1. **Tente direto** — `npm install freenect`, e se falhar, `npm install kinect`.
+   Leva um minuto e às vezes resolve.
+2. **Linux na máquina da caixa** — é onde o v1 é bem suportado, e é o que o AR
+   Sandbox original usa. `sudo apt install libfreenect-dev` antes do npm install.
+3. **Programa externo alimentando a ponte** — se você já tem qualquer programa
+   que fale com o sensor nessa máquina, ele pode alimentar a ponte pela entrada
+   padrão, despejando quadros crus de 640×480 em uint16:
+
+   ```bash
+   meu-programa-do-kinect | PONTE_STDIN=1 node ponte/ponte.js
+   ```
+
+   A ponte não precisa saber como os quadros foram obtidos.
+
+O v1 entrega profundidade em 640×480, exatamente a resolução que o projeto
+assume — a perda em relação ao v2 é pequena para uso em caixa de areia.
 
 ### Calibração
 

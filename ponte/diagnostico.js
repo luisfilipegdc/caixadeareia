@@ -42,7 +42,8 @@ try {
 // 3. Drivers do sensor ------------------------------------------------------
 const drivers = [
   { nome: 'kinect2', sensores: 'Kinect for Xbox One / Kinect for Windows v2' },
-  { nome: 'freenect', sensores: 'Kinect for Xbox 360 (1414 e 1473)' },
+  { nome: 'freenect', sensores: 'Kinect v1: Xbox 360 (1414/1473) e Kinect for Windows (1517)' },
+  { nome: 'kinect', sensores: 'Kinect v1, ligação alternativa com a libfreenect' },
 ];
 
 let algumDriver = false;
@@ -70,7 +71,9 @@ if (!algumDriver) {
   problemas.push(
     'Nenhum driver de sensor instalado. Sem isso a ponte só roda em modo simulado.\n'
     + '      Kinect v2 (Xbox One):  instale o "Kinect for Windows SDK 2.0" e rode  npm install kinect2\n'
-    + '      Kinect v1 (Xbox 360):  instale o libfreenect e rode  npm install freenect');
+    + '      Kinect v1 (360 / for Windows):  npm install freenect   ou   npm install kinect\n'
+    + '      No Windows, o driver do v1 costuma não compilar; veja a seção\n'
+    + '      "Kinect v1 no Windows" no README antes de insistir.');
 }
 
 // 4. SDK no Windows ---------------------------------------------------------
