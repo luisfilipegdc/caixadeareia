@@ -8,6 +8,7 @@
     "web": "node servidor-local.js",
     "ponte": "node ponte/ponte.js",
     "ponte:simulada": "node ponte/ponte.js --simulado",
+    "diagnostico": "node ponte/diagnostico.js",
     "app": "electron .",
     "empacotar": "electron-builder --win --x64"
   },

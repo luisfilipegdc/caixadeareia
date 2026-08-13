@@ -59,6 +59,17 @@ npm run ponte:simulada     # relevo falso, para testar a cadeia inteira
 
 No painel, escolha a fonte **Kinect (via ponte)** e clique em *Conectar*.
 
+### Se o sensor não conectar
+
+```bash
+npm run diagnostico
+```
+
+Ele confere versão do Node, drivers instalados, presença do SDK, se o sistema
+operacional está enxergando o sensor no USB e se a porta está livre — e
+termina dizendo o próximo passo. A causa mais comum é simples: **o Kinect não
+se alimenta pelo USB**, ele precisa da fonte de energia do adaptador oficial.
+
 Sensores suportados pela ponte:
 
 | Sensor | Driver | Observação |
