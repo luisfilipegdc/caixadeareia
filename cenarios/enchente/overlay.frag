@@ -2,31 +2,40 @@
 // do relevo — e quais casas marcadas — ficam debaixo d'água.
 
 vec4 cenario(vec2 uv, float altura, float agua, float tempo, vec4 cor) {
-  // Ciclo de ~34s: enchente lenta, vazante lenta.
+  // Ciclo de ~34s: enchente lenta, vazante lenta. A cota máxima é baixa de
+  // propósito — a graça do modo é ver o rio invadir a várzea e recuar, não
+  // afogar a caixa inteira e esconder o relevo.
   float fase = sin(tempo * 0.185) * 0.5 + 0.5;
-  float nivel = mix(0.16, 0.52, fase);
-  float cotaMaxima = 0.52;
+  float cotaMaxima = 0.34;
+  float nivel = mix(0.06, cotaMaxima, fase);
 
-  // Área de risco: fica abaixo da cheia máxima, mesmo que agora esteja seca.
-  float risco = 1.0 - smoothstep(cotaMaxima - 0.01, cotaMaxima + 0.01, altura);
-  float listra = step(0.5, fract((uv.x + uv.y) * 55.0));
-  cor.rgb = mix(cor.rgb, vec3(0.85, 0.2, 0.18), risco * listra * 0.22);
+  // Risco: a faixa que ainda vai alagar, entre a linha d'água de agora e a
+  // cota máxima. Marcar tudo que fica abaixo da cota espalharia listra pela
+  // caixa inteira; assim o aluno vê exatamente o que a água ainda alcança.
+  float aindaVaiAlagar = smoothstep(cotaMaxima + 0.008, cotaMaxima - 0.008, altura)
+                       * smoothstep(nivel - 0.008, nivel + 0.008, altura);
+  float listra = step(0.55, fract((uv.x + uv.y) * 34.0));
+  cor.rgb = mix(cor.rgb, vec3(0.9, 0.25, 0.2), aindaVaiAlagar * listra * 0.45);
 
-  // Lâmina de inundação atual.
+  // A linha da cota máxima, contínua: é o limite que o professor mostra.
+  float cota = 1.0 - smoothstep(0.0, 0.004, abs(altura - cotaMaxima));
+  cor.rgb = mix(cor.rgb, vec3(1.0, 0.35, 0.3), cota * 0.8);
+
+  // Lâmina de inundação atual, translúcida para o relevo continuar legível.
   float submerso = nivel - altura;
   if (submerso > 0.0) {
-    float d = clamp(submerso * 4.0, 0.0, 1.0);
+    float d = clamp(submerso * 6.0, 0.0, 1.0);
     vec3 corCheia = mix(vec3(0.45, 0.62, 0.55), vec3(0.15, 0.28, 0.42), d);
 
     // Água barrenta de enchente, com sujeira em movimento.
     float barro = ruido(uv * 70.0 + vec2(tempo * 0.4, -tempo * 0.25));
     corCheia = mix(corCheia, vec3(0.42, 0.33, 0.20), barro * 0.35);
 
-    cor.rgb = mix(cor.rgb, corCheia, clamp(0.55 + d * 0.45, 0.0, 0.95));
+    cor.rgb = mix(cor.rgb, corCheia, clamp(0.3 + d * 0.4, 0.0, 0.72));
 
     // Linha d'água brilhando na borda da cheia.
-    float borda = 1.0 - smoothstep(0.0, 0.008, submerso);
-    cor.rgb = mix(cor.rgb, vec3(0.9, 0.95, 1.0), borda * 0.7);
+    float borda = 1.0 - smoothstep(0.0, 0.006, submerso);
+    cor.rgb = mix(cor.rgb, vec3(0.9, 0.95, 1.0), borda * 0.8);
   }
 
   // Casas marcadas: verdes acima da água, piscando em vermelho quando alagam.
