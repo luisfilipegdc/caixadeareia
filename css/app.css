@@ -195,6 +195,14 @@ kbd {
   border-top: 1px solid var(--borda);
 }
 
+.painel footer .link-projeto {
+  color: var(--suave);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--borda);
+}
+
+.painel footer .link-projeto:hover { color: #fff; }
+
 /* Selo permanente: sem ele o relevo sintético passa por leitura do sensor,
    e o professor fica ajustando calibração de uma areia que não existe. */
 .selo {

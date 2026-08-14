@@ -52,7 +52,7 @@ async function criarJanela() {
     },
   });
 
-  janela.loadURL(`http://127.0.0.1:${porta}/`);
+  janela.loadURL(`http://127.0.0.1:${porta}/caixa.html`);
   janela.on('closed', () => { janela = null; });
 }
 

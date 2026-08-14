@@ -31,6 +31,17 @@ Abra <http://localhost:8080>. O modo **Demonstração** gera um relevo sintétic
 - segure **Shift** e arraste para fazer chover
 - **1–5** trocam de cenário, **F** entra em tela cheia, **espaço** pausa, **C** seca a água
 
+## Endereços do site
+
+| URL | O que é | Arquivo |
+|---|---|---|
+| `/` | **Projeto de construção**: geometria, desenhos cotados, plano de corte em MDF, montagem, software e calibração | `index.html` |
+| `/caixa` | **O aplicativo**: relevo, curvas de nível, água e cenários | `caixa.html` |
+
+`/app` e `/sandbox` redirecionam para `/caixa`. O `cleanUrls` da Vercel é quem
+serve `caixa.html` em `/caixa`. Localmente, `npm run web` mantém a mesma
+divisão; o executável Electron abre direto em `/caixa.html`.
+
 ## Publicar na Vercel
 
 O projeto é estático, sem etapa de build. Na Vercel: importe o repositório,

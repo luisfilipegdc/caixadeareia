@@ -2,11 +2,13 @@
 // Estratégia: rede primeiro (para o professor receber cenários novos), com o
 // cache como rede de segurança quando a escola está offline.
 
-const CACHE = 'caixa-de-areia-v1';
+const CACHE = 'caixa-de-areia-v2';
 
 const ESSENCIAIS = [
-  '.',
-  'index.html',
+  '/',
+  '/index.html',
+  '/caixa',
+  '/caixa.html',
   'manifest.webmanifest',
   'css/app.css',
   'icones/icone.svg',
@@ -26,9 +28,13 @@ const ESSENCIAIS = [
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(ESSENCIAIS))
+      // Um a um, e não com addAll: a lista tem endereços que só existem em
+      // produção (o /caixa sem extensão depende do cleanUrls da Vercel), e com
+      // addAll uma única falha descarta o cache inteiro — a escola ficaria sem
+      // modo offline sem ninguém perceber.
+      .then((cache) => Promise.all(ESSENCIAIS.map((url) => cache.add(url).catch(() => {}))))
       .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting()), // uma URL faltando não bloqueia a instalação
+      .catch(() => self.skipWaiting()),
   );
 });
 

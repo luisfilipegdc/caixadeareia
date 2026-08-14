@@ -28,6 +28,7 @@
     "productName": "Caixa de Areia Interativa",
     "files": [
       "index.html",
+      "caixa.html",
       "manifest.webmanifest",
       "sw.js",
       "css/**",

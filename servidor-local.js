@@ -28,7 +28,12 @@ export function iniciarServidor(porta = 8080) {
   const servidor = createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
-      const pedido = url.pathname === '/' ? '/index.html' : url.pathname;
+      let pedido = url.pathname === '/' ? '/index.html' : url.pathname;
+
+      // Mesma regra do cleanUrls da Vercel: /caixa serve caixa.html. Sem isso
+      // os endereços do site publicado dariam 404 aqui, e a documentação
+      // precisaria descrever dois conjuntos de URLs.
+      if (!extname(pedido)) pedido += '.html';
 
       // Impede que "../" escape da pasta do projeto.
       const caminho = join(RAIZ, normalize(decodeURIComponent(pedido)));
