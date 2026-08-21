@@ -4,10 +4,10 @@ Sistema nativo Windows que lê o relevo de uma caixa de areia com um Kinect e pr
 sobre ela um mapa topográfico colorido com curvas de nível, atualizado em tempo real
 conforme os alunos moldam a areia.
 
-**Projeto autoral de [Luis Filipe Gomes de Carvalho](https://github.com/luisfilipegdc)** —
-Brasília, DF · 2026 · Licenciado sob [GPL-2.0-or-later](LICENSE)
+**Projeto Caixa de Areia** — Brasília, DF · 2026 ·
+Licenciado sob [GPL-2.0-or-later](LICENSE)
 
-**Versão 1.0.0** · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
+`v1.0.0` · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
 [Suporte](mailto:contato@luisfilipegdc.com.br) ·
 [Repositório](https://github.com/luisfilipegdc/caixadeareia)
 
@@ -273,7 +273,7 @@ src/CaixaInterativa/
 | | |
 |---|---|
 | **Página do projeto** | https://luisfilipegdc.com.br/caixa-de-areia |
-| **E-mail de suporte** | contato@luisfilipegdc.com.br |
+| **Suporte** | [Enviar e-mail](mailto:contato@luisfilipegdc.com.br) |
 | **Repositório** | https://github.com/luisfilipegdc/caixadeareia |
 | **Versão atual** | 1.0.0 |
 | **Licença** | [GPL-2.0-or-later](LICENSE) |
@@ -296,7 +296,7 @@ versão, para poupar essa primeira pergunta.
 ## Autoria e licença
 
 **Caixa de Areia Interativa**
-Copyright © 2026 Luis Filipe Gomes de Carvalho — Brasília, DF
+Copyright © 2026 Projeto Caixa de Areia — Brasília, DF
 
 Este é um **projeto autoral**, inspirado em iniciativas acadêmicas anteriores. A autoria
 não depende de negar as referências: ela está nas decisões de arquitetura, na
@@ -335,9 +335,9 @@ manter o projeto aberto e garantir que continue aberto.
 
 Se usar este trabalho em pesquisa, material didático ou apresentação, a citação sugerida é:
 
-> CARVALHO, Luis Filipe Gomes de. **Caixa de Areia Interativa**: plataforma de projeção
-> topográfica para ensino de geografia e ciências ambientais. Brasília, 2026.
-> Disponível em: https://github.com/luisfilipegdc/caixadeareia
+> **Caixa de Areia Interativa**: plataforma de projeção topográfica para ensino de
+> geografia e ciências ambientais. Versão 1.0.0. Projeto Caixa de Areia, Brasília, 2026.
+> Disponível em: https://luisfilipegdc.com.br/caixa-de-areia
 
 Este programa é distribuído na esperança de que seja útil, mas **sem qualquer garantia**;
 sem sequer a garantia implícita de comercialização ou adequação a uma finalidade

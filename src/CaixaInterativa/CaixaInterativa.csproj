@@ -20,9 +20,9 @@
          diferente da que foi compilada. -->
     <Version>1.0.0</Version>
     <Product>Caixa de Areia Interativa</Product>
-    <Authors>Luis Filipe Gomes de Carvalho</Authors>
-    <Company>Luis Filipe Gomes de Carvalho</Company>
-    <Copyright>Copyright © 2026 Luis Filipe Gomes de Carvalho — GPL-2.0-or-later</Copyright>
+    <Authors>Projeto Caixa de Areia</Authors>
+    <Company>Projeto Caixa de Areia</Company>
+    <Copyright>Copyright © 2026 Projeto Caixa de Areia — GPL-2.0-or-later</Copyright>
     <Description>Sistema de projeção topográfica interativa para ensino de geografia e ciências ambientais</Description>
     <RepositoryUrl>https://github.com/luisfilipegdc/caixadeareia</RepositoryUrl>
     <!-- WFAC010 pede para mover o DPI do manifesto para Application.SetHighDpiMode.

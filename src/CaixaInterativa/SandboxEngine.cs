@@ -1,5 +1,5 @@
 // Caixa de Areia Interativa — sistema de projeção topográfica interativa
-// Copyright (C) 2026 Luis Filipe Gomes de Carvalho
+// Copyright (C) 2026 Projeto Caixa de Areia
 //
 // Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
 // sob os termos da Licença Pública Geral GNU, conforme publicada pela Free

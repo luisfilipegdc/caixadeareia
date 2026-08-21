@@ -1,5 +1,5 @@
 // Caixa de Areia Interativa — sistema de projeção topográfica interativa
-// Copyright (C) 2026 Luis Filipe Gomes de Carvalho
+// Copyright (C) 2026 Projeto Caixa de Areia
 //
 // Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
 // sob os termos da Licença Pública Geral GNU, conforme publicada pela Free
@@ -51,8 +51,8 @@ public partial class MainWindow : Window
     {
         // Identidade vem toda de AppInfo, para que tela e documentação não divirjam.
         Title = AppInfo.TituloDaJanela;
+        TxtVersao.Text = AppInfo.VersaoExibida;
         TxtAssinatura.Text = AppInfo.Assinatura;
-        TxtEmailSuporte.Text = AppInfo.EmailSuporte;
         LnkSuporte.NavigateUri = new Uri(AppInfo.LinkDeSuporte);
         LnkPagina.NavigateUri = new Uri(AppInfo.PaginaDoProjeto);
         LnkGithub.NavigateUri = new Uri(AppInfo.Repositorio);

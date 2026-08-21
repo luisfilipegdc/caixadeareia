@@ -1,5 +1,5 @@
 // Caixa de Areia Interativa — sistema de projeção topográfica interativa
-// Copyright (C) 2026 Luis Filipe Gomes de Carvalho
+// Copyright (C) 2026 Projeto Caixa de Areia
 //
 // Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
 // sob os termos da Licença Pública Geral GNU, conforme publicada pela Free
@@ -26,7 +26,7 @@ public static class AppInfo
 {
     public const string Nome = "Caixa de Areia Interativa";
 
-    public const string Autor = "Luis Filipe Gomes de Carvalho";
+    public const string Autor = "Projeto Caixa de Areia";
 
     public const string Local = "Brasília, DF";
 
@@ -56,8 +56,11 @@ public static class AppInfo
 
     public static string TituloDaJanela => $"{Nome}  ·  v{Versao}";
 
-    /// <summary>Linha de assinatura para a barra inferior e a tela de informações.</summary>
-    public static string Assinatura => $"v{Versao}  ·  {Autor}  ·  {Licenca}";
+    /// <summary>Versão em destaque, o primeiro dado que o suporte pede.</summary>
+    public static string VersaoExibida => $"v{Versao}";
+
+    /// <summary>Linha discreta de autoria e licença, abaixo da versão.</summary>
+    public static string Assinatura => $"{Autor}  ·  {Licenca}";
 
     /// <summary>
     /// Assunto pré-preenchido no e-mail de suporte, já com a versão — evita a primeira
