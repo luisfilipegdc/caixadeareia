@@ -4,6 +4,9 @@ Sistema nativo Windows que lê o relevo de uma caixa de areia com um Kinect e pr
 sobre ela um mapa topográfico colorido com curvas de nível, atualizado em tempo real
 conforme os alunos moldam a areia.
 
+**Projeto autoral de [Luis Filipe Gomes de Carvalho](https://github.com/luisfilipegdc)** —
+Brasília, DF · 2026 · Licenciado sob [GPL-2.0-or-later](LICENSE)
+
 - **Sensor:** Kinect v1 / Kinect for Windows (modelo 1517), via API nativa NUI do SDK 1.8
 - **Plataforma:** .NET 8 + WPF, x64
 - **Renderização:** CPU (Parallel.For), ~30 fps a 640×480
@@ -242,3 +245,55 @@ src/CaixaInterativa/
 │   └── ProjectionWindow.xaml    tela cheia no projetor
 └── SandboxEngine.cs             orquestração
 ```
+
+---
+
+## Autoria e licença
+
+**Caixa de Areia Interativa**
+Copyright © 2026 Luis Filipe Gomes de Carvalho — Brasília, DF
+
+Este é um **projeto autoral**, inspirado em iniciativas acadêmicas anteriores. A autoria
+não depende de negar as referências: ela está nas decisões de arquitetura, na
+implementação, nos testes com hardware real, na adaptação ao contexto escolar brasileiro
+e no planejamento pedagógico.
+
+O que foi construído especificamente para este projeto:
+
+- Aplicação nativa em C# / .NET 8 com WPF
+- Captura do Kinect implementada diretamente pela API NUI, por P/Invoke
+- Pipeline próprio de calibração por pixel, suavização em três etapas e renderização
+- Interface, diagnóstico e fluxo de operação desenhados para uso em sala de aula
+- Cálculo da geometria de montagem a partir da estrutura física real
+- Documentação técnica e roteiro pedagógico
+
+### Referências reconhecidas
+
+| Referência | Contribuição histórica |
+|---|---|
+| [Augmented Reality Sandbox](https://arsandbox.ucdavis.edu/) — UC Davis / KeckCAVES | Conceito de medir o relevo com sensor de profundidade e projetar topografia e água |
+| Caixa e-Água — Universidade Regional de Blumenau (FURB), 2017 | Aplicação universitária brasileira baseada em Vrui, Kinect e SARndbox |
+| Magic-Sand | Porte parcial do SARndbox para openFrameworks/Windows |
+
+Estas iniciativas estabeleceram o conceito. A implementação aqui é independente — não
+deriva do código-fonte de nenhuma delas.
+
+### Licença
+
+Distribuído sob a **Licença Pública Geral GNU, versão 2 ou posterior**
+(GPL-2.0-or-later). O texto completo está em [LICENSE](LICENSE).
+
+Em termos práticos, você pode usar, estudar, modificar e redistribuir este software,
+inclusive em escolas e projetos próprios. Em contrapartida, **trabalhos derivados devem
+permanecer sob a mesma licença e preservar os avisos de autoria** — foi essa a escolha:
+manter o projeto aberto e garantir que continue aberto.
+
+Se usar este trabalho em pesquisa, material didático ou apresentação, a citação sugerida é:
+
+> CARVALHO, Luis Filipe Gomes de. **Caixa de Areia Interativa**: plataforma de projeção
+> topográfica para ensino de geografia e ciências ambientais. Brasília, 2026.
+> Disponível em: https://github.com/luisfilipegdc/caixadeareia
+
+Este programa é distribuído na esperança de que seja útil, mas **sem qualquer garantia**;
+sem sequer a garantia implícita de comercialização ou adequação a uma finalidade
+específica. Consulte a Licença Pública Geral GNU para mais detalhes.

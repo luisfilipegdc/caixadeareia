@@ -6,6 +6,23 @@ Análise da estrutura existente contra os requisitos ópticos do Kinect v1 e do 
 
 ## Medidas informadas
 
+> **Qual medida vale.** Circularam duas: a documentação anterior registrava uma área
+> interna de 77 × 72,5 cm e um pórtico de 175 cm; a medição da estrutura construída deu
+> **101 × 125 cm e pórtico de 179 cm**. **Valem as medidas da estrutura construída**,
+> confirmadas pelo responsável, e são elas que este documento usa.
+>
+> A diferença não é cosmética — muda a altura exigida do sensor em **36 cm** e o
+> requisito do projetor de throw ≤ 1,58 para **throw ≤ 1,17**:
+>
+> | Medida | Kinect precisa estar a | Projetor 4:3 |
+> |---|---|---|
+> | 77 × 72,5 cm (documentação anterior) | 92 cm | throw ≤ 1,58 |
+> | **101 × 125 cm (construída)** | **128,2 cm** | **throw ≤ 1,17** |
+>
+> Fica pendente medir a **área interna** da caixa construída — 101 × 125 é externo, e a
+> área útil de areia é menor pela espessura das paredes. Cada 2 cm de parede reduzem em
+> cerca de 2,5 cm a distância exigida do sensor.
+
 ### Caixa
 
 | Dimensão | Valor |
