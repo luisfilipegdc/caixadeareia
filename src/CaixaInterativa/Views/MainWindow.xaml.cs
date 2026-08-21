@@ -40,7 +40,7 @@ public partial class MainWindow : Window
         _engine.StateChanged += OnStateChanged;
 
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _uiTimer.Tick += (_, _) => AtualizarIndicadores();
+        _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarAgua(); };
         _uiTimer.Start();
 
         Loaded += OnWindowLoaded;
@@ -179,6 +179,95 @@ public partial class MainWindow : Window
     {
         if (_simulator is null) return;
         _simulator.ReliefScale = ChkFlatSim.IsChecked == true ? 0.0 : 1.0;
+    }
+
+    // ================= Enchente =================
+
+    /// <summary>
+    /// Intensidade e duração de cada tipo de chuva. Os valores não são milímetros reais
+    /// de precipitação — são o que produz um episódio legível em cerca de meio minuto,
+    /// que é o tempo que uma turma sustenta a atenção olhando a mesma coisa.
+    /// </summary>
+    private static (float MmPorSegundo, float Segundos, string Nome) Intensidade(int indice) => indice switch
+    {
+        0 => (3f, 12f, "Garoa"),
+        2 => (18f, 10f, "Tempestade"),
+        _ => (8f, 12f, "Chuva forte"),
+    };
+
+    private void OnChuva(object sender, RoutedEventArgs e)
+    {
+        if (_engine.Agua is null || _engine.State == EngineState.Parado)
+        {
+            SetStatus("Ligue a caixa antes de fazer chover.");
+            return;
+        }
+
+        if (!_engine.IsCalibrated)
+        {
+            MessageBox.Show(
+                "A caixa ainda não foi calibrada, então o sistema não sabe onde é o fundo " +
+                "e a água não teria para onde escorrer.\n\n" +
+                "Alise a areia, toque em “Nivelar e calibrar” e tente de novo.",
+                AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (_engine.Agua.Chovendo)
+        {
+            _engine.Agua.PararChuva();
+            SetStatus("Chuva interrompida. A água continua escoando.");
+            return;
+        }
+
+        var (mm, seg, nome) = Intensidade(CmbIntensidade.SelectedIndex);
+        _engine.Agua.IniciarChuva(mm, seg);
+        SetStatus($"{nome} por {seg:F0} segundos. Observe por onde a água desce.");
+    }
+
+    private void OnSecar(object sender, RoutedEventArgs e)
+    {
+        if (_engine.Agua is null) return;
+        _engine.Agua.PararChuva();
+        _engine.Agua.Limpar();
+        _engine.Agua.Ativo = false;
+        SetStatus("Caixa seca. O terreno continua como está.");
+        AtualizarAgua();
+    }
+
+    /// <summary>
+    /// Estado da água em linguagem de aula. Durante a chuva mostra a contagem; depois,
+    /// o pico de alagamento — que é o número comparável entre uma tentativa e outra.
+    /// </summary>
+    private void AtualizarAgua()
+    {
+        var agua = _engine.Agua;
+        if (agua is null) return;
+
+        BtnChuva.Content = agua.Chovendo ? "⏸  Parar a chuva" : "🌧  Fazer chover";
+
+        if (agua.Chovendo)
+        {
+            TxtAguaStatus.Text =
+                $"Chovendo… {agua.ChuvaRestanteSegundos:F0}s\n" +
+                $"Área alagada: {agua.AreaAlagadaPercent:F0}%";
+        }
+        else if (agua.Ativo && agua.VolumeLitros > 0.01)
+        {
+            TxtAguaStatus.Text =
+                $"Escoando · {agua.VolumeLitros:F1} L na caixa\n" +
+                $"Área alagada: {agua.AreaAlagadaPercent:F0}%  ·  pico {agua.PicoAlagamentoPercent:F0}%";
+        }
+        else if (agua.Ativo)
+        {
+            TxtAguaStatus.Text = agua.PicoAlagamentoPercent > 0
+                ? $"A água escoou. Pico de alagamento: {agua.PicoAlagamentoPercent:F0}%"
+                : "Sem água na caixa.";
+        }
+        else
+        {
+            TxtAguaStatus.Text = "Sem água na caixa.";
+        }
     }
 
     // ================= Calibração =================

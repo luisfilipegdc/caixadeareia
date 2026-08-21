@@ -87,6 +87,36 @@
                         </StackPanel>
                     </Border>
 
+
+                    <Border Background="#FF15151B" CornerRadius="5" Padding="13"
+                            Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="ENCHENTE" FontSize="11" FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}" Margin="0,0,0,4"/>
+                            <TextBlock TextWrapping="Wrap" Opacity="0.55" FontSize="11"
+                                       Margin="0,0,0,10"
+                                       Text="Os estudantes constroem o território. Quando estiver pronto, faça chover."/>
+
+                            <Button x:Name="BtnChuva" Click="OnChuva"
+                                    Style="{StaticResource BotaoPrimario}"
+                                    Content="🌧  Fazer chover"/>
+
+                            <TextBlock Text="Intensidade" FontSize="12" Margin="0,8,0,0"/>
+                            <ComboBox x:Name="CmbIntensidade" SelectedIndex="1">
+                                <ComboBoxItem Content="Garoa"/>
+                                <ComboBoxItem Content="Chuva forte"/>
+                                <ComboBoxItem Content="Tempestade"/>
+                            </ComboBox>
+
+                            <TextBlock x:Name="TxtAguaStatus" TextWrapping="Wrap"
+                                       FontSize="12" Margin="0,10,0,0"
+                                       Text="Sem água na caixa."/>
+
+                            <Button x:Name="BtnSecar" Click="OnSecar"
+                                    Content="Secar a caixa" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
                     <Border Background="#FF15151B" CornerRadius="5" Padding="13"
                             Margin="0,12,0,0">
                         <StackPanel>

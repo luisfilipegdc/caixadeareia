@@ -20,6 +20,7 @@ using CaixaInterativa.Config;
 using CaixaInterativa.Depth;
 using CaixaInterativa.Processing;
 using CaixaInterativa.Rendering;
+using CaixaInterativa.Simulation;
 
 namespace CaixaInterativa;
 
@@ -46,6 +47,10 @@ public sealed class SandboxEngine : IDisposable
 
     private int _framesSinceTick;
     private long _lastRenderedFrameNumber = -1;
+    private readonly Stopwatch _simClock = Stopwatch.StartNew();
+
+    /// <summary>Simulação de água. Criada junto com a fonte, porque depende da resolução.</summary>
+    public WaterSimulation? Agua { get; private set; }
 
     public AppConfig Config { get; }
     public WriteableBitmap? Bitmap => _bitmap;
@@ -135,6 +140,7 @@ public sealed class SandboxEngine : IDisposable
         };
 
         _heights = new float[source.Width * source.Height];
+        Agua = new WaterSimulation(source.Width, source.Height);
         _latestFrame = null;
         _lastRenderedFrameNumber = -1;
 
@@ -277,9 +283,23 @@ public sealed class SandboxEngine : IDisposable
         _processor.Settings = Config.Processing;
         _processor.ProcessFrame(frame, _heights);
 
+        // dt real, limitado a 100ms. Um travamento momentâneo não pode virar um salto
+        // que despeja meio segundo de chuva de uma vez e estoura a simulação.
+        float dt = (float)Math.Min(0.1, _simClock.Elapsed.TotalSeconds);
+        _simClock.Restart();
+
+        if (Agua is { Ativo: true })
+            Agua.Atualizar(_heights, frame.Width, frame.Height, dt);
+
+        bool mostrarAgua = Agua is { Ativo: true };
+
         var pixels = _renderer.Render(
             _heights, frame.Width, frame.Height,
-            Config.Projection, Config.Processing, Config.Render);
+            Config.Projection, Config.Processing, Config.Render,
+            mostrarAgua ? Agua!.Profundidade : null,
+            mostrarAgua ? Agua!.Width : 0,
+            mostrarAgua ? Agua!.Height : 0,
+            mostrarAgua ? Agua!.Velocidade : null);
 
         EnsureBitmap(_renderer.Width, _renderer.Height);
 

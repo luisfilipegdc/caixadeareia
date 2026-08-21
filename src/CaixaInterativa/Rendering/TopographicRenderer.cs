@@ -63,7 +63,11 @@ public sealed class TopographicRenderer
         int fieldHeight,
         ProjectionSettings projection,
         ProcessingSettings processing,
-        RenderSettings render)
+        RenderSettings render,
+        float[]? waterMm = null,
+        int waterWidth = 0,
+        int waterHeight = 0,
+        float[]? waterSpeed = null)
     {
         int left = Math.Clamp(projection.RoiLeft, 0, fieldWidth - 1);
         int top = Math.Clamp(projection.RoiTop, 0, fieldHeight - 1);
@@ -138,6 +142,48 @@ public sealed class TopographicRenderer
                     }
                 }
 
+                // A água entra por cima do terreno, não substituindo a cor: assim o
+                // aluno continua vendo o relevo por baixo e entende que a água está
+                // *sobre* o que ele construiu.
+                if (waterMm is not null && waterWidth > 0 && waterHeight > 0)
+                {
+                    float prof = AmostrarBilinear(waterMm, waterWidth, waterHeight,
+                                                  (x + left) / (float)fieldWidth,
+                                                  (y + top) / (float)fieldHeight);
+
+                    if (prof > 0.25f)
+                    {
+                        // Opacidade cresce rápido nos primeiros milímetros e satura:
+                        // uma poça rasa precisa ser visível, e depois de ~35mm mais
+                        // profundidade não muda o que se enxerga.
+                        float cobertura = MathF.Min(1f, prof / 35f);
+                        float alfa = 0.30f + 0.55f * cobertura;
+
+                        // Raso esverdeado, fundo azul-escuro — a mesma leitura de um
+                        // mapa náutico.
+                        float wr = 40f - 32f * cobertura;
+                        float wg = 150f - 92f * cobertura;
+                        float wb = 210f - 40f * cobertura;
+
+                        if (waterSpeed is not null)
+                        {
+                            // Correnteza clareia: distingue um rio correndo de um
+                            // lago parado, que é a diferença que a aula quer mostrar.
+                            float v = AmostrarBilinear(waterSpeed, waterWidth, waterHeight,
+                                                       (x + left) / (float)fieldWidth,
+                                                       (y + top) / (float)fieldHeight);
+                            float espuma = MathF.Min(1f, v / 260f);
+                            wr += 150f * espuma;
+                            wg += 80f * espuma;
+                            wb += 35f * espuma;
+                        }
+
+                        r = r * (1f - alfa) + wr * alfa;
+                        g = g * (1f - alfa) + wg * alfa;
+                        b = b * (1f - alfa) + wb * alfa;
+                    }
+                }
+
                 int i = dstRow + x * 4;
                 buffer[i + 0] = ClampByte(b);
                 buffer[i + 1] = ClampByte(g);
@@ -172,6 +218,32 @@ public sealed class TopographicRenderer
         r = last.R;
         g = last.G;
         b = last.B;
+    }
+
+    /// <summary>
+    /// Amostra a grade da simulação, que roda em metade da resolução do sensor.
+    /// Bilinear, e não vizinho mais próximo: com nearest a borda de uma poça vira uma
+    /// escada visível de blocos de 2x2 pixels na projeção.
+    /// </summary>
+    private static float AmostrarBilinear(float[] campo, int w, int h, float u, float v)
+    {
+        float fx = u * w - 0.5f;
+        float fy = v * h - 0.5f;
+
+        int x0 = (int)MathF.Floor(fx);
+        int y0 = (int)MathF.Floor(fy);
+        float tx = fx - x0;
+        float ty = fy - y0;
+
+        int x1 = Math.Clamp(x0 + 1, 0, w - 1);
+        int y1 = Math.Clamp(y0 + 1, 0, h - 1);
+        x0 = Math.Clamp(x0, 0, w - 1);
+        y0 = Math.Clamp(y0, 0, h - 1);
+
+        float a = campo[y0 * w + x0], b = campo[y0 * w + x1];
+        float c = campo[y1 * w + x0], d = campo[y1 * w + x1];
+
+        return (a + (b - a) * tx) * (1f - ty) + (c + (d - c) * tx) * ty;
     }
 
     private static byte ClampByte(float v) => (byte)Math.Clamp(v, 0f, 255f);
