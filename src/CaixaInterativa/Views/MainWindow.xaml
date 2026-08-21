@@ -190,6 +190,44 @@
                     </StackPanel>
                 </Expander>
 
+                <!-- Suporte e identidade: onde pedir ajuda quando algo dá errado
+                     numa aula, sem ter que procurar no GitHub. -->
+                <Border Background="#FF15151B" CornerRadius="5" Padding="13"
+                        Margin="0,16,0,0">
+                    <StackPanel>
+                        <TextBlock Text="AJUDA E SUPORTE" FontSize="11" FontWeight="Bold"
+                                   Foreground="{StaticResource Accent}" Margin="0,0,0,9"/>
+
+                        <TextBlock Margin="0,0,0,6">
+                            <Hyperlink x:Name="LnkPagina" RequestNavigate="OnAbrirLink"
+                                       NavigateUri="https://luisfilipegdc.com.br/caixa-de-areia">
+                                Página do projeto
+                            </Hyperlink>
+                        </TextBlock>
+
+                        <TextBlock Margin="0,0,0,6">
+                            <Hyperlink x:Name="LnkSuporte" RequestNavigate="OnAbrirLink">
+                                Falar com o suporte
+                            </Hyperlink>
+                        </TextBlock>
+
+                        <TextBlock Margin="0,0,0,10">
+                            <Hyperlink x:Name="LnkGithub" RequestNavigate="OnAbrirLink"
+                                       NavigateUri="https://github.com/luisfilipegdc/caixadeareia">
+                                Código-fonte no GitHub
+                            </Hyperlink>
+                        </TextBlock>
+
+                        <TextBlock x:Name="TxtEmailSuporte" TextWrapping="Wrap"
+                                   FontSize="11" Opacity="0.6" Margin="0,0,0,8"/>
+
+                        <Separator Opacity="0.15" Margin="0,0,0,8"/>
+
+                        <TextBlock x:Name="TxtAssinatura" TextWrapping="Wrap"
+                                   FontSize="10" Opacity="0.5"/>
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
 

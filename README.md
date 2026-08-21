@@ -7,6 +7,10 @@ conforme os alunos moldam a areia.
 **Projeto autoral de [Luis Filipe Gomes de Carvalho](https://github.com/luisfilipegdc)** —
 Brasília, DF · 2026 · Licenciado sob [GPL-2.0-or-later](LICENSE)
 
+**Versão 1.0.0** · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
+[Suporte](mailto:contato@luisfilipegdc.com.br) ·
+[Repositório](https://github.com/luisfilipegdc/caixadeareia)
+
 - **Sensor:** Kinect v1 / Kinect for Windows (modelo 1517), via API nativa NUI do SDK 1.8
 - **Plataforma:** .NET 8 + WPF, x64
 - **Renderização:** CPU (Parallel.For), ~30 fps a 640×480
@@ -121,22 +125,38 @@ dotnet run --project src/CaixaInterativa/CaixaInterativa.csproj -c Release
 
 ## Uso
 
+### No dia a dia
+
+Abra pelo atalho **Caixa Interativa**. O programa liga o sensor sozinho e carrega a
+calibração da última vez — o relevo aparece sem você tocar em nada.
+
+O **semáforo no topo** diz o que está acontecendo e o que fazer:
+
+| Luz | Significado |
+|---|---|
+| 🟢 Pronto | Tudo funcionando |
+| 🟡 Nivele a areia e toque em Calibrar | Lendo o sensor, mas ainda sem referência |
+| 🔵 Calibrando | Não mexa na areia |
+| 🟡 Reconectando | O sensor caiu; religa sozinho |
+| 🔴 Erro | Precisa de atenção |
+
+### Primeira vez, ou depois de mexer no sensor
+
+1. **Ligar a caixa**
+2. **Abrir projeção** e alinhar: tecle **G** para a grade, ajuste com as setas, **S** para salvar
+3. Alise a areia, tire as mãos e toque em **Nivelar e calibrar**
+4. Confira a cobertura — abaixo de 80% o programa avisa o que verificar
+5. Ajuste *Altura das montanhas* até as cores cobrirem o relevo que os alunos conseguem fazer
+
+A calibração fica salva. Nas próximas aulas, basta abrir.
+
+Só é preciso recalibrar se o sensor ou a caixa forem movidos.
+
 ### Ensaiar sem hardware
 
-Clique em **Iniciar com simulador**. Para reproduzir o fluxo completo de calibração:
-marque *Simulador: areia plana*, capture o plano-base, e desmarque — o relevo sintético
-aparece com o mapa já calibrado. É assim que o pipeline foi validado antes de haver sensor.
-
-### Fluxo de primeira vez
-
-1. **Detectar Kinect** → confirme que o sensor aparece
-2. **Iniciar com Kinect** (ou *Iniciar com simulador*, para testar sem hardware)
-3. **Abrir projeção** → escolha o monitor do projetor
-4. Na janela de projeção, tecle **G** para a grade e alinhe fisicamente o projetor
-   à borda da caixa; ajuste o resto com as setas
-5. Nivele a areia, tire as mãos da caixa, tecle **C** (ou *Capturar plano-base*)
-6. Ajuste *Altura máxima* até a faixa de cores cobrir o relevo que os alunos conseguem fazer
-7. Tecle **S** para salvar. Nas próximas aulas basta abrir e projetar
+Em **Ajustes técnicos → Usar simulador**. Para reproduzir o fluxo completo de calibração,
+marque *Simulador: areia plana*, calibre, e desmarque — o relevo sintético aparece já
+calibrado. Foi assim que a pipeline foi validada antes de haver sensor.
 
 ### Atalhos na janela de projeção
 
@@ -245,6 +265,31 @@ src/CaixaInterativa/
 │   └── ProjectionWindow.xaml    tela cheia no projetor
 └── SandboxEngine.cs             orquestração
 ```
+
+---
+
+## Suporte
+
+| | |
+|---|---|
+| **Página do projeto** | https://luisfilipegdc.com.br/caixa-de-areia |
+| **E-mail de suporte** | contato@luisfilipegdc.com.br |
+| **Repositório** | https://github.com/luisfilipegdc/caixadeareia |
+| **Versão atual** | 1.0.0 |
+| **Licença** | [GPL-2.0-or-later](LICENSE) |
+
+Esses mesmos endereços estão dentro do programa, no bloco **Ajuda e suporte** do painel —
+para que o professor os encontre durante a aula, sem precisar procurar aqui.
+
+Ao relatar um problema, ajuda muito informar:
+
+- a **versão** (aparece no título da janela e no rodapé do painel)
+- o que o **semáforo de estado** mostrava no momento
+- a **cobertura da calibração**, se o problema for no mapa
+- o modelo do Kinect e se o *near mode* estava ligado
+
+O link "Falar com o suporte" dentro do programa já preenche o assunto do e-mail com a
+versão, para poupar essa primeira pergunta.
 
 ---
 

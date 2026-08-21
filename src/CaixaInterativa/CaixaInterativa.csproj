@@ -14,6 +14,17 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>CaixaInterativa</AssemblyName>
     <RootNamespace>CaixaInterativa</RootNamespace>
+
+    <!-- Identidade: aparece nas propriedades do executável no Windows e é lida
+         em tempo de execução por AppInfo, para que a tela nunca mostre uma versão
+         diferente da que foi compilada. -->
+    <Version>1.0.0</Version>
+    <Product>Caixa de Areia Interativa</Product>
+    <Authors>Luis Filipe Gomes de Carvalho</Authors>
+    <Company>Luis Filipe Gomes de Carvalho</Company>
+    <Copyright>Copyright © 2026 Luis Filipe Gomes de Carvalho — GPL-2.0-or-later</Copyright>
+    <Description>Sistema de projeção topográfica interativa para ensino de geografia e ciências ambientais</Description>
+    <RepositoryUrl>https://github.com/luisfilipegdc/caixadeareia</RepositoryUrl>
     <!-- WFAC010 pede para mover o DPI do manifesto para Application.SetHighDpiMode.
          Essa API e' do WinForms; este e' um app WPF, cuja consciencia de DPI vem
          justamente do manifesto. O aviso nao se aplica. -->

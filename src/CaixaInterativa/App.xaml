@@ -79,5 +79,17 @@
             <Setter Property="Foreground" Value="{StaticResource PanelFg}"/>
             <Setter Property="Margin" Value="0,5"/>
         </Style>
+
+        <!-- O azul padrão do Hyperlink é escuro demais para este fundo. -->
+        <Style TargetType="Hyperlink">
+            <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+            <Setter Property="TextDecorations" Value="{x:Null}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#FF7FCFE8"/>
+                    <Setter Property="TextDecorations" Value="Underline"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Application.Resources>
 </Application>

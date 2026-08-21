@@ -49,6 +49,14 @@ public partial class MainWindow : Window
 
     private void OnWindowLoaded(object? sender, RoutedEventArgs e)
     {
+        // Identidade vem toda de AppInfo, para que tela e documentação não divirjam.
+        Title = AppInfo.TituloDaJanela;
+        TxtAssinatura.Text = AppInfo.Assinatura;
+        TxtEmailSuporte.Text = AppInfo.EmailSuporte;
+        LnkSuporte.NavigateUri = new Uri(AppInfo.LinkDeSuporte);
+        LnkPagina.NavigateUri = new Uri(AppInfo.PaginaDoProjeto);
+        LnkGithub.NavigateUri = new Uri(AppInfo.Repositorio);
+
         PopulateScreens();
         LoadSettingsIntoControls();
         ConfigPath.Text = AppConfig.DefaultPath;
@@ -429,4 +437,29 @@ public partial class MainWindow : Window
     }
 
     private void SetStatus(string message) => StatusText.Text = message;
+
+    /// <summary>
+    /// Abre links no navegador ou no cliente de e-mail do sistema. WPF não faz isso
+    /// sozinho: sem UseShellExecute o Hyperlink simplesmente não reage ao clique.
+    /// </summary>
+    private void OnAbrirLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = e.Uri.AbsoluteUri,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            // Sem navegador padrão configurado, por exemplo. Mostrar o endereço é mais
+            // útil que uma falha silenciosa — a pessoa pode copiar à mão.
+            MessageBox.Show(
+                $"Não foi possível abrir o link automaticamente.\n\n{e.Uri.AbsoluteUri}\n\n({ex.Message})",
+                AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        e.Handled = true;
+    }
 }
