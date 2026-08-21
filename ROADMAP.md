@@ -63,25 +63,32 @@ alterar código.
 
 | Item | Status | Observação |
 |---|---|---|
-| Salvar e carregar calibrações | ⬜ | `SnapshotBasePlane`/`RestoreBasePlane` já existem em `DepthProcessor`, mas não estão ligados à persistência nem à interface. É o item de maior impacto: hoje, cada abertura exige recalibrar. |
-| Assistente de configuração inicial | ⬜ | Guiar posicionamento, calibração e alinhamento na primeira execução |
-| Mostrar cobertura e qualidade da leitura | ✅ | `CoveragePercent` no painel, com aviso abaixo de 80% |
-| Detectar automaticamente a perda do Kinect | 🟡 | Evento `Faulted` existe e é reportado; falta **reconexão automática** |
-| Melhorar a suavização da profundidade | ✅ | Três etapas: buracos, α adaptativo, box blur separável. Revisitar com areia real |
-| Criar modo de diagnóstico | ⬜ | Existe como testes avulsos; falta trazer para dentro do app |
-| Testar por longos períodos | ⬜ | Verificar vazamento de memória e estabilidade em sessões de horas |
-| Garantir inicialização simples | 🟡 | Atalho na Área de Trabalho criado; falta **auto-iniciar a fonte salva** |
-| Registrar desempenho e erros | ⬜ | Sem log em arquivo hoje |
-| Criar backup das configurações | ⬜ | Cópia versionada do `config.json` e do plano-base |
+| Salvar e carregar calibrações | ✅ | `CalibrationStore` grava plano-base e máscara de validade em binário. Salva ao calibrar, carrega ao ligar. |
+| Assistente de configuração inicial | 🟡 | O painel de ajuda já orienta o passo seguinte conforme o estado; falta um assistente guiado de primeira instalação. |
+| Mostrar cobertura e qualidade da leitura | ✅ | Cobertura no painel, com aviso explicando o que verificar abaixo de 80%. |
+| Detectar automaticamente a perda do Kinect | ✅ | Evento `Faulted` mais reconexão automática a cada 3 s, sem limite de tentativas. |
+| Melhorar a suavização da profundidade | ✅ | Três etapas: buracos, α adaptativo, box blur separável. Revisitar com areia real. |
+| Criar modo de diagnóstico | ⬜ | Existe como testes avulsos; falta trazer para dentro do app. |
+| Testar por longos períodos | ⬜ | Verificar vazamento de memória e estabilidade em sessões de horas. |
+| Garantir inicialização simples | ✅ | Abre, liga a fonte salva e carrega a calibração sozinho. Atalho na Área de Trabalho. |
+| Registrar desempenho e erros | ⬜ | Sem log em arquivo hoje. |
+| Criar backup das configurações | ⬜ | Cópia versionada do `config.json` e da calibração. |
 
 **Legenda:** ✅ pronto · 🟡 parcial · ⬜ não iniciado
 
 ### Prioridade dentro da Fase 1
 
-1. **Persistir o plano-base** — sem isso, o marco da fase não é atingível
-2. **Auto-iniciar a fonte salva** — completa o "abrir e funcionar"
-3. **Reconexão automática do sensor** — um cabo esbarrado não pode encerrar a aula
-4. **Log em arquivo** — sem ele, um problema em sala vira relato sem evidência
+O marco — *"abrir o programa e ter o relevo funcionando"* — **foi atingido**: o programa
+abre, liga a fonte salva, carrega a calibração e mostra o relevo sem intervenção.
+Verificado com duas execuções consecutivas do executável.
+
+O que resta da fase, em ordem:
+
+1. **Log em arquivo** — sem ele, um problema em sala vira relato sem evidência
+2. **Modo de diagnóstico dentro do app** — hoje só existe como testes avulsos
+3. **Teste de longa duração** — verificar vazamento de memória numa sessão de horas
+4. **Backup da configuração e da calibração**
+5. **Assistente de primeira instalação** — guiar o posicionamento do sensor
 
 ---
 
