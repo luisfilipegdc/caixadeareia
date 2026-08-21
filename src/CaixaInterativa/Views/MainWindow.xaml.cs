@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using CaixaInterativa.Config;
 using CaixaInterativa.Depth;
+using CaixaInterativa.Simulation;
 
 namespace CaixaInterativa.Views;
 
@@ -225,6 +226,98 @@ public partial class MainWindow : Window
         SetStatus($"{nome} por {seg:F0} segundos. Observe por onde a água desce.");
     }
 
+    // Resultados dos episódios, para responder "melhorou ou piorou?".
+    private readonly List<(string Cobertura, double Pico, double Infiltrado)> _historico = [];
+    private string _coberturaAtual = "Mata preservada";
+
+    private void OnCoberturaChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loaded || _engine.Agua is null) return;
+        AplicarCobertura(CmbCobertura.SelectedIndex);
+    }
+
+    /// <summary>
+    /// Cenários prontos de cobertura. O professor não precisa pintar região por região
+    /// para fazer a pergunta central da aula — troca o cenário, faz chover de novo com
+    /// a mesma chuva, e compara.
+    /// </summary>
+    private void AplicarCobertura(int indice)
+    {
+        var agua = _engine.Agua;
+        if (agua is null) return;
+
+        _coberturaAtual = (CmbCobertura.SelectedItem as System.Windows.Controls.ComboBoxItem)
+                          ?.Content?.ToString() ?? "Cobertura";
+
+        switch (indice)
+        {
+            case 0: agua.Solo.Preencher(TipoDeSolo.Mata); break;
+            case 1: agua.Solo.Preencher(TipoDeSolo.Desmatado); break;
+            case 2: agua.Solo.Preencher(TipoDeSolo.Queimado); break;
+
+            case 3:
+                // A ocupação real segue o terreno: as pessoas constroem no plano do
+                // fundo do vale, que é exatamente onde a água chega.
+                agua.Solo.Preencher(TipoDeSolo.Mata);
+                agua.Solo.PintarPorAltitude(_engine.Alturas, _engine.LarguraCampo, _engine.AlturaCampo,
+                                            limiteMm: 15f, acima: false, TipoDeSolo.Impermeavel);
+                break;
+
+            case 4: agua.Solo.Preencher(TipoDeSolo.Impermeavel); break;
+            case 5: agua.Solo.Preencher(TipoDeSolo.SoloArenoso); break;
+            default: agua.Solo.Preencher(TipoDeSolo.SoloArgiloso); break;
+        }
+
+        SetStatus($"Cobertura: {_coberturaAtual}. Faça chover para ver a diferença.");
+    }
+
+    private void RegistrarResultado()
+    {
+        var agua = _engine.Agua;
+        if (agua is null || agua.PicoAlagamentoPercent <= 0) return;
+
+        // Uma entrada por cobertura: repetir o mesmo cenário atualiza, não empilha.
+        _historico.RemoveAll(h => h.Cobertura == _coberturaAtual);
+        _historico.Add((_coberturaAtual, agua.PicoAlagamentoPercent, agua.InfiltradoLitros));
+
+        AtualizarComparacao();
+    }
+
+    private void AtualizarComparacao()
+    {
+        if (_historico.Count == 0)
+        {
+            TxtComparacao.Text = "Faça chover em duas coberturas diferentes para comparar.";
+            return;
+        }
+
+        var linhas = _historico
+            .OrderBy(h => h.Pico)
+            .Select(h => $"{h.Cobertura}: {h.Pico:F0}% alagado, {h.Infiltrado:F1} L absorvidos");
+
+        string texto = string.Join("\n", linhas);
+
+        if (_historico.Count >= 2)
+        {
+            var melhor = _historico.MinBy(h => h.Pico);
+            var pior = _historico.MaxBy(h => h.Pico);
+            if (melhor.Pico > 0.01)
+            {
+                double fator = pior.Pico / melhor.Pico;
+                texto += $"\n\n{pior.Cobertura} alagou {fator:F1}× mais que {melhor.Cobertura}, " +
+                         "com a mesma chuva.";
+            }
+        }
+
+        TxtComparacao.Text = texto;
+    }
+
+    private void OnLimparComparacao(object sender, RoutedEventArgs e)
+    {
+        _historico.Clear();
+        AtualizarComparacao();
+    }
+
     private void OnSecar(object sender, RoutedEventArgs e)
     {
         if (_engine.Agua is null) return;
@@ -239,10 +332,17 @@ public partial class MainWindow : Window
     /// Estado da água em linguagem de aula. Durante a chuva mostra a contagem; depois,
     /// o pico de alagamento — que é o número comparável entre uma tentativa e outra.
     /// </summary>
+    private bool _chovendoAntes;
+
     private void AtualizarAgua()
     {
         var agua = _engine.Agua;
         if (agua is null) return;
+
+        // Registra o resultado na transição chovendo -> parou, que é quando o pico do
+        // episódio está fechado e ainda não foi diluído pelo escoamento.
+        if (_chovendoAntes && !agua.Chovendo) RegistrarResultado();
+        _chovendoAntes = agua.Chovendo;
 
         BtnChuva.Content = agua.Chovendo ? "⏸  Parar a chuva" : "🌧  Fazer chover";
 
@@ -253,6 +353,7 @@ public partial class MainWindow : Window
                 $"Área alagada: {agua.AreaAlagadaPercent:F0}%";
         }
         else if (agua.Ativo && agua.VolumeLitros > 0.01)
+        // Registra assim que a chuva termina, enquanto o pico ainda é do episódio.
         {
             TxtAguaStatus.Text =
                 $"Escoando · {agua.VolumeLitros:F1} L na caixa\n" +

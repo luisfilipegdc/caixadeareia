@@ -52,6 +52,11 @@ public sealed class SandboxEngine : IDisposable
     /// <summary>Simulação de água. Criada junto com a fonte, porque depende da resolução.</summary>
     public WaterSimulation? Agua { get; private set; }
 
+    /// <summary>Campo de alturas atual, para módulos que precisam consultar o relevo.</summary>
+    public float[] Alturas => _heights;
+    public int LarguraCampo => _source?.Width ?? 0;
+    public int AlturaCampo => _source?.Height ?? 0;
+
     public AppConfig Config { get; }
     public WriteableBitmap? Bitmap => _bitmap;
     public double Fps { get; private set; }

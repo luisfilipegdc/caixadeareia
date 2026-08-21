@@ -44,6 +44,10 @@ public sealed class WaterSimulation : ISimulationModule
     // Velocidade do fluxo, guardada para colorir correnteza e detectar rios.
     private float[] _velocidade;
 
+    // Onde a água passou com força sobre solo frágil. Não altera a areia — mostra
+    // onde ela seria levada, para o estudante decidir o que fazer a respeito.
+    private readonly float[] _erosao;
+
     public string Nome => "Água e enchentes";
     public int Width => _w;
     public int Height => _h;
@@ -82,17 +86,17 @@ public sealed class WaterSimulation : ISimulationModule
     /// </summary>
     public double PicoAlagamentoPercent { get; private set; }
 
-    /// <summary>
-    /// Fração da água que some por segundo, representando infiltração no solo.
-    /// Sem isso a caixa enche e nunca esvazia, e o aluno só vê o alagamento final.
-    /// </summary>
-    public float InfiltracaoPorSegundo { get; set; } = 0.06f;
-
     /// <summary>Água que chega à borda da caixa escoa para fora, como num terreno aberto.</summary>
     public bool BordasEscoam { get; set; } = true;
 
     /// <summary>Atrito do leito: segura a água em terreno plano e evita oscilação.</summary>
     public float Amortecimento { get; set; } = 0.14f;
+
+    /// <summary>
+    /// Multiplica a infiltração de todos os solos. Serve para acelerar o contraste numa
+    /// aula curta sem alterar a proporção entre os tipos, que é o que se quer ensinar.
+    /// </summary>
+    public float EscalaInfiltracao { get; set; } = 1f;
 
     /// <summary>Profundidade da água por célula, para quem desenha.</summary>
     public float[] Profundidade => _agua;
@@ -131,7 +135,25 @@ public sealed class WaterSimulation : ISimulationModule
         _fluxoC = new float[n];
         _fluxoB = new float[n];
         _velocidade = new float[n];
+        _erosao = new float[n];
+        Solo = new SoilMap(_w, _h);
+        Solo.Preencher(TipoDeSolo.SoloArenoso);
     }
+
+    /// <summary>Cobertura do solo, na mesma grade da simulação.</summary>
+    public SoilMap Solo { get; }
+
+    /// <summary>Erosão acumulada por célula, em unidades relativas.</summary>
+    public float[] Erosao => _erosao;
+
+    /// <summary>Volume total infiltrado no episódio, em litros.</summary>
+    public double InfiltradoLitros { get; private set; }
+
+    /// <summary>Volume que escoou pelas bordas, em litros.</summary>
+    public double EscoadoLitros { get; private set; }
+
+    /// <summary>Erosão total acumulada, para comparar cenários.</summary>
+    public double ErosaoTotal { get; private set; }
 
     public void Atualizar(float[] terrenoMm, int larguraTerreno, int alturaTerreno, float dt)
     {
@@ -159,6 +181,7 @@ public sealed class WaterSimulation : ISimulationModule
         }
 
         AplicarInfiltracao(dt);
+        AcumularErosao(dt);
         CalcularEstatisticas();
     }
 
@@ -206,8 +229,7 @@ public sealed class WaterSimulation : ISimulationModule
     private void AtualizarFluxos(float dt)
     {
         float aceleracao = dt * Gravidade / _tamanhoCelulaMm;
-        float retencao = 1f - Amortecimento * dt;
-        if (retencao < 0f) retencao = 0f;
+        var solo = Solo.Celulas;
 
         Parallel.For(0, _h, y =>
         {
@@ -215,6 +237,16 @@ public sealed class WaterSimulation : ISimulationModule
             for (int x = 0; x < _w; x++)
             {
                 int i = linha + x;
+
+                // A rugosidade da cobertura entra como atrito: a serapilheira da mata
+                // segura o escoamento, o asfalto deixa correr solto. É o segundo efeito
+                // do desmatamento, depois da infiltração — a água não só entra menos,
+                // como chega mais rápido lá embaixo.
+                var prop = PropriedadesDoSolo.Rapido(solo[i]);
+                float atrito = Amortecimento * (1f + 3f * prop.Rugosidade);
+                float retencao = 1f - atrito * dt;
+                if (retencao < 0f) retencao = 0f;
+
                 float nivel = _terreno[i] + _agua[i];
 
                 _fluxoE[i] = x > 0
@@ -278,23 +310,94 @@ public sealed class WaterSimulation : ISimulationModule
         (_agua, _aguaNova) = (_aguaNova, _agua);
     }
 
+    /// <summary>
+    /// Infiltração célula a célula, conforme a cobertura do solo.
+    ///
+    /// É aqui que o módulo de solo muda o resultado: sob a mesma chuva, a mata absorve
+    /// e a área urbana devolve tudo para o escoamento. Toda a diferença entre uma bacia
+    /// preservada e uma impermeabilizada nasce destas poucas linhas.
+    ///
+    /// A infiltração é uma taxa em mm/s, não uma fração: um solo absorve um tanto por
+    /// segundo até a água acabar, e não uma porcentagem do que está por cima — que faria
+    /// uma poça funda infiltrar mais rápido que uma rasa, o contrário do que ocorre.
+    /// </summary>
     private void AplicarInfiltracao(float dt)
     {
-        if (InfiltracaoPorSegundo <= 0f) return;
-        float fator = MathF.Max(0f, 1f - InfiltracaoPorSegundo * dt);
+        var solo = Solo.Celulas;
+        double infiltradoMm = 0;
+        object trava = new();
 
-        Parallel.For(0, _h, y =>
-        {
-            int linha = y * _w;
-            for (int x = 0; x < _w; x++)
+        Parallel.For(0, _h,
+            () => 0.0,
+            (y, _, parcial) =>
             {
-                int i = linha + x;
-                _agua[i] *= fator;
-                // Abaixo de um décimo de milímetro não há o que ver, e deixar resíduo
-                // faz a caixa parecer permanentemente molhada.
-                if (_agua[i] < 0.1f) _agua[i] = 0f;
-            }
-        });
+                int linha = y * _w;
+                for (int x = 0; x < _w; x++)
+                {
+                    int i = linha + x;
+                    if (_agua[i] <= 0f) continue;
+
+                    var prop = PropriedadesDoSolo.Rapido(solo[i]);
+                    float capacidade = prop.InfiltracaoMmPorSegundo * EscalaInfiltracao * dt;
+                    float absorvido = MathF.Min(_agua[i], capacidade);
+
+                    _agua[i] -= absorvido;
+                    parcial += absorvido;
+
+                    // Abaixo de um décimo de milímetro não há o que ver, e deixar
+                    // resíduo faz a caixa parecer permanentemente molhada.
+                    if (_agua[i] < 0.1f) { parcial += _agua[i]; _agua[i] = 0f; }
+                }
+                return parcial;
+            },
+            parcial => { lock (trava) infiltradoMm += parcial; });
+
+        double areaCelula = _tamanhoCelulaMm * _tamanhoCelulaMm;
+        InfiltradoLitros += infiltradoMm * areaCelula * 1e-6;
+    }
+
+    /// <summary>
+    /// Acumula onde a água passa com força sobre solo frágil.
+    ///
+    /// Não movemos areia: o relevo vem do sensor, e mexer nele faria o mapa divergir do
+    /// que está fisicamente na caixa. O que o sistema entrega é a previsão — "aqui o
+    /// solo seria levado" — e o estudante decide se protege a encosta ou se cava para
+    /// ver o que acontece.
+    /// </summary>
+    private void AcumularErosao(float dt)
+    {
+        var solo = Solo.Celulas;
+        double total = 0;
+        object trava = new();
+
+        Parallel.For(0, _h,
+            () => 0.0,
+            (y, _, parcial) =>
+            {
+                int linha = y * _w;
+                for (int x = 0; x < _w; x++)
+                {
+                    int i = linha + x;
+                    if (_agua[i] < 0.5f) continue;
+
+                    var prop = PropriedadesDoSolo.Rapido(solo[i]);
+                    float fragilidade = 1f - prop.ResistenciaAErosao;
+                    if (fragilidade <= 0f) continue;
+
+                    // Só há arraste acima de uma velocidade mínima: água parada num
+                    // lago não erode, por mais funda que seja.
+                    float v = _velocidade[i];
+                    if (v < 40f) continue;
+
+                    float desgaste = (v - 40f) * fragilidade * dt * 0.0012f;
+                    _erosao[i] += desgaste;
+                    parcial += desgaste;
+                }
+                return parcial;
+            },
+            parcial => { lock (trava) total += parcial; });
+
+        ErosaoTotal += total;
     }
 
     private void CalcularEstatisticas()
@@ -348,6 +451,10 @@ public sealed class WaterSimulation : ISimulationModule
         Array.Clear(_fluxoC);
         Array.Clear(_fluxoB);
         Array.Clear(_velocidade);
+        Array.Clear(_erosao);
+        InfiltradoLitros = 0;
+        EscoadoLitros = 0;
+        ErosaoTotal = 0;
         VolumeLitros = 0;
         AreaAlagadaPercent = 0;
         PicoAlagamentoPercent = 0;

@@ -108,12 +108,37 @@
                                 <ComboBoxItem Content="Tempestade"/>
                             </ComboBox>
 
+                            <TextBlock Text="Cobertura do terreno" FontSize="12" Margin="0,10,0,0"/>
+                            <ComboBox x:Name="CmbCobertura" SelectedIndex="0"
+                                      SelectionChanged="OnCoberturaChanged">
+                                <ComboBoxItem Content="Mata preservada"/>
+                                <ComboBoxItem Content="Desmatado"/>
+                                <ComboBoxItem Content="Área queimada"/>
+                                <ComboBoxItem Content="Cidade no vale, mata na encosta"/>
+                                <ComboBoxItem Content="Tudo impermeabilizado"/>
+                                <ComboBoxItem Content="Solo arenoso"/>
+                                <ComboBoxItem Content="Solo argiloso"/>
+                            </ComboBox>
+
                             <TextBlock x:Name="TxtAguaStatus" TextWrapping="Wrap"
                                        FontSize="12" Margin="0,10,0,0"
                                        Text="Sem água na caixa."/>
 
                             <Button x:Name="BtnSecar" Click="OnSecar"
                                     Content="Secar a caixa" Margin="0,8,0,0"/>
+
+                            <Border Background="#FF1B1B22" CornerRadius="4" Padding="10"
+                                    Margin="0,10,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="COMPARAÇÃO" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource Accent}" Margin="0,0,0,6"/>
+                                    <TextBlock x:Name="TxtComparacao" TextWrapping="Wrap"
+                                               FontSize="11" Opacity="0.85"
+                                               Text="Faça chover em duas coberturas diferentes para comparar."/>
+                                    <Button x:Name="BtnLimparComparacao" Click="OnLimparComparacao"
+                                            Content="Limpar comparação" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
 
