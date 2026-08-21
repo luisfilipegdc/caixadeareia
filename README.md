@@ -1,0 +1,243 @@
+# Caixa de Areia Interativa
+
+Sistema nativo Windows que lê o relevo de uma caixa de areia com um Kinect e projeta
+sobre ela um mapa topográfico colorido com curvas de nível, atualizado em tempo real
+conforme os alunos moldam a areia.
+
+- **Sensor:** Kinect v1 / Kinect for Windows (modelo 1517), via API nativa NUI do SDK 1.8
+- **Plataforma:** .NET 8 + WPF, x64
+- **Renderização:** CPU (Parallel.For), ~30 fps a 640×480
+
+### Documentação
+
+| Documento | O que traz |
+|---|---|
+| 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas até a plataforma de simulações ambientais, com status de cada item |
+| 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, justificativas, os seis bugs e as medições |
+| 🖼️ **[Catálogo de imagens](docs/img/README.md)** | Capturas de cada etapa, com legenda e contexto |
+
+---
+
+## Hardware detectado nesta máquina
+
+```
+USB\VID_045E&PID_02BE   Microsoft Kinect Audio
+USB\VID_045E&PID_02BF   Microsoft Kinect Camera   <-- driver atual: libusb-win32
+USB\VID_045E&PID_02AD   Xbox Kinect Audio          (entrada órfã de instalação anterior)
+```
+
+`PID_02BE/02BF` identifica um **Kinect for Windows (1517)** — bom, porque é o único modelo
+que suporta *near mode* (0,4–3,0 m em vez de 0,8–4,0 m). Numa caixa de areia com o sensor
+a cerca de 1 m, near mode é a diferença entre leitura limpa e bordas cortadas.
+
+---
+
+## Pré-requisitos
+
+> **Status nesta máquina: tudo já instalado e verificado.**
+> .NET 8 SDK 8.0.424 · Kinect SDK 1.8 (`Kinect10.dll 1.8.0.595`) · câmera migrada do
+> `libusb-win32` para o driver **Kinect for Windows**, status OK · captura real validada
+> a 26 fps. Os passos abaixo ficam registrados para reinstalação em outra máquina.
+
+### 1. .NET 8 SDK
+
+A máquina tem apenas o *runtime*. Para compilar é preciso o SDK:
+
+```bash
+winget install --id Microsoft.DotNet.SDK.8 --source winget
+```
+
+### 2. Kinect for Windows SDK 1.8
+
+Baixe de `https://www.microsoft.com/en-us/download/details.aspx?id=40278` e instale.
+Ele coloca a `Kinect10.dll` em `C:\Windows\System32` — é essa DLL que o projeto chama
+por P/Invoke. Não é preciso instalar o Developer Toolkit.
+
+### 3. Devolver a câmera ao driver da Microsoft
+
+**Este passo é obrigatório nesta máquina.** A câmera está vinculada ao `libusb-win32`,
+resíduo de um projeto anterior baseado em libfreenect/OpenNI. Enquanto isso não mudar,
+`NuiGetSensorCount` retorna zero e o app não verá o sensor.
+
+1. Abra o Gerenciador de Dispositivos (`devmgmt.msc`)
+2. Em **libusb-win32 devices**, localize *Microsoft Kinect Camera*
+3. Botão direito → **Desinstalar dispositivo** → marque *Excluir o software de driver*
+4. Desconecte e reconecte o Kinect
+5. O driver da Microsoft (instalado no passo 2) assume; o dispositivo deve reaparecer
+   em **Kinect for Windows → Kinect for Windows Camera**
+
+Se o libusb voltar sozinho, use *Atualizar driver → Procurar no computador → Escolher
+numa lista* e selecione explicitamente o driver Kinect da Microsoft.
+
+> As entradas duplicadas de áudio (`02AD` com status *Unknown*) são inofensivas —
+> resíduo de registro do mesmo aparelho. Podem ser removidas com o Gerenciador de
+> Dispositivos mostrando dispositivos ocultos.
+
+### 4. Porta USB
+
+O Kinect v1 consome quase toda a banda de um controlador USB 2.0. Se aparecer
+*"Banda USB insuficiente"*, mude para uma porta ligada a **outro controlador** — em
+notebooks, normalmente as portas de lados opostos do chassi. A fonte de energia externa
+é obrigatória; só o cabo USB não alimenta o sensor.
+
+---
+
+## Compilar e executar
+
+```bash
+dotnet build src/CaixaInterativa/CaixaInterativa.csproj -c Release
+```
+
+```bash
+dotnet run --project src/CaixaInterativa/CaixaInterativa.csproj -c Release
+```
+
+---
+
+## Montagem física
+
+```
+            [ Projetor ]        [ Kinect ]
+                  \                 |
+                   \                |   ~0,9 a 1,2 m
+                    \               |
+        ┌────────────────────────────────────┐
+        │            areia                   │
+        └────────────────────────────────────┘
+```
+
+- Kinect **perpendicular** à caixa, centralizado, entre 0,9 m e 1,2 m acima da areia nivelada
+- Projetor o mais próximo possível do mesmo eixo — quanto mais oblíquo, mais distorção
+  de perspectiva, que o alinhamento afim atual **não** corrige (veja *Limitações*)
+- Camada de areia de 8–15 cm, para que haja o que escavar e o que empilhar
+- Areia clara e fosca lê melhor no infravermelho; evite areia molhada e superfícies brilhantes
+- Sala com pouca luz solar direta — o sol tem infravermelho suficiente para cegar o sensor
+
+---
+
+## Uso
+
+### Ensaiar sem hardware
+
+Clique em **Iniciar com simulador**. Para reproduzir o fluxo completo de calibração:
+marque *Simulador: areia plana*, capture o plano-base, e desmarque — o relevo sintético
+aparece com o mapa já calibrado. É assim que o pipeline foi validado antes de haver sensor.
+
+### Fluxo de primeira vez
+
+1. **Detectar Kinect** → confirme que o sensor aparece
+2. **Iniciar com Kinect** (ou *Iniciar com simulador*, para testar sem hardware)
+3. **Abrir projeção** → escolha o monitor do projetor
+4. Na janela de projeção, tecle **G** para a grade e alinhe fisicamente o projetor
+   à borda da caixa; ajuste o resto com as setas
+5. Nivele a areia, tire as mãos da caixa, tecle **C** (ou *Capturar plano-base*)
+6. Ajuste *Altura máxima* até a faixa de cores cobrir o relevo que os alunos conseguem fazer
+7. Tecle **S** para salvar. Nas próximas aulas basta abrir e projetar
+
+### Atalhos na janela de projeção
+
+| Tecla | Ação |
+|---|---|
+| Setas | mover (Shift = 10×) |
+| `+` / `-` | escala uniforme |
+| Ctrl + Setas | escala X / Y separadas |
+| `R` / `E` | girar |
+| `H` / `V` | espelhar horizontal / vertical |
+| `G` | grade de alinhamento |
+| `C` | calibrar plano-base |
+| `S` | salvar configuração |
+| `F1` | mostrar/ocultar ajuda |
+| `Esc` | fechar projeção |
+
+---
+
+## Como funciona
+
+```
+Kinect ──► KinectV1Source ──► DepthProcessor ──► TopographicRenderer ──► ProjectionWindow
+           (P/Invoke NUI)     (mm → altura)      (cor + curvas)          (WriteableBitmap)
+```
+
+### Três armadilhas do interop NUI
+
+Todas custaram depuração e estão documentadas no código para não voltarem:
+
+1. **`NuiImageStreamGetNextFrame` devolve um ponteiro, não a struct.** A assinatura da API
+   flat é `CONST NUI_IMAGE_FRAME **ppcImageFrame` — diferente do método homônimo da
+   interface `INuiSensor`, que preenche a struct por valor. Declarar `out NuiImageFrame`
+   faz o runtime escrever apenas os 8 bytes do ponteiro no início da struct; o resto fica
+   com lixo, o `pFrameTexture` aparente vira endereço inválido e o processo morre com
+   **0xC0000374 (heap corruption)** na primeira leitura. O sintoma não aponta para a causa.
+
+2. **A profundidade vem deslocada 3 bits, mesmo em `NUI_IMAGE_TYPE_DEPTH`.** Os bits
+   reservados ao índice de jogador continuam presentes: os milímetros estão nos bits 15..3.
+   Sem o `>> 3`, todas as distâncias saem 8× maiores — e o sinal de que é isso, e não outra
+   coisa, é que *todos* os valores lidos são múltiplos de 8 e o máximo é exatamente
+   `0x1FFF << 3 = 65528`.
+
+3. **`NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE` é `0x00020000`.** `0x00040000` é
+   `TOO_FAR_IS_NONZERO`. Trocar os dois não gera erro — `NuiImageStreamSetImageFrameFlags`
+   retorna `S_OK` de qualquer forma — e o sintoma engana: o alcance mínimo permanece em
+   800 mm e tudo mais perto lê zero, exatamente como se a superfície não devolvesse
+   infravermelho. Medido na mesa: com a flag errada, 6,9% de cobertura e mínimo de 801 mm;
+   com a correta, **66,4% e mínimo de 455 mm**.
+
+O retorno de `SetImageFrameFlags` não prova que o near mode foi aplicado. A verificação
+confiável é empírica: com near mode ativo aparecem leituras abaixo de 800 mm.
+
+Se algo parecido reaparecer, o caminho que funcionou foi: preencher o buffer com `0xCD`
+antes da chamada nativa e conferir quantos bytes foram de fato escritos, e validar a vtable
+com `BufferLen()`/`Pitch()` — que retornam inteiros conhecidos (614400 e 1280) sem escrever
+memória, portanto não travam o processo se os slots estiverem errados.
+
+**`DepthProcessor`** é onde mora a diferença entre uma projeção utilizável e uma que
+"ferve". O Kinect v1 tem ~2–4 mm de ruído nessa distância e produz pixels inválidos nas
+bordas dos objetos. Três etapas, nesta ordem:
+
+1. **Buracos** — pixel inválido mantém o último valor bom, em vez de virar zero.
+   Zerar criaria crateras piscando nas bordas das mãos.
+2. **Tempo** — filtro exponencial com α adaptativo. Areia parada usa α lento (estável);
+   uma mão entrando produz salto acima do limiar e usa α rápido (responsivo). Um α único
+   obrigaria a escolher entre tremor e arrasto.
+3. **Espaço** — box blur separável, custo O(1) por pixel independente do raio.
+
+O **plano-base é armazenado por pixel**, não como um número único. Assim uma caixa
+levemente torta ou um sensor não perfeitamente perpendicular não vira um gradiente falso
+atravessando o mapa inteiro.
+
+---
+
+## Limitações conhecidas
+
+- **Alinhamento apenas afim.** Escala, deslocamento, rotação e espelhamento. Se o projetor
+  estiver bem oblíquo em relação à caixa, sobra distorção de perspectiva que só uma
+  homografia de 4 cantos corrige. É o próximo passo natural.
+- **Sem simulação de água.** O MVP é topografia. Água/chuva é iterativa e pede GPU —
+  provavelmente um shader HLSL ou migração da renderização para um pipeline D3D.
+- **Sem correção da distorção da lente** do Kinect. Nas bordas do campo de visão há erro
+  de alguns milímetros; irrelevante para uso pedagógico, relevante para medição.
+- **Faixa de leitura útil.** Com `MaxValidDepthMm = 2000`, qualquer coisa além de 2 m é
+  descartada. Se o sensor for montado mais alto que isso, ajuste o valor em `config.json`.
+
+---
+
+## Estrutura
+
+```
+src/CaixaInterativa/
+├── Depth/
+│   ├── IDepthSource.cs          contrato de fonte de profundidade
+│   ├── NuiNative.cs             P/Invoke para Kinect10.dll
+│   ├── KinectV1Source.cs        captura real
+│   └── SimulatedDepthSource.cs  relevo sintético, sem hardware
+├── Processing/
+│   └── DepthProcessor.cs        calibração, buracos, suavização
+├── Rendering/
+│   └── TopographicRenderer.cs   rampa hipsométrica, curvas, sombreamento
+├── Config/
+│   └── AppConfig.cs             persistência em config.json
+├── Views/
+│   ├── MainWindow.xaml          painel de controle
+│   └── ProjectionWindow.xaml    tela cheia no projetor
+└── SandboxEngine.cs             orquestração
+```

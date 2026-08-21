@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>CaixaInterativa</AssemblyName>
+    <RootNamespace>CaixaInterativa</RootNamespace>
+    <!-- WFAC010 pede para mover o DPI do manifesto para Application.SetHighDpiMode.
+         Essa API e' do WinForms; este e' um app WPF, cuja consciencia de DPI vem
+         justamente do manifesto. O aviso nao se aplica. -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- UseWindowsForms existe apenas para System.Windows.Forms.Screen (enumeracao de
+         monitores, que o WPF nao expoe). O using implicito de System.Windows.Forms
+         colide com o WPF em Application, KeyEventArgs, MessageBox e outros; referenciamos
+         Screen de forma qualificada e removemos o using global. -->
+    <Using Remove="System.Windows.Forms" />
+    <!-- Mesma colisao: System.Drawing.Color vs System.Windows.Media.Color. -->
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+</Project>

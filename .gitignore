@@ -1,0 +1,21 @@
+# Build
+bin/
+obj/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Configuração local da instalação — cada máquina tem a sua
+# (alinhamento do projetor, ROI, altura do sensor)
+config.json
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# As imagens de docs/img/ SÃO versionadas: são a evidência
+# visual da documentação e do diário de bordo.

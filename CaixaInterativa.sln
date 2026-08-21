@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D4A04631-F88A-45C7-A645-5CB51F907CA2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaixaInterativa", "src\CaixaInterativa\CaixaInterativa.csproj", "{2D169BAC-86E5-436F-9D78-C17833AD7CC7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2D169BAC-86E5-436F-9D78-C17833AD7CC7}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{2D169BAC-86E5-436F-9D78-C17833AD7CC7}.Debug|Any CPU.Build.0 = Debug|x64
+		{2D169BAC-86E5-436F-9D78-C17833AD7CC7}.Release|Any CPU.ActiveCfg = Release|x64
+		{2D169BAC-86E5-436F-9D78-C17833AD7CC7}.Release|Any CPU.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2D169BAC-86E5-436F-9D78-C17833AD7CC7} = {D4A04631-F88A-45C7-A645-5CB51F907CA2}
+	EndGlobalSection
+EndGlobal
