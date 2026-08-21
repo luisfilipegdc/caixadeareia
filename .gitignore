@@ -1,3 +1,23 @@
+# ─────────────────────────────────────────────────────────────
+# SEGREDOS — nada aqui pode chegar ao repositório
+# ─────────────────────────────────────────────────────────────
+# A pasta cofre/ guarda credenciais locais. Só o LEIA-ME sobe;
+# todo o resto fica na máquina e nunca é versionado.
+cofre/*
+!cofre/LEIA-ME.md
+
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.keystore
+credenciais.json
+secrets.json
+appsettings.Production.json
+
 # Build
 bin/
 obj/
