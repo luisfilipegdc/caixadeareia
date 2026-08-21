@@ -59,6 +59,35 @@ public sealed class SandboxEngine : IDisposable
     public event Action<string>? StatusChanged;
     public event Action<double>? CalibrationCompleted;
 
+    /// <summary>Estado geral para a interface pintar de verde, amarelo ou vermelho.</summary>
+    public event Action<EngineState, string>? StateChanged;
+
+    private EngineState _state = EngineState.Parado;
+    public EngineState State
+    {
+        get => _state;
+        private set
+        {
+            if (_state == value) return;
+            _state = value;
+            StateChanged?.Invoke(value, StateMessage);
+        }
+    }
+
+    public string StateMessage { get; private set; } = "Parado";
+
+    private void SetState(EngineState estado, string mensagem)
+    {
+        StateMessage = mensagem;
+        if (_state == estado) { StateChanged?.Invoke(estado, mensagem); return; }
+        State = estado;
+    }
+
+    // Reconexão automática
+    private Func<IDepthSource>? _sourceFactory;
+    private DispatcherTimer? _reconnectTimer;
+    private int _reconnectAttempts;
+
     public SandboxEngine(AppConfig config)
     {
         Config = config;
@@ -72,9 +101,21 @@ public sealed class SandboxEngine : IDisposable
         _timer.Tick += OnTick;
     }
 
+    /// <summary>
+    /// Inicia uma fonte. A fábrica é guardada para permitir reconexão automática:
+    /// quando o sensor cai, criamos uma instância nova em vez de reusar a que falhou.
+    /// </summary>
+    public void StartSource(Func<IDepthSource> factory)
+    {
+        _sourceFactory = factory;
+        _reconnectAttempts = 0;
+        StartSource(factory());
+    }
+
     public void StartSource(IDepthSource source)
     {
         StopSource();
+        StopReconnectTimer();
 
         _source = source;
         _processor = new DepthProcessor(source.Width, source.Height)
@@ -83,7 +124,14 @@ public sealed class SandboxEngine : IDisposable
         };
         _processor.CalibrationCompleted += d =>
         {
-            Application.Current?.Dispatcher.Invoke(() => CalibrationCompleted?.Invoke(d));
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                // Salva sozinho: uma calibracao que existe so na memoria se perde ao
+                // fechar o programa, e o professor recomeca do zero na aula seguinte.
+                SaveCalibration();
+                SetState(EngineState.Pronto, "Pronto");
+                CalibrationCompleted?.Invoke(d);
+            });
         };
 
         _heights = new float[source.Width * source.Height];
@@ -96,12 +144,71 @@ public sealed class SandboxEngine : IDisposable
         source.Start();
         _timer.Start();
         StatusChanged?.Invoke($"Fonte iniciada: {source.Name}");
+
+        // Restaura a calibração salva antes de qualquer coisa: se houver uma válida,
+        // o professor abre o programa e já vê o relevo, sem passar pela calibração.
+        bool restaurada = false;
+        if (Config.Sensor.AutoLoadCalibration)
+            restaurada = TryLoadCalibration();
+
+        SetState(restaurada ? EngineState.Pronto : EngineState.PrecisaCalibrar,
+                 restaurada
+                     ? $"Pronto — calibração de {CalibrationAge()} carregada"
+                     : "Nivele a areia e toque em Calibrar");
+    }
+
+    /// <summary>Restaura a calibração gravada em disco, se houver e se servir.</summary>
+    public bool TryLoadCalibration()
+    {
+        if (_processor is null || _source is null) return false;
+
+        var dados = CalibrationStore.Load(_source.Width, _source.Height);
+        if (dados is null) return false;
+        if (!_processor.Import(dados)) return false;
+
+        StatusChanged?.Invoke(
+            $"Calibração de {dados.SavedAt:dd/MM HH:mm} carregada " +
+            $"({dados.CoveragePercent:F0}% de cobertura).");
+        return true;
+    }
+
+    /// <summary>Grava a calibração atual para as próximas aulas.</summary>
+    public bool SaveCalibration()
+    {
+        if (_processor is null || _source is null) return false;
+
+        var dados = _processor.Export(_source.Name);
+        if (dados is null) return false;
+
+        try
+        {
+            CalibrationStore.Save(dados);
+            StatusChanged?.Invoke("Calibração salva. Nas próximas vezes ela é carregada sozinha.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            StatusChanged?.Invoke($"Não foi possível salvar a calibração: {ex.Message}");
+            return false;
+        }
+    }
+
+    private string CalibrationAge()
+    {
+        var quando = CalibrationStore.SavedAt();
+        if (quando is null) return "antes";
+        var idade = DateTime.Now - quando.Value;
+        if (idade.TotalMinutes < 60) return "agora há pouco";
+        if (idade.TotalHours < 24) return $"{idade.Hours}h atrás";
+        if (idade.TotalDays < 2) return "ontem";
+        return $"{(int)idade.TotalDays} dias atrás";
     }
 
     public void StopSource()
     {
         _timer.Stop();
         if (_source is null) return;
+        SetState(EngineState.Parado, "Parado");
 
         _source.FrameArrived -= OnFrameArrived;
         _source.Faulted -= OnFaulted;
@@ -112,7 +219,53 @@ public sealed class SandboxEngine : IDisposable
     private void OnFrameArrived(RawDepthFrame frame) => Volatile.Write(ref _latestFrame, frame);
 
     private void OnFaulted(string message)
-        => Application.Current?.Dispatcher.Invoke(() => StatusChanged?.Invoke(message));
+        => Application.Current?.Dispatcher.Invoke(() =>
+        {
+            StatusChanged?.Invoke(message);
+            SetState(EngineState.Erro, "Sensor desconectado");
+            if (Config.Sensor.AutoReconnect) StartReconnectTimer();
+        });
+
+    /// <summary>
+    /// Tenta religar o sensor sozinho. Um cabo esbarrado ou uma queda momentânea de
+    /// energia no sensor não deveria encerrar a aula e obrigar o professor a mexer no
+    /// computador na frente da turma.
+    /// </summary>
+    private void StartReconnectTimer()
+    {
+        if (_sourceFactory is null || _reconnectTimer is not null) return;
+
+        _reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _reconnectTimer.Tick += (_, _) =>
+        {
+            _reconnectAttempts++;
+            SetState(EngineState.Reconectando,
+                     $"Reconectando ao sensor… (tentativa {_reconnectAttempts})");
+
+            try
+            {
+                var nova = _sourceFactory!();
+                StartSource(nova);   // limpa o timer e restaura a calibração
+                StatusChanged?.Invoke($"Sensor reconectado após {_reconnectAttempts} tentativa(s).");
+                _reconnectAttempts = 0;
+            }
+            catch (Exception ex)
+            {
+                // Segue tentando. Desistir depois de N tentativas deixaria o sistema
+                // morto justamente quando o problema é temporário — um sensor que
+                // demora a inicializar depois de reconectado, por exemplo.
+                StatusChanged?.Invoke($"Tentativa {_reconnectAttempts} falhou: {ex.Message}");
+            }
+        };
+        _reconnectTimer.Start();
+    }
+
+    private void StopReconnectTimer()
+    {
+        if (_reconnectTimer is null) return;
+        _reconnectTimer.Stop();
+        _reconnectTimer = null;
+    }
 
     private void OnTick(object? sender, EventArgs e)
     {
@@ -160,17 +313,21 @@ public sealed class SandboxEngine : IDisposable
             return;
         }
         _processor.BeginBaseCalibration(frames);
+        SetState(EngineState.Calibrando, "Calibrando — não mexa na areia");
         StatusChanged?.Invoke($"Calibrando plano-base ({frames} quadros)... nao mexa na areia.");
     }
 
     public void ResetCalibration()
     {
         _processor?.ResetCalibration();
+        CalibrationStore.Delete();
+        SetState(EngineState.PrecisaCalibrar, "Nivele a areia e toque em Calibrar");
         StatusChanged?.Invoke("Calibracao descartada.");
     }
 
     public void Dispose()
     {
+        StopReconnectTimer();
         StopSource();
         _timer.Tick -= OnTick;
     }

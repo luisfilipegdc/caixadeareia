@@ -87,13 +87,36 @@ public sealed class SensorSettings
     public string Source { get; set; } = "simulador";
     public bool NearMode { get; set; } = true;
 
+    /// <summary>
+    /// Iniciar a fonte salva assim que o programa abrir. Ligado por padrao: numa aula,
+    /// abrir o programa deve bastar.
+    /// </summary>
+    public bool AutoStart { get; set; } = true;
+
+    /// <summary>Carregar a calibracao salva ao iniciar, sem pedir para recalibrar.</summary>
+    public bool AutoLoadCalibration { get; set; } = true;
+
+    /// <summary>Tentar reconectar sozinho quando o sensor cair.</summary>
+    public bool AutoReconnect { get; set; } = true;
+
     /// <summary>Angulo do motor de inclinacao em graus. null = nao mexer no motor.</summary>
     public int? TiltAngle { get; set; }
+}
+
+public sealed class InterfaceSettings
+{
+    /// <summary>
+    /// Modo simples esconde os ajustes finos e deixa na tela apenas o que o professor
+    /// usa numa aula. Padrao ligado: quem precisa dos controles avancados sabe procurar;
+    /// quem so quer dar aula nao deveria ter que ignorar sete deslizadores.
+    /// </summary>
+    public bool SimpleMode { get; set; } = true;
 }
 
 public sealed class AppConfig
 {
     public SensorSettings Sensor { get; set; } = new();
+    public InterfaceSettings Interface { get; set; } = new();
     public ProcessingSettings Processing { get; set; } = new();
     public RenderSettings Render { get; set; } = new();
     public ProjectionSettings Projection { get; set; } = new();

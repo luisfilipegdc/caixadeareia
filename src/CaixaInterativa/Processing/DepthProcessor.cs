@@ -194,6 +194,7 @@ public sealed class DepthProcessor
 
         float fallback = measured > 0 ? (float)(sum / measured) : 0f;
         CoveragePercent = 100.0 * measured / _basePlaneMm.Length;
+        AverageDistanceMm = fallback;
 
         Array.Clear(_smoothed);
         Array.Clear(_everValid);
@@ -259,22 +260,50 @@ public sealed class DepthProcessor
         }
     }
 
-    public float[] SnapshotBasePlane() => (float[])_basePlaneMm.Clone();
+    /// <summary>Distancia media do plano-base medido, para exibir e salvar.</summary>
+    public double AverageDistanceMm { get; private set; }
 
-    public void RestoreBasePlane(float[] plane)
+    /// <summary>Empacota a calibracao atual para gravar em disco.</summary>
+    public CalibrationData? Export(string sourceName)
     {
-        if (plane.Length != _basePlaneMm.Length) return;
         lock (_gate)
         {
-            _basePlaneMm = (float[])plane.Clone();
-            _baseValid = new bool[plane.Length];
-            int measured = 0;
-            for (int i = 0; i < plane.Length; i++)
-                if (plane[i] > 0f) { _baseValid[i] = true; measured++; }
-            CoveragePercent = 100.0 * measured / plane.Length;
+            if (!IsCalibrated) return null;
+            return new CalibrationData
+            {
+                Width = _width,
+                Height = _height,
+                BasePlaneMm = (float[])_basePlaneMm.Clone(),
+                BaseValid = (bool[])_baseValid.Clone(),
+                CoveragePercent = CoveragePercent,
+                AverageDistanceMm = AverageDistanceMm,
+                SavedAt = DateTime.Now,
+                SourceName = sourceName
+            };
+        }
+    }
+
+    /// <summary>
+    /// Restaura uma calibracao salva. Devolve false se as dimensoes nao baterem —
+    /// os indices nao corresponderiam e o mapa sairia embaralhado.
+    /// </summary>
+    public bool Import(CalibrationData dados)
+    {
+        if (dados.Width != _width || dados.Height != _height) return false;
+        if (dados.BasePlaneMm.Length != _basePlaneMm.Length) return false;
+        if (dados.BaseValid.Length != _baseValid.Length) return false;
+
+        lock (_gate)
+        {
+            _basePlaneMm = (float[])dados.BasePlaneMm.Clone();
+            _baseValid = (bool[])dados.BaseValid.Clone();
+            CoveragePercent = dados.CoveragePercent;
+            AverageDistanceMm = dados.AverageDistanceMm;
             Array.Clear(_smoothed);
             Array.Clear(_everValid);
+            _calibFramesRemaining = 0;
             IsCalibrated = true;
         }
+        return true;
     }
 }
