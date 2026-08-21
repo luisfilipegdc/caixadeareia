@@ -9,6 +9,13 @@ Diferente dos projetos que serviram de base — o
 [Caixa e Água](https://github.com/lifefurb/caixaeagua) da FURB — **todo o
 sistema roda no navegador**. Não há Vrui, não há SARndbox, não há compilação.
 
+## Como este projeto foi feito
+
+O registro completo está em [`docs/artigo.html`](docs/artigo.html): decisões
+tomadas e por quê, o que deu errado em cada etapa, as medições que
+diagnosticaram os problemas, e a separação entre o que foi erro de projeto e o
+que foi limite físico do hardware.
+
 ## O que muda em relação ao projeto original
 
 | | AR Sandbox / Caixa e Água | Este projeto |
