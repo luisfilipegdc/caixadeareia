@@ -21,6 +21,9 @@ appsettings.Production.json
 # Build
 bin/
 obj/
+# Executáveis publicados: distribuídos pelos Releases do GitHub,
+# não versionados (68 MB por build).
+dist/
 *.user
 *.suo
 
