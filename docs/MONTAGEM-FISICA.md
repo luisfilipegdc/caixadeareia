@@ -50,6 +50,11 @@ O aspecto do campo de visão é **1,378**; o da caixa é **1,238**. Como a caixa
 
 ## ⚠️ Achado principal: a viga de 40 cm deixa o Kinect baixo demais
 
+> ✅ **Confirmado em campo.** O cálculo abaixo previu que o sensor na posição atual não
+> cobriria a caixa inteira. Verificado na estrutura montada: **não cobre a altura total**.
+> A previsão e a observação batem, o que dá confiança para usar este mesmo modelo ao
+> decidir a nova altura em vez de tentar por tentativa e erro.
+
 Com o Kinect pendurado 40 cm abaixo do topo, ele fica a **139 cm do chão**. Descontando a
 altura das rodinhas e a camada de areia, a distância até a superfície fica entre 112 e
 121 cm — **abaixo dos 128,2 cm necessários**.
@@ -186,9 +191,10 @@ o lado de 57° do Kinect deve ficar alinhado.
 
 ## Checklist de montagem
 
+- [x] ~~Verificar se a montagem atual cobre a caixa~~ — **não cobre**, confirmado em campo
 - [ ] Medir a altura das rodinhas
 - [ ] Definir a camada de areia (recomendado 10–12 cm, deixando 7–9 cm de borda livre)
-- [ ] **Encurtar a viga do Kinect de 40 cm para 15 cm**
+- [ ] **Encurtar a viga do Kinect de 40 cm para 15 cm** ← próxima ação
 - [ ] **Conferir a orientação do Kinect** — lado largo paralelo aos 125 cm
 - [ ] Verificar o throw ratio do projetor disponível
 - [ ] Posicionar o projetor no centro do topo, Kinect ao lado
