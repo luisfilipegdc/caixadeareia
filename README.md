@@ -26,6 +26,22 @@ Licenciado sob [GPL-2.0-or-later](LICENSE)
 
 ---
 
+## Baixar
+
+**[⬇ CaixaInterativa-v1.0.0-win-x64.exe](https://github.com/luisfilipegdc/caixadeareia/releases/latest/download/CaixaInterativa-v1.0.0-win-x64.exe)** — 68 MB · Windows 10/11 64 bits
+
+Arquivo único, **não precisa instalar nada**. O .NET já vai embutido; só o
+[Kinect SDK 1.8](https://www.microsoft.com/en-us/download/details.aspx?id=40278) é
+necessário à parte, porque traz o driver do sensor.
+
+> Na primeira execução o Windows pode exibir um aviso do SmartScreen, por ser um
+> executável sem certificado de assinatura comercial. Clique em *Mais informações* →
+> *Executar assim mesmo*.
+
+Todas as versões: [Releases](https://github.com/luisfilipegdc/caixadeareia/releases)
+
+---
+
 ## Hardware detectado nesta máquina
 
 ```
