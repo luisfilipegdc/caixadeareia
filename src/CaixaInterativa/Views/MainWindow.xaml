@@ -1,0 +1,134 @@
+<Window x:Class="CaixaInterativa.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Caixa de Areia Interativa - Painel de Controle"
+        Height="760" Width="1120"
+        Background="{StaticResource PanelBg}"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ================= Painel esquerdo ================= -->
+        <ScrollViewer Grid.Column="0" Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+            <StackPanel>
+
+                <GroupBox Header="1. Sensor">
+                    <StackPanel>
+                        <TextBlock x:Name="SensorStatus" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="Verificando sensor..."/>
+                        <Button x:Name="BtnDetect" Click="OnDetect" Content="Detectar Kinect"/>
+                        <Button x:Name="BtnStartKinect" Click="OnStartKinect" Content="Iniciar com Kinect"/>
+                        <Button x:Name="BtnStartSim" Click="OnStartSimulator" Content="Iniciar com simulador"/>
+                        <CheckBox x:Name="ChkNearMode" IsChecked="True"
+                                  Content="Near mode (Kinect for Windows 1517)"/>
+                        <CheckBox x:Name="ChkFlatSim" Content="Simulador: areia plana"
+                                  Checked="OnFlatSimChanged" Unchecked="OnFlatSimChanged"/>
+                        <TextBlock TextWrapping="Wrap" Opacity="0.6" FontSize="10"
+                                   Text="Marque para nivelar a areia simulada, capture o plano-base e desmarque. Reproduz o fluxo real sem hardware."/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="2. Calibracao">
+                    <StackPanel>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Opacity="0.75"
+                                   Text="Nivele a areia, retire as maos da caixa e capture o plano-base. Tudo acima dele vira relevo."/>
+                        <Button x:Name="BtnCalibrate" Click="OnCalibrate" Content="Capturar plano-base (60 quadros)"/>
+                        <Button x:Name="BtnResetCalib" Click="OnResetCalibration" Content="Descartar calibracao"/>
+                        <TextBlock x:Name="CalibStatus" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="Nao calibrado."/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="3. Projecao">
+                    <StackPanel>
+                        <Label Content="Monitor de saida"/>
+                        <ComboBox x:Name="CmbScreen" SelectionChanged="OnScreenChanged"/>
+                        <Button x:Name="BtnProject" Click="OnToggleProjection" Content="Abrir projecao"/>
+                        <TextBlock TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.75"
+                                   Text="Na janela de projecao use as setas para alinhar, G para a grade e S para salvar."/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="4. Relevo">
+                    <StackPanel>
+                        <Label Content="Altura maxima (mm)"/>
+                        <DockPanel>
+                            <TextBlock x:Name="LblMaxHeight" DockPanel.Dock="Right" Width="48" TextAlignment="Right"/>
+                            <Slider x:Name="SldMaxHeight" Minimum="20" Maximum="400" Value="120"
+                                    ValueChanged="OnSettingChanged"/>
+                        </DockPanel>
+
+                        <Label Content="Profundidade maxima (mm abaixo do plano)"/>
+                        <DockPanel>
+                            <TextBlock x:Name="LblMinHeight" DockPanel.Dock="Right" Width="48" TextAlignment="Right"/>
+                            <Slider x:Name="SldMinHeight" Minimum="-300" Maximum="0" Value="-80"
+                                    ValueChanged="OnSettingChanged"/>
+                        </DockPanel>
+
+                        <Label Content="Intervalo das curvas de nivel (mm)"/>
+                        <DockPanel>
+                            <TextBlock x:Name="LblContour" DockPanel.Dock="Right" Width="48" TextAlignment="Right"/>
+                            <Slider x:Name="SldContour" Minimum="0" Maximum="60" Value="15"
+                                    ValueChanged="OnSettingChanged"/>
+                        </DockPanel>
+
+                        <Label Content="Suavizacao espacial (raio)"/>
+                        <DockPanel>
+                            <TextBlock x:Name="LblBlur" DockPanel.Dock="Right" Width="48" TextAlignment="Right"/>
+                            <Slider x:Name="SldBlur" Minimum="0" Maximum="10" Value="3"
+                                    IsSnapToTickEnabled="True" TickFrequency="1"
+                                    ValueChanged="OnSettingChanged"/>
+                        </DockPanel>
+
+                        <Label Content="Estabilidade temporal"/>
+                        <DockPanel>
+                            <TextBlock x:Name="LblAlpha" DockPanel.Dock="Right" Width="48" TextAlignment="Right"/>
+                            <Slider x:Name="SldAlpha" Minimum="0.02" Maximum="1.0" Value="0.15"
+                                    ValueChanged="OnSettingChanged"/>
+                        </DockPanel>
+
+                        <CheckBox x:Name="ChkHillshade" IsChecked="True" Content="Sombreamento de relevo"
+                                  Checked="OnSettingChanged" Unchecked="OnSettingChanged"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="5. Configuracao">
+                    <StackPanel>
+                        <Button x:Name="BtnSave" Click="OnSave" Content="Salvar configuracao"/>
+                        <TextBlock x:Name="ConfigPath" TextWrapping="Wrap" Opacity="0.6" FontSize="10"/>
+                    </StackPanel>
+                </GroupBox>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= Pre-visualizacao ================= -->
+        <Border Grid.Column="1" Grid.Row="0" Background="#FF101012" CornerRadius="4">
+            <Grid>
+                <Image x:Name="Preview" Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                <TextBlock x:Name="PreviewHint"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Opacity="0.5" FontSize="16"
+                           Text="Inicie uma fonte de profundidade para ver a previa."/>
+            </Grid>
+        </Border>
+
+        <StatusBar Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Background="#FF15151A" Margin="0,10,0,0">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" Text="Pronto."/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock x:Name="FpsText" Text=""/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

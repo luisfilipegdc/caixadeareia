@@ -1,0 +1,89 @@
+#!/bin/sh
+# Bloqueia commits que contenham padrões de credencial.
+#
+# Existe porque um segredo commitado num repositório público é varrido por bots em
+# minutos, e apagar depois não resolve: ele fica no histórico. Barato de errar,
+# caro de vazar.
+#
+# Ative com:  git config core.hooksPath .githooks
+
+encontrados=0
+
+alerta() {
+    if [ "$encontrados" -eq 0 ]; then
+        echo ""
+        echo "  ┌────────────────────────────────────────────────────────┐"
+        echo "  │  COMMIT BLOQUEADO — possível credencial detectada      │"
+        echo "  └────────────────────────────────────────────────────────┘"
+        echo ""
+    fi
+    echo "  $1"
+    encontrados=1
+}
+
+# Arquivos que entrariam no commit (apenas adicionados/modificados)
+arquivos=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$arquivos" ] && exit 0
+
+for arquivo in $arquivos; do
+    # O próprio hook e a documentação do cofre citam estes padrões como exemplo.
+    case "$arquivo" in
+        .githooks/pre-commit|cofre/LEIA-ME.md) continue ;;
+    esac
+
+    [ -f "$arquivo" ] || continue
+
+    # Ignora binários
+    if git diff --cached --numstat -- "$arquivo" | grep -q '^-'; then
+        continue
+    fi
+
+    conteudo=$(git show ":$arquivo" 2>/dev/null) || continue
+
+    echo "$conteudo" | grep -qE 'ghp_[A-Za-z0-9]{30,}' && \
+        alerta "$arquivo: token de acesso pessoal do GitHub (ghp_...)"
+
+    echo "$conteudo" | grep -qE 'github_pat_[A-Za-z0-9_]{50,}' && \
+        alerta "$arquivo: token de granularidade fina do GitHub (github_pat_...)"
+
+    echo "$conteudo" | grep -qE 'gh[pousr]_[A-Za-z0-9]{30,}' && \
+        alerta "$arquivo: token do GitHub"
+
+    echo "$conteudo" | grep -qE 'AKIA[0-9A-Z]{16}' && \
+        alerta "$arquivo: chave de acesso da AWS (AKIA...)"
+
+    echo "$conteudo" | grep -qE 'sk-[A-Za-z0-9]{32,}' && \
+        alerta "$arquivo: chave de API no formato sk-..."
+
+    echo "$conteudo" | grep -qE 'xox[baprs]-[A-Za-z0-9-]{10,}' && \
+        alerta "$arquivo: token do Slack"
+
+    echo "$conteudo" | grep -qE '\-\-\-\-\-BEGIN [A-Z ]*PRIVATE KEY\-\-\-\-\-' && \
+        alerta "$arquivo: chave privada"
+
+    echo "$conteudo" | grep -qE '(password|senha|secret|api[_-]?key)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{8,}' && \
+        alerta "$arquivo: senha ou chave atribuída em texto plano"
+done
+
+# Nada dentro de cofre/ deve ser commitado, exceto o LEIA-ME.
+for arquivo in $arquivos; do
+    case "$arquivo" in
+        cofre/LEIA-ME.md) ;;
+        cofre/*) alerta "$arquivo: arquivos do cofre nunca devem ser versionados" ;;
+    esac
+done
+
+if [ "$encontrados" -eq 1 ]; then
+    echo ""
+    echo "  O que fazer:"
+    echo "    1. Remova o valor do arquivo e leia-o de variável de ambiente"
+    echo "    2. Guarde o segredo em cofre/ (ignorado pelo git)"
+    echo "    3. Se já vazou em algum lugar, REVOGUE antes de qualquer outra coisa"
+    echo ""
+    echo "  Se for um falso positivo, revise com atenção e use:"
+    echo "    git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+exit 0

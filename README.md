@@ -1,323 +1,244 @@
 # Caixa de Areia Interativa
 
-Caixa de areia com realidade aumentada para o ensino de cartografia: um projetor
-desenha sobre a areia real o mapa de altitudes, as curvas de nível e a água
-escorrendo pelo relevo que os alunos modelam com as mãos.
+Sistema nativo Windows que lê o relevo de uma caixa de areia com um Kinect e projeta
+sobre ela um mapa topográfico colorido com curvas de nível, atualizado em tempo real
+conforme os alunos moldam a areia.
 
-Diferente dos projetos que serviram de base — o
-[AR Sandbox](https://arsandbox.ucdavis.edu) do KeckCAVES/UC Davis e o
-[Caixa e Água](https://github.com/lifefurb/caixaeagua) da FURB — **todo o
-sistema roda no navegador**. Não há Vrui, não há SARndbox, não há compilação.
+- **Sensor:** Kinect v1 / Kinect for Windows (modelo 1517), via API nativa NUI do SDK 1.8
+- **Plataforma:** .NET 8 + WPF, x64
+- **Renderização:** CPU (Parallel.For), ~30 fps a 640×480
 
-## Como este projeto foi feito
+### Documentação
 
-O registro completo está em [`docs/artigo.html`](docs/artigo.html): decisões
-tomadas e por quê, o que deu errado em cada etapa, as medições que
-diagnosticaram os problemas, e a separação entre o que foi erro de projeto e o
-que foi limite físico do hardware.
+| Documento | O que traz |
+|---|---|
+| 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas até a plataforma de simulações ambientais, com status de cada item |
+| 📐 **[Montagem física](docs/MONTAGEM-FISICA.md)** | Cálculo da altura do sensor, cobertura do campo de visão e throw ratio do projetor |
+| 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, justificativas, os seis bugs e as medições |
+| 🖼️ **[Catálogo de imagens](docs/img/README.md)** | Capturas de cada etapa, com legenda e contexto |
 
-## O que muda em relação ao projeto original
+---
 
-| | AR Sandbox / Caixa e Água | Este projeto |
-|---|---|---|
-| Instalação | Linux + 4 scripts de compilação | abrir uma URL, ou um `.exe` |
-| Sistema operacional | só Linux | qualquer um |
-| Criar um cenário novo | editar C++ e recompilar | uma pasta com JSON + shader |
-| Atualizar as escolas | visita presencial | publicar o site |
-| Sem sensor | não roda | modo demonstração completo |
+## Hardware detectado nesta máquina
 
-## Como testar agora (sem sensor nenhum)
+```
+USB\VID_045E&PID_02BE   Microsoft Kinect Audio
+USB\VID_045E&PID_02BF   Microsoft Kinect Camera   <-- driver atual: libusb-win32
+USB\VID_045E&PID_02AD   Xbox Kinect Audio          (entrada órfã de instalação anterior)
+```
+
+`PID_02BE/02BF` identifica um **Kinect for Windows (1517)** — bom, porque é o único modelo
+que suporta *near mode* (0,4–3,0 m em vez de 0,8–4,0 m). Numa caixa de areia com o sensor
+a cerca de 1 m, near mode é a diferença entre leitura limpa e bordas cortadas.
+
+---
+
+## Pré-requisitos
+
+> **Status nesta máquina: tudo já instalado e verificado.**
+> .NET 8 SDK 8.0.424 · Kinect SDK 1.8 (`Kinect10.dll 1.8.0.595`) · câmera migrada do
+> `libusb-win32` para o driver **Kinect for Windows**, status OK · captura real validada
+> a 26 fps. Os passos abaixo ficam registrados para reinstalação em outra máquina.
+
+### 1. .NET 8 SDK
+
+A máquina tem apenas o *runtime*. Para compilar é preciso o SDK:
 
 ```bash
-npm run web
+winget install --id Microsoft.DotNet.SDK.8 --source winget
 ```
 
-Abra <http://localhost:8080>. O modo **Demonstração** gera um relevo sintético:
+### 2. Kinect for Windows SDK 1.8
 
-- arraste com o **botão esquerdo** para levantar areia, com o **direito** para cavar
-- segure **Shift** e arraste para fazer chover
-- **1–5** trocam de cenário, **F** entra em tela cheia, **espaço** pausa, **C** seca a água
+Baixe de `https://www.microsoft.com/en-us/download/details.aspx?id=40278` e instale.
+Ele coloca a `Kinect10.dll` em `C:\Windows\System32` — é essa DLL que o projeto chama
+por P/Invoke. Não é preciso instalar o Developer Toolkit.
 
-## Endereços do site
+### 3. Devolver a câmera ao driver da Microsoft
 
-| URL | O que é | Arquivo |
-|---|---|---|
-| `/` | **Projeto de construção**: geometria, desenhos cotados, plano de corte em MDF, montagem, software e calibração | `index.html` |
-| `/caixa` | **O aplicativo**: relevo, curvas de nível, água e cenários | `caixa.html` |
+**Este passo é obrigatório nesta máquina.** A câmera está vinculada ao `libusb-win32`,
+resíduo de um projeto anterior baseado em libfreenect/OpenNI. Enquanto isso não mudar,
+`NuiGetSensorCount` retorna zero e o app não verá o sensor.
 
-`/app` e `/sandbox` redirecionam para `/caixa`. O `cleanUrls` da Vercel é quem
-serve `caixa.html` em `/caixa`. Localmente, `npm run web` mantém a mesma
-divisão; o executável Electron abre direto em `/caixa.html`.
+1. Abra o Gerenciador de Dispositivos (`devmgmt.msc`)
+2. Em **libusb-win32 devices**, localize *Microsoft Kinect Camera*
+3. Botão direito → **Desinstalar dispositivo** → marque *Excluir o software de driver*
+4. Desconecte e reconecte o Kinect
+5. O driver da Microsoft (instalado no passo 2) assume; o dispositivo deve reaparecer
+   em **Kinect for Windows → Kinect for Windows Camera**
 
-## Publicar na Vercel
+Se o libusb voltar sozinho, use *Atualizar driver → Procurar no computador → Escolher
+numa lista* e selecione explicitamente o driver Kinect da Microsoft.
 
-O projeto é estático, sem etapa de build. Na Vercel: importe o repositório,
-framework **Other**, deixe o comando de build vazio e o diretório de saída
-como a raiz. O `vercel.json` já cuida do cache (cenários e código sempre
-revalidados, para o professor receber atualização sem limpar nada).
+> As entradas duplicadas de áudio (`02AD` com status *Unknown*) são inofensivas —
+> resíduo de registro do mesmo aparelho. Podem ser removidas com o Gerenciador de
+> Dispositivos mostrando dispositivos ocultos.
 
-Com o site em HTTPS, vale saber: o navegador bloqueia `ws://` vindo de página
-segura, **exceto para localhost**. Ou seja, a Vercel funciona bem para demonstrar
-os modos e para a versão sem sensor; com o Kinect, prefira o executável ou o
-`npm run web` na própria máquina da caixa. Se tentar um endereço que o
-navegador vai barrar, a interface avisa em vez de falhar em silêncio.
+### 4. Porta USB
 
-## Com o Kinect
+O Kinect v1 consome quase toda a banda de um controlador USB 2.0. Se aparecer
+*"Banda USB insuficiente"*, mude para uma porta ligada a **outro controlador** — em
+notebooks, normalmente as portas de lados opostos do chassi. A fonte de energia externa
+é obrigatória; só o cabo USB não alimenta o sensor.
 
-O navegador não consegue falar com o Kinect diretamente: o Chrome não
-implementa transferências USB isócronas, que é como o sensor transmite
-profundidade. Por isso existe uma **ponte** — o único pedaço nativo do projeto,
-que só lê o sensor e reenvia por WebSocket.
+---
+
+## Compilar e executar
 
 ```bash
-npm install
-npm run ponte              # sensor real
-npm run ponte:simulada     # relevo falso, para testar a cadeia inteira
+dotnet build src/CaixaInterativa/CaixaInterativa.csproj -c Release
 ```
-
-No painel, escolha a fonte **Kinect (via ponte)** e clique em *Conectar*.
-
-### Se o sensor não conectar
 
 ```bash
-npm run diagnostico
+dotnet run --project src/CaixaInterativa/CaixaInterativa.csproj -c Release
 ```
 
-Ele confere versão do Node, drivers instalados, presença do SDK, se o sistema
-operacional está enxergando o sensor no USB e se a porta está livre — e
-termina dizendo o próximo passo. A causa mais comum é simples: **o Kinect não
-se alimenta pelo USB**, ele precisa da fonte de energia do adaptador oficial.
+---
 
-Sensores suportados pela ponte:
-
-| Sensor | Driver | Observação |
-|---|---|---|
-| Kinect for Xbox One / Windows v2 | `kinect2` | melhor resolução, exige USB 3.0 |
-| Kinect v1: Xbox 360 (1414/1473) e for Windows (1517) | `freenect` ou `kinect` | o mais barato de achar usado |
-| Qualquer um, por programa externo | entrada padrão | ver abaixo |
-| Nenhum | simulado | desenvolvimento e demonstração |
-
-### Kinect v1 no Windows — caminho recomendado
-
-Use a **ponte em C#** (`ponte-windows-v1/`), que fala com o sensor pelo Kinect
-for Windows SDK 1.8, o driver oficial do modelo 1517. Ela substitui a ponte em
-Node: é um `.exe` só, sem Node, sem npm, sem compilar módulo nativo.
-
-1. Instale o **Kinect for Windows SDK 1.8** e o **Runtime 1.8** da Microsoft
-2. Baixe o `PonteKinect.exe` (artifacts do GitHub Actions ou a aba Releases)
-3. Rode:
+## Montagem física
 
 ```
-PonteKinect.exe
-PonteKinect.exe --perto           40cm a 3m, aproveita o modo perto do 1517
-PonteKinect.exe --angulo -15      inclina o motor para a caixa
-PonteKinect.exe --simulado        testa sem sensor
+            [ Projetor ]        [ Kinect ]
+                  \                 |
+                   \                |   ~0,9 a 1,2 m
+                    \               |
+        ┌────────────────────────────────────┐
+        │            areia                   │
+        └────────────────────────────────────┘
 ```
 
-4. Abra a caixa em `http://localhost:8080` (`npm run web`) ou o executável
-   principal, escolha **Kinect (via ponte)** e conecte em `ws://localhost:8787`
+- Kinect **perpendicular** à caixa, centralizado, entre 0,9 m e 1,2 m acima da areia nivelada
+- Projetor o mais próximo possível do mesmo eixo — quanto mais oblíquo, mais distorção
+  de perspectiva, que o alinhamento afim atual **não** corrige (veja *Limitações*)
+- Camada de areia de 8–15 cm, para que haja o que escavar e o que empilhar
+- Areia clara e fosca lê melhor no infravermelho; evite areia molhada e superfícies brilhantes
+- Sala com pouca luz solar direta — o sol tem infravermelho suficiente para cegar o sensor
 
-Ela também sabe alimentar a ponte em Node, se você preferir:
+---
 
-```
-PonteKinect.exe --saida-padrao | node ponte/ponte.js
-```
+## Uso
 
-Um detalhe que economiza uma tarde: o runtime do Kinect 1.8 é de 32 bits, por
-isso o projeto compila em **x86**. Se aparecer erro de arquitetura ao carregar
-`Microsoft.Kinect.dll`, é isso.
+### Ensaiar sem hardware
 
-#### A porta USB importa mais que tudo
+Clique em **Iniciar com simulador**. Para reproduzir o fluxo completo de calibração:
+marque *Simulador: areia plana*, capture o plano-base, e desmarque — o relevo sintético
+aparece com o mapa já calibrado. É assim que o pipeline foi validado antes de haver sensor.
 
-O Kinect v1 consome quase toda a banda de uma controladora USB e não divide
-com ninguém. Se a ponte relatar `InsufficientBandwidth`, não é software:
+### Fluxo de primeira vez
 
-- ligue o sensor **direto na placa-mãe**, nas portas de trás do gabinete, nunca
-  em hub nem em porta de teclado/monitor
-- desconecte webcam, HD externo e headset USB enquanto testa
-- troque de porta: frente e trás costumam ser controladoras diferentes
-- em notebook quase todas as portas compartilham a mesma controladora, e aí
-  nenhuma troca de porta resolve — veja a seção seguinte
+1. **Detectar Kinect** → confirme que o sensor aparece
+2. **Iniciar com Kinect** (ou *Iniciar com simulador*, para testar sem hardware)
+3. **Abrir projeção** → escolha o monitor do projetor
+4. Na janela de projeção, tecle **G** para a grade e alinhe fisicamente o projetor
+   à borda da caixa; ajuste o resto com as setas
+5. Nivele a areia, tire as mãos da caixa, tecle **C** (ou *Capturar plano-base*)
+6. Ajuste *Altura máxima* até a faixa de cores cobrir o relevo que os alunos conseguem fazer
+7. Tecle **S** para salvar. Nas próximas aulas basta abrir e projetar
 
-Um hub USB, mesmo com fonte própria, **não** ajuda: a banda que falta é da
-controladora, não do hub.
+### Atalhos na janela de projeção
 
-#### Sensor num computador, projeção em outro
+| Tecla | Ação |
+|---|---|
+| Setas | mover (Shift = 10×) |
+| `+` / `-` | escala uniforme |
+| Ctrl + Setas | escala X / Y separadas |
+| `R` / `E` | girar |
+| `H` / `V` | espelhar horizontal / vertical |
+| `G` | grade de alinhamento |
+| `C` | calibrar plano-base |
+| `S` | salvar configuração |
+| `F1` | mostrar/ocultar ajuda |
+| `Esc` | fechar projeção |
 
-Quando a máquina da projeção não dá conta do sensor — o caso típico é
-notebook, onde todas as portas dividem a mesma controladora — o sensor pode
-ficar em outro computador, mesmo velho, ligado na mesma rede.
+---
 
-No computador com o Kinect:
-
-```
-PonteKinect.exe --rede
-```
-
-Ela imprime o endereço a usar, por exemplo `ws://192.168.0.42:8787`. No
-computador do projetor, rode a caixa com `npm run web`, escolha **Kinect (via
-ponte)** e informe esse endereço.
-
-Duas condições: os dois na mesma rede, e a porta 8787 liberada no Firewall do
-Windows (ele pergunta na primeira execução — basta permitir em redes
-privadas). Use o site local, não o publicado em HTTPS: navegador em página
-segura recusa `ws://` para endereços que não sejam localhost.
-
-Os estados que a ponte relata (`NotPowered`, `InsufficientBandwidth`,
-`DeviceNotSupported`, `Initializing` preso) vêm com a orientação específica de
-cada um na própria tela.
-
-### Kinect v1 pelos drivers em Node
-
-O driver do v1 é a libfreenect, e os pacotes npm que a empacotam são antigos:
-no Linux compilam sem drama, no Windows costumam falhar. Em ordem de esforço:
-
-1. **Tente direto** — `npm install freenect`, e se falhar, `npm install kinect`.
-   Leva um minuto e às vezes resolve.
-2. **Linux na máquina da caixa** — é onde o v1 é bem suportado, e é o que o AR
-   Sandbox original usa. `sudo apt install libfreenect-dev` antes do npm install.
-3. **Programa externo alimentando a ponte** — se você já tem qualquer programa
-   que fale com o sensor nessa máquina, ele pode alimentar a ponte pela entrada
-   padrão, despejando quadros crus de 640×480 em uint16:
-
-   ```bash
-   meu-programa-do-kinect | PONTE_STDIN=1 node ponte/ponte.js
-   ```
-
-   A ponte não precisa saber como os quadros foram obtidos.
-
-O v1 entrega profundidade em 640×480, exatamente a resolução que o projeto
-assume — a perda em relação ao v2 é pequena para uso em caixa de areia.
-
-### Calibração
-
-1. **Base (cm)** — distância do sensor até o fundo da caixa vazia
-2. **Altura útil (cm)** — espessura da camada de areia
-3. **Ajustar 4 cantos** — clique nos cantos da areia na ordem indicada; isso
-   alinha a projeção ao que o sensor enxerga
-
-A mão pairando acima da areia é detectada automaticamente e vira chuva — o
-mesmo gesto do projeto original.
-
-## Executável para a escola
-
-O `.github/workflows/build.yml` compila o `.exe` no Windows a cada push; o
-arquivo sai nos *artifacts* da execução. Um push de tag `v*` publica o
-executável direto na aba Releases:
-
-```bash
-git tag v0.1.0 && git push origin v0.1.0
-```
-
-Para gerar localmente, em uma máquina Windows:
-
-```bash
-npm install
-npm run empacotar
-```
-
-O executável sobe o servidor local, sobe a ponte e abre em tela cheia,
-preferindo o segundo monitor (o projetor) quando existe.
-
-### Sobre o driver do Kinect no executável público
-
-O `kinect2` é um módulo nativo: para compilar, a máquina precisa do Kinect for
-Windows SDK v2 instalado, e o runner do GitHub não tem. Por isso o `.exe`
-publicado sai **sem** o driver embutido — ele traz os 16 modos e o modo
-demonstração completos, e serve para avaliar o sistema em qualquer PC.
-
-Para usar com o sensor, há dois caminhos:
-
-1. **Compilar na máquina da caixa** — instale o Kinect SDK v2 e rode
-   `npm install && npm run empacotar`. O driver entra no executável.
-2. **Ponte por fora** — rode `npm run ponte` antes de abrir o `.exe`. A ponte
-   interna percebe que a porta já está ocupada, sai de cena em silêncio, e o
-   aplicativo conversa com a sua ponte.
-
-## Criar um cenário
-
-Um cenário é uma pasta. Nenhum código do motor precisa mudar.
+## Como funciona
 
 ```
-cenarios/meu-cenario/
-  cenario.json      paleta por altitude, curvas de nível, água, quiz
-  overlay.frag      opcional: efeitos próprios em GLSL
+Kinect ──► KinectV1Source ──► DepthProcessor ──► TopographicRenderer ──► ProjectionWindow
+           (P/Invoke NUI)     (mm → altura)      (cor + curvas)          (WriteableBitmap)
 ```
 
-O `overlay.frag` implementa uma função que recebe a cor já calculada e devolve
-a cor final:
+### Três armadilhas do interop NUI
 
-```glsl
-vec4 cenario(vec2 uv, float altura, float agua, float tempo, vec4 cor) {
-  return cor;
-}
+Todas custaram depuração e estão documentadas no código para não voltarem:
+
+1. **`NuiImageStreamGetNextFrame` devolve um ponteiro, não a struct.** A assinatura da API
+   flat é `CONST NUI_IMAGE_FRAME **ppcImageFrame` — diferente do método homônimo da
+   interface `INuiSensor`, que preenche a struct por valor. Declarar `out NuiImageFrame`
+   faz o runtime escrever apenas os 8 bytes do ponteiro no início da struct; o resto fica
+   com lixo, o `pFrameTexture` aparente vira endereço inválido e o processo morre com
+   **0xC0000374 (heap corruption)** na primeira leitura. O sintoma não aponta para a causa.
+
+2. **A profundidade vem deslocada 3 bits, mesmo em `NUI_IMAGE_TYPE_DEPTH`.** Os bits
+   reservados ao índice de jogador continuam presentes: os milímetros estão nos bits 15..3.
+   Sem o `>> 3`, todas as distâncias saem 8× maiores — e o sinal de que é isso, e não outra
+   coisa, é que *todos* os valores lidos são múltiplos de 8 e o máximo é exatamente
+   `0x1FFF << 3 = 65528`.
+
+3. **`NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE` é `0x00020000`.** `0x00040000` é
+   `TOO_FAR_IS_NONZERO`. Trocar os dois não gera erro — `NuiImageStreamSetImageFrameFlags`
+   retorna `S_OK` de qualquer forma — e o sintoma engana: o alcance mínimo permanece em
+   800 mm e tudo mais perto lê zero, exatamente como se a superfície não devolvesse
+   infravermelho. Medido na mesa: com a flag errada, 6,9% de cobertura e mínimo de 801 mm;
+   com a correta, **66,4% e mínimo de 455 mm**.
+
+O retorno de `SetImageFrameFlags` não prova que o near mode foi aplicado. A verificação
+confiável é empírica: com near mode ativo aparecem leituras abaixo de 800 mm.
+
+Se algo parecido reaparecer, o caminho que funcionou foi: preencher o buffer com `0xCD`
+antes da chamada nativa e conferir quantos bytes foram de fato escritos, e validar a vtable
+com `BufferLen()`/`Pitch()` — que retornam inteiros conhecidos (614400 e 1280) sem escrever
+memória, portanto não travam o processo se os slots estiverem errados.
+
+**`DepthProcessor`** é onde mora a diferença entre uma projeção utilizável e uma que
+"ferve". O Kinect v1 tem ~2–4 mm de ruído nessa distância e produz pixels inválidos nas
+bordas dos objetos. Três etapas, nesta ordem:
+
+1. **Buracos** — pixel inválido mantém o último valor bom, em vez de virar zero.
+   Zerar criaria crateras piscando nas bordas das mãos.
+2. **Tempo** — filtro exponencial com α adaptativo. Areia parada usa α lento (estável);
+   uma mão entrando produz salto acima do limiar e usa α rápido (responsivo). Um α único
+   obrigaria a escolher entre tremor e arrasto.
+3. **Espaço** — box blur separável, custo O(1) por pixel independente do raio.
+
+O **plano-base é armazenado por pixel**, não como um número único. Assim uma caixa
+levemente torta ou um sensor não perfeitamente perpendicular não vira um gradiente falso
+atravessando o mapa inteiro.
+
+---
+
+## Limitações conhecidas
+
+- **Alinhamento apenas afim.** Escala, deslocamento, rotação e espelhamento. Se o projetor
+  estiver bem oblíquo em relação à caixa, sobra distorção de perspectiva que só uma
+  homografia de 4 cantos corrige. É o próximo passo natural.
+- **Sem simulação de água.** O MVP é topografia. Água/chuva é iterativa e pede GPU —
+  provavelmente um shader HLSL ou migração da renderização para um pipeline D3D.
+- **Sem correção da distorção da lente** do Kinect. Nas bordas do campo de visão há erro
+  de alguns milímetros; irrelevante para uso pedagógico, relevante para medição.
+- **Faixa de leitura útil.** Com `MaxValidDepthMm = 2000`, qualquer coisa além de 2 m é
+  descartada. Se o sensor for montado mais alto que isso, ajuste o valor em `config.json`.
+
+---
+
+## Estrutura
+
 ```
-
-Dentro dela estão disponíveis `alturaEm(uv)`, `aguaEm(uv)`, `marcadorEm(uv)`,
-`ruido(p)` e `u_texel`. Depois, acrescente o id em `cenarios/index.json`. Um
-shader com erro é rejeitado e o cenário cai na exibição padrão — a aula não
-para.
-
-## Modos incluídos
-
-| Modo | Categoria | O que faz |
-|---|---|---|
-| Topografia | educação | cores por altitude e curvas de nível |
-| Nascente de água | relaxamento | correnteza com espuma, cheias, barragens |
-| Bacias hidrográficas | educação | destaca os divisores de água |
-| Ecossistemas | educação | biomas que respondem à umidade |
-| Ilhas e arquipélagos | educação | linha de costa, praia e rebentação |
-| Cidades e áreas de proteção | educação | ocupação regular e irregular junto da água |
-| Enchente | educação | cheia cíclica revelando as áreas de risco |
-| Safári | educação | savana que vira deserto rachado quando seca |
-| Inverno | relaxamento | neve que só gruda em encosta suave, água que congela |
-| Marte | educação | regolito, crateras e tempestade de poeira |
-| Vulcão | jogos | lava incandescente com crosta esfriando |
-| Dinossauros | jogos | pântano, samambaias e pegadas no barro |
-| Jardineiro | jogos | plantar sementes, regar, ver a planta viver ou murchar |
-| Formas e cores | criatividade | camadas do arco-íris e formas geométricas guia |
-| Pintura na areia | criatividade | modo livre, a altura vira cor |
-| Quiz do ciclo da água | educação | perguntas conduzidas pelo professor |
-
-O modo **Cidades e áreas de proteção** reproduz a atividade descrita no
-material da FURB: os alunos fundam cidades, e o sistema marca com círculo
-branco as que respeitam a mata ciliar e com vermelho pulsante as que invadem a
-área protegida.
-
-Cada modo declara sua categoria, e o painel filtra por ela. Modos com
-`"marcadores"` habilitam o gesto **Alt + clique**, que planta sementes, abre
-nascentes ou posiciona rebanhos conforme o modo.
-
-## Como funciona por dentro
-
+src/CaixaInterativa/
+├── Depth/
+│   ├── IDepthSource.cs          contrato de fonte de profundidade
+│   ├── NuiNative.cs             P/Invoke para Kinect10.dll
+│   ├── KinectV1Source.cs        captura real
+│   └── SimulatedDepthSource.cs  relevo sintético, sem hardware
+├── Processing/
+│   └── DepthProcessor.cs        calibração, buracos, suavização
+├── Rendering/
+│   └── TopographicRenderer.cs   rampa hipsométrica, curvas, sombreamento
+├── Config/
+│   └── AppConfig.cs             persistência em config.json
+├── Views/
+│   ├── MainWindow.xaml          painel de controle
+│   └── ProjectionWindow.xaml    tela cheia no projetor
+└── SandboxEngine.cs             orquestração
 ```
-Kinect ──ponte──► profundidade (mm)
-                        │
-                        ▼
-              src/sim/terreno.js      recorte, buraco preenchido, mão detectada
-                        │  textura de altura
-                        ▼
-              src/sim/agua.js         tubos virtuais (Mei et al.) em shaders
-                        │  lâmina d'água
-                        ▼
-              src/render/vista.js     paleta + curvas de nível + cenário
-                        │
-                        ▼
-                    projetor
-```
-
-A simulação de água usa o mesmo método do SARndbox: cada célula troca vazão
-com as quatro vizinhas conforme a diferença de altura total, com limitador
-para nunca escoar mais água do que existe na célula.
-
-## Hardware
-
-- **PC** com placa de vídeo dedicada (a simulação de água é o gargalo)
-- **Projetor** de curta distância, conectado por HDMI/DVI/DisplayPort — VGA
-  degrada a imagem e desalinha a projeção
-- **Kinect** montado ao lado do projetor, apontado para a areia
-- **Caixa** com areia clara; areia de sílica rende mais contraste na projeção
-
-## Licença
-
-GPL-2.0-or-later, herdada dos projetos que serviram de base.

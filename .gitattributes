@@ -1,0 +1,20 @@
+# Normaliza fim de linha no repositório, preservando CRLF no checkout do Windows.
+* text=auto
+
+# Arquivos que o Windows exige em CRLF
+*.sln       text eol=crlf
+*.csproj    text eol=crlf
+*.manifest  text eol=crlf
+*.ps1       text eol=crlf
+
+# Código e documentação
+*.cs        text
+*.xaml      text
+*.md        text
+*.json      text
+
+# Binários — nunca converter
+*.png       binary
+*.jpg       binary
+*.bmp       binary
+*.ico       binary
