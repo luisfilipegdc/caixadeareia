@@ -41,7 +41,7 @@ public partial class MainWindow : Window
         _engine.StateChanged += OnStateChanged;
 
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarAgua(); };
+        _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarAgua(); AtualizarSismo(); };
         _uiTimer.Start();
 
         Loaded += OnWindowLoaded;
@@ -371,6 +371,64 @@ public partial class MainWindow : Window
         }
     }
 
+    // ================= Terremoto =================
+
+    private void OnMagnitudeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (LblMagnitude is not null) LblMagnitude.Text = $"{SldMagnitude.Value:F1}";
+    }
+
+    private void OnTremor(object sender, RoutedEventArgs e)
+    {
+        var sismo = _engine.Terremoto;
+        if (sismo is null || _engine.State == EngineState.Parado)
+        {
+            SetStatus("Ligue a caixa antes de provocar um terremoto.");
+            return;
+        }
+
+        if (!_engine.IsCalibrated)
+        {
+            MessageBox.Show(
+                "A caixa ainda não foi calibrada, então o sistema não conhece as encostas " +
+                "e não saberia onde haveria risco de deslizamento.\n\n" +
+                "Alise a areia, toque em “Nivelar e calibrar” e tente de novo.",
+                AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        // Epicentro no centro por enquanto. Escolher onde clicando na prévia é a
+        // evolução natural, e vale mais depois que a caixa física estiver montada.
+        sismo.Disparar(0.5f, 0.5f, (float)SldMagnitude.Value);
+        SetStatus($"Terremoto de magnitude {SldMagnitude.Value:F1}. Observe onde o dano se concentra.");
+    }
+
+    private void AtualizarSismo()
+    {
+        var sismo = _engine.Terremoto;
+        if (sismo is null) return;
+
+        BtnTremor.IsEnabled = !sismo.EmAndamento;
+
+        if (sismo.EmAndamento)
+        {
+            TxtSismoStatus.Text =
+                $"Tremendo… {sismo.TempoDecorrido:F1}s\n" +
+                $"Área afetada: {sismo.AreaAfetadaPercent:F0}%";
+        }
+        else if (sismo.Ativo && sismo.AreaAfetadaPercent > 0)
+        {
+            TxtSismoStatus.Text =
+                $"Magnitude {sismo.Magnitude:F1}\n" +
+                $"Área afetada: {sismo.AreaAfetadaPercent:F0}%\n" +
+                $"Risco de deslizamento: {sismo.AreaDeslizamentoPercent:F1}% da área";
+        }
+        else
+        {
+            TxtSismoStatus.Text = "Nenhum abalo registrado.";
+        }
+    }
+
     // ================= Calibração =================
 
     private void OnCalibrate(object sender, RoutedEventArgs e)
@@ -609,6 +667,7 @@ public partial class MainWindow : Window
         LblContour.Text = SldContour.Value < 0.5 ? "sem" : $"{SldContour.Value:F0} mm";
         LblBlur.Text = $"{SldBlur.Value:F0}";
         LblAlpha.Text = $"{SldAlpha.Value:F2}";
+        LblMagnitude.Text = $"{SldMagnitude.Value:F1}";
     }
 
     private void OnSave(object sender, RoutedEventArgs e) => SaveConfig();

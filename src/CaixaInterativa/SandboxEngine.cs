@@ -53,6 +53,9 @@ public sealed class SandboxEngine : IDisposable
     public WaterSimulation? Agua { get; private set; }
 
     /// <summary>Campo de alturas atual, para módulos que precisam consultar o relevo.</summary>
+    /// <summary>Simulação de terremoto, compartilhando o mapa de solo com a água.</summary>
+    public EarthquakeSimulation? Terremoto { get; private set; }
+
     public float[] Alturas => _heights;
     public int LarguraCampo => _source?.Width ?? 0;
     public int AlturaCampo => _source?.Height ?? 0;
@@ -146,6 +149,9 @@ public sealed class SandboxEngine : IDisposable
 
         _heights = new float[source.Width * source.Height];
         Agua = new WaterSimulation(source.Width, source.Height);
+        // Os dois módulos leem o mesmo mapa de cobertura: mudar de mata para solo solto
+        // deve afetar a enchente e o terremoto ao mesmo tempo, como no território real.
+        Terremoto = new EarthquakeSimulation(source.Width, source.Height) { Solo = Agua.Solo };
         _latestFrame = null;
         _lastRenderedFrameNumber = -1;
 
@@ -296,7 +302,11 @@ public sealed class SandboxEngine : IDisposable
         if (Agua is { Ativo: true })
             Agua.Atualizar(_heights, frame.Width, frame.Height, dt);
 
+        if (Terremoto is { Ativo: true })
+            Terremoto.Atualizar(_heights, frame.Width, frame.Height, dt);
+
         bool mostrarAgua = Agua is { Ativo: true };
+        bool mostrarSismo = Terremoto is { Ativo: true };
 
         var pixels = _renderer.Render(
             _heights, frame.Width, frame.Height,
@@ -304,7 +314,11 @@ public sealed class SandboxEngine : IDisposable
             mostrarAgua ? Agua!.Profundidade : null,
             mostrarAgua ? Agua!.Width : 0,
             mostrarAgua ? Agua!.Height : 0,
-            mostrarAgua ? Agua!.Velocidade : null);
+            mostrarAgua ? Agua!.Velocidade : null,
+            mostrarSismo ? Terremoto!.Intensidade : null,
+            mostrarSismo ? Terremoto!.Dano : null,
+            mostrarSismo ? Terremoto!.Width : 0,
+            mostrarSismo ? Terremoto!.Height : 0);
 
         EnsureBitmap(_renderer.Width, _renderer.Height);
 

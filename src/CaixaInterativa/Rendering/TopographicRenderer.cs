@@ -67,7 +67,11 @@ public sealed class TopographicRenderer
         float[]? waterMm = null,
         int waterWidth = 0,
         int waterHeight = 0,
-        float[]? waterSpeed = null)
+        float[]? waterSpeed = null,
+        float[]? quakeNow = null,
+        float[]? quakeDamage = null,
+        int quakeWidth = 0,
+        int quakeHeight = 0)
     {
         int left = Math.Clamp(projection.RoiLeft, 0, fieldWidth - 1);
         int top = Math.Clamp(projection.RoiTop, 0, fieldHeight - 1);
@@ -181,6 +185,39 @@ public sealed class TopographicRenderer
                         r = r * (1f - alfa) + wr * alfa;
                         g = g * (1f - alfa) + wg * alfa;
                         b = b * (1f - alfa) + wb * alfa;
+                    }
+                }
+
+                // Terremoto: o dano acumulado pinta o mapa de risco, e a frente de onda
+                // passa por cima como um clarão. Assim a turma vê o abalo acontecer e
+                // continua vendo onde ele bateu depois que tudo parou.
+                if (quakeNow is not null && quakeWidth > 0 && quakeHeight > 0)
+                {
+                    float u = (x + left) / (float)fieldWidth;
+                    float vv = (y + top) / (float)fieldHeight;
+
+                    if (quakeDamage is not null)
+                    {
+                        float dano = AmostrarBilinear(quakeDamage, quakeWidth, quakeHeight, u, vv);
+                        if (dano > 0.15f)
+                        {
+                            // Amarelo para dano leve, vermelho para severo — a mesma
+                            // convenção dos mapas de risco sísmico.
+                            float t2 = Math.Clamp((dano - 0.15f) / 0.65f, 0f, 1f);
+                            float alfa = 0.20f + 0.42f * t2;
+                            r = r * (1f - alfa) + (238f) * alfa;
+                            g = g * (1f - alfa) + (200f - 168f * t2) * alfa;
+                            b = b * (1f - alfa) + (70f - 46f * t2) * alfa;
+                        }
+                    }
+
+                    float onda = AmostrarBilinear(quakeNow, quakeWidth, quakeHeight, u, vv);
+                    if (onda > 0.04f)
+                    {
+                        float brilho = MathF.Min(1f, onda * 1.5f);
+                        r += (255f - r) * brilho * 0.75f;
+                        g += (250f - g) * brilho * 0.70f;
+                        b += (235f - b) * brilho * 0.60f;
                     }
                 }
 

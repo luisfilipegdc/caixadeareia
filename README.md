@@ -291,7 +291,7 @@ src/CaixaInterativa/
 | **Página do projeto** | https://luisfilipegdc.com.br/caixa-de-areia |
 | **Suporte** | [Enviar e-mail](mailto:contato@luisfilipegdc.com.br) |
 | **Repositório** | https://github.com/luisfilipegdc/caixadeareia |
-| **Versão atual** | 1.0.0 |
+| **Versão atual** | 1.0.1 |
 | **Licença** | [GPL-2.0-or-later](LICENSE) |
 
 Esses mesmos endereços estão dentro do programa, no bloco **Ajuda e suporte** do painel —
@@ -352,7 +352,7 @@ manter o projeto aberto e garantir que continue aberto.
 Se usar este trabalho em pesquisa, material didático ou apresentação, a citação sugerida é:
 
 > **Caixa de Areia Interativa**: plataforma de projeção topográfica para ensino de
-> geografia e ciências ambientais. Versão 1.0.0. Projeto Caixa de Areia, Brasília, 2026.
+> geografia e ciências ambientais. Versão 1.0.1. Projeto Caixa de Areia, Brasília, 2026.
 > Disponível em: https://luisfilipegdc.com.br/caixa-de-areia
 
 Este programa é distribuído na esperança de que seja útil, mas **sem qualquer garantia**;

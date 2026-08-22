@@ -142,6 +142,34 @@
                         </StackPanel>
                     </Border>
 
+
+                    <Border Background="#FF15151B" CornerRadius="5" Padding="13"
+                            Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="TERREMOTO" FontSize="11" FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}" Margin="0,0,0,4"/>
+                            <TextBlock TextWrapping="Wrap" Opacity="0.55" FontSize="11"
+                                       Margin="0,0,0,10"
+                                       Text="O tremor depende do solo e da encosta: a mesma magnitude poupa a rocha e destrói o solo mole."/>
+
+                            <Button x:Name="BtnTremor" Click="OnTremor"
+                                    Style="{StaticResource BotaoPrimario}"
+                                    Content="⚡  Provocar terremoto"/>
+
+                            <TextBlock Text="Magnitude" FontSize="12" Margin="0,8,0,0"/>
+                            <DockPanel Margin="0,3,0,0">
+                                <TextBlock x:Name="LblMagnitude" DockPanel.Dock="Right"
+                                           Width="34" TextAlignment="Right" Opacity="0.75"/>
+                                <Slider x:Name="SldMagnitude" Minimum="3" Maximum="8" Value="6"
+                                        TickFrequency="0.5" IsSnapToTickEnabled="True"
+                                        ValueChanged="OnMagnitudeChanged"/>
+                            </DockPanel>
+
+                            <TextBlock x:Name="TxtSismoStatus" TextWrapping="Wrap"
+                                       FontSize="12" Margin="0,8,0,0"
+                                       Text="Nenhum abalo registrado."/>
+                        </StackPanel>
+                    </Border>
                     <Border Background="#FF15151B" CornerRadius="5" Padding="13"
                             Margin="0,12,0,0">
                         <StackPanel>
