@@ -48,6 +48,10 @@ public sealed class WaterSimulation : ISimulationModule
     // onde ela seria levada, para o estudante decidir o que fazer a respeito.
     private readonly float[] _erosao;
 
+    // Quanta água cada célula já absorveu. Solo encharcado para de absorver — é por isso
+    // que a segunda chuva alaga mais que a primeira, mesmo sendo igual.
+    private readonly float[] _saturacao;
+
     public string Nome => "Água e enchentes";
     public int Width => _w;
     public int Height => _h;
@@ -136,6 +140,7 @@ public sealed class WaterSimulation : ISimulationModule
         _fluxoB = new float[n];
         _velocidade = new float[n];
         _erosao = new float[n];
+        _saturacao = new float[n];
         Solo = new SoilMap(_w, _h);
         Solo.Preencher(TipoDeSolo.SoloArenoso);
     }
@@ -145,6 +150,22 @@ public sealed class WaterSimulation : ISimulationModule
 
     /// <summary>Erosão acumulada por célula, em unidades relativas.</summary>
     public float[] Erosao => _erosao;
+
+    /// <summary>Água armazenada no solo, em mm, por célula.</summary>
+    public float[] Saturacao => _saturacao;
+
+    /// <summary>
+    /// Quanto o solo já encheu, de 0 a 1, na média da caixa. Perto de 1 o terreno perdeu
+    /// a capacidade de absorver e qualquer chuva vira enxurrada.
+    /// </summary>
+    public double SaturacaoMediaPercent { get; private set; }
+
+    /// <summary>
+    /// Velocidade com que o solo devolve água ao subsolo e volta a poder absorver.
+    /// Lenta de propósito: um terreno encharcado leva dias para secar, e é isso que faz
+    /// a chuva de amanhã ser mais perigosa que a de hoje.
+    /// </summary>
+    public float DrenagemProfundaPorSegundo { get; set; } = 0.9f;
 
     /// <summary>Volume total infiltrado no episódio, em litros.</summary>
     public double InfiltradoLitros { get; private set; }
@@ -181,6 +202,7 @@ public sealed class WaterSimulation : ISimulationModule
         }
 
         AplicarInfiltracao(dt);
+        DrenarSolo(dt);
         AcumularErosao(dt);
         CalcularEstatisticas();
     }
@@ -239,11 +261,16 @@ public sealed class WaterSimulation : ISimulationModule
                 int i = linha + x;
 
                 // A rugosidade da cobertura entra como atrito: a serapilheira da mata
-                // segura o escoamento, o asfalto deixa correr solto. É o segundo efeito
+                // retarda o escoamento, o asfalto deixa correr solto. É o segundo efeito
                 // do desmatamento, depois da infiltração — a água não só entra menos,
                 // como chega mais rápido lá embaixo.
+                //
+                // O multiplicador é modesto de propósito. Com 3x, a mata segurava tanta
+                // água na superfície que a área alagada ficava MAIOR que a da cidade —
+                // o modelo confundia "escoamento retardado", que é bom, com "empoçado",
+                // que é o que se quer medir.
                 var prop = PropriedadesDoSolo.Rapido(solo[i]);
-                float atrito = Amortecimento * (1f + 3f * prop.Rugosidade);
+                float atrito = Amortecimento * (1f + 1.1f * prop.Rugosidade);
                 float retencao = 1f - atrito * dt;
                 if (retencao < 0f) retencao = 0f;
 
@@ -338,10 +365,21 @@ public sealed class WaterSimulation : ISimulationModule
                     if (_agua[i] <= 0f) continue;
 
                     var prop = PropriedadesDoSolo.Rapido(solo[i]);
-                    float capacidade = prop.InfiltracaoMmPorSegundo * EscalaInfiltracao * dt;
-                    float absorvido = MathF.Min(_agua[i], capacidade);
+
+                    // Solo encharcado absorve menos. A capacidade cai conforme o
+                    // armazenamento enche, e chega a zero quando o solo satura — o
+                    // momento em que a chuva deixa de infiltrar e passa a escorrer.
+                    float espaco = MathF.Max(0f, prop.ArmazenamentoMm - _saturacao[i]);
+                    float fracaoLivre = prop.ArmazenamentoMm > 0.01f
+                        ? espaco / prop.ArmazenamentoMm
+                        : 0f;
+
+                    float capacidade = prop.InfiltracaoMmPorSegundo * EscalaInfiltracao
+                                       * fracaoLivre * dt;
+                    float absorvido = MathF.Min(MathF.Min(_agua[i], capacidade), espaco);
 
                     _agua[i] -= absorvido;
+                    _saturacao[i] += absorvido;
                     parcial += absorvido;
 
                     // Abaixo de um décimo de milímetro não há o que ver, e deixar
@@ -364,6 +402,27 @@ public sealed class WaterSimulation : ISimulationModule
     /// solo seria levado" — e o estudante decide se protege a encosta ou se cava para
     /// ver o que acontece.
     /// </summary>
+    /// <summary>
+    /// O solo devolve água ao subsolo e recupera capacidade de absorver, devagar.
+    /// Sem isso a caixa saturaria na primeira chuva e nunca mais absorveria nada.
+    /// </summary>
+    private void DrenarSolo(float dt)
+    {
+        if (DrenagemProfundaPorSegundo <= 0f) return;
+        float perda = DrenagemProfundaPorSegundo * dt;
+
+        Parallel.For(0, _h, y =>
+        {
+            int linha = y * _w;
+            for (int x = 0; x < _w; x++)
+            {
+                int i = linha + x;
+                if (_saturacao[i] <= 0f) continue;
+                _saturacao[i] = MathF.Max(0f, _saturacao[i] - perda);
+            }
+        });
+    }
+
     private void AcumularErosao(float dt)
     {
         var solo = Solo.Celulas;
@@ -412,6 +471,16 @@ public sealed class WaterSimulation : ISimulationModule
         }
 
         // volume = profundidade média × área da célula; mm³ para litros é 1e-6.
+        // Saturação média, para a interface avisar quando o terreno encheu.
+        var solo = Solo.Celulas;
+        double satTotal = 0;
+        for (int i = 0; i < _saturacao.Length; i++)
+        {
+            float cap = PropriedadesDoSolo.Rapido(solo[i]).ArmazenamentoMm;
+            if (cap > 0.01f) satTotal += Math.Min(1f, _saturacao[i] / cap);
+        }
+        SaturacaoMediaPercent = 100.0 * satTotal / _saturacao.Length;
+
         double areaCelula = _tamanhoCelulaMm * _tamanhoCelulaMm;
         VolumeLitros = soma * areaCelula * 1e-6;
         AreaAlagadaPercent = 100.0 * alagadas / _agua.Length;
@@ -442,6 +511,22 @@ public sealed class WaterSimulation : ISimulationModule
         }
     }
 
+    /// <summary>
+    /// Enche o solo antecipadamente, como se já tivesse chovido antes.
+    ///
+    /// É o dado que falta em quase toda explicação de enchente: quando a chuva extrema
+    /// chega, o solo em geral já está cheio das chuvas dos dias anteriores. Sem isso, a
+    /// simulação mostraria uma bacia seca recebendo a tempestade, que é o caso fácil.
+    /// </summary>
+    public void PreSaturar(float fracao)
+    {
+        fracao = Math.Clamp(fracao, 0f, 1f);
+        var solo = Solo.Celulas;
+        for (int i = 0; i < _saturacao.Length; i++)
+            _saturacao[i] = PropriedadesDoSolo.Rapido(solo[i]).ArmazenamentoMm * fracao;
+        CalcularEstatisticas();
+    }
+
     public void Limpar()
     {
         Array.Clear(_agua);
@@ -452,6 +537,8 @@ public sealed class WaterSimulation : ISimulationModule
         Array.Clear(_fluxoB);
         Array.Clear(_velocidade);
         Array.Clear(_erosao);
+        Array.Clear(_saturacao);
+        SaturacaoMediaPercent = 0;
         InfiltradoLitros = 0;
         EscoadoLitros = 0;
         ErosaoTotal = 0;

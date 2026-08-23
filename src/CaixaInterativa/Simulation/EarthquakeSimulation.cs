@@ -255,6 +255,13 @@ public sealed class EarthquakeSimulation : ISimulationModule
     {
         // Areia solta e saturada é o pior caso: chega a liquefazer.
         TipoDeSolo.SoloArenoso => 2.1f,
+        // Várzea é sedimento fino e encharcado — o caso da Cidade do México.
+        TipoDeSolo.Varzea => 2.2f,
+        TipoDeSolo.Agricultura => 1.6f,
+        TipoDeSolo.Pastagem => 1.3f,
+        // Rocha é a referência: não amplifica nada.
+        TipoDeSolo.Rocha => 0.75f,
+        TipoDeSolo.UrbanoDrenado => 1.15f,
         TipoDeSolo.SoloArgiloso => 1.9f,
         TipoDeSolo.Desmatado => 1.7f,
         TipoDeSolo.Queimado => 1.6f,

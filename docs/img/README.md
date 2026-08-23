@@ -167,3 +167,43 @@ Estas dependem da caixa física montada e devem ser adicionadas na Fase 2 do roa
 - [ ] Sombra causada pelas mãos durante a manipulação — para documentar a limitação
 - [ ] Sala com iluminação de aula, mostrando a legibilidade real da projeção
 - [ ] Cobertura de calibração acima de 90% numa caixa real
+
+---
+
+## 11 — Chuva em andamento
+
+![Chuva em andamento](11-chuva-em-andamento.png)
+
+**Legenda:** Simulação de enchente rodando sobre relevo sintético. A água (azul) acumula
+nas depressões enquanto as elevações permanecem secas. O painel mostra a contagem
+regressiva da chuva e a área alagada em tempo real.
+
+---
+
+## 12 — Depois da chuva
+
+![Depois da chuva](12-apos-a-chuva.png)
+
+**Legenda:** O mesmo território depois que a chuva parou. A água escoou e infiltrou; o
+painel guarda o **pico do episódio**, que é o número comparável entre um cenário e outro
+— o valor instantâneo já não serve, porque o escoamento o diluiu.
+
+---
+
+## 13 — Tipos de cobertura do solo
+
+![Tipos de solo](13-tipos-de-solo.png)
+
+**Legenda:** As doze coberturas disponíveis, ordenadas da que mais protege à que menos
+protege. Cada uma tem infiltração, capacidade de armazenamento, rugosidade e resistência
+à erosão próprias — e a mesma chuva produz resultados muito diferentes entre elas.
+
+---
+
+## 14 — Saída do solver de água
+
+![Solver de água](14-solver-de-agua.png)
+
+**Legenda:** Saída direta do modelo de tubos virtuais, sem a rampa hipsométrica. A água
+contorna os dois morros (secos, em amarelo) e forma um canal de drenagem no vale entre
+eles — o comportamento que a aula precisa que seja verdade.

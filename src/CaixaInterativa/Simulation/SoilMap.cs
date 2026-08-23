@@ -26,6 +26,11 @@ public enum TipoDeSolo : byte
     Impermeavel = 4,
     Desmatado = 5,
     Queimado = 6,
+    Rocha = 7,
+    Pastagem = 8,
+    Agricultura = 9,
+    UrbanoDrenado = 10,
+    Varzea = 11,
 }
 
 /// <summary>
@@ -41,37 +46,77 @@ public readonly record struct PropriedadesDoSolo(
     float InfiltracaoMmPorSegundo,
     float Rugosidade,
     float ResistenciaAErosao,
-    byte CorR, byte CorG, byte CorB)
+    byte CorR, byte CorG, byte CorB,
+    string Descricao = "",
+    float ArmazenamentoMm = 80f)
 {
+    /// <summary>Resumo em linguagem de aula, para exibir ao escolher a cobertura.</summary>
+    public string Resumo =>
+        $"Absorve {InfiltracaoMmPorSegundo:F1} mm/s · " +
+        $"guarda até {ArmazenamentoMm:F0} mm · " +
+        $"resiste {(ResistenciaAErosao * 100):F0}% à erosão";
+
     private static PropriedadesDoSolo Calcular(TipoDeSolo tipo) => tipo switch
     {
-        // Mata: raízes abrem caminho para a água e a serapilheira segura o escoamento.
+        // Raízes abrem caminho para a água e a serapilheira segura o escoamento.
         TipoDeSolo.Mata =>
-            new("Mata", 3.2f, 0.85f, 0.95f, 34, 110, 48),
+            new("Mata", 3.2f, 0.85f, 0.95f, 34, 110, 48,
+                "Floresta preservada. Absorve muita chuva e segura o solo.", 160f),
+
+        // Capim cobre o solo, mas raízes rasas seguram menos que a mata.
+        TipoDeSolo.Pastagem =>
+            new("Pastagem", 1.9f, 0.55f, 0.65f, 138, 168, 84,
+                "Campo ou pasto. Protege parcialmente; o gado compacta o solo.", 90f),
+
+        // Solo revolvido infiltra bem, mas fica exposto entre as safras.
+        TipoDeSolo.Agricultura =>
+            new("Agricultura", 1.6f, 0.35f, 0.40f, 190, 168, 92,
+                "Lavoura. Infiltra razoável, mas perde solo quando está sem cobertura.", 85f),
 
         // Areia infiltra rápido, mas não segura nada: erode com facilidade.
         TipoDeSolo.SoloArenoso =>
-            new("Solo arenoso", 2.6f, 0.25f, 0.25f, 214, 190, 130),
+            new("Solo arenoso", 2.6f, 0.25f, 0.25f, 214, 190, 130,
+                "Areia solta. Absorve rápido, mas é levada pela enxurrada.", 70f),
 
         // Argila retém água na superfície; infiltra pouco e satura.
         TipoDeSolo.SoloArgiloso =>
-            new("Solo argiloso", 0.9f, 0.45f, 0.60f, 178, 116, 72),
+            new("Solo argiloso", 0.9f, 0.45f, 0.60f, 178, 116, 72,
+                "Argila. Absorve pouco e satura rápido, formando poças.", 35f),
 
         // Pisoteio e maquinário fecham os poros do solo.
         TipoDeSolo.SoloCompactado =>
-            new("Solo compactado", 0.35f, 0.30f, 0.50f, 146, 128, 104),
+            new("Solo compactado", 0.35f, 0.30f, 0.50f, 146, 128, 104,
+                "Solo pisoteado ou de obra. Quase não absorve.", 25f),
+
+        // Rocha não infiltra, mas também não é levada nem amplifica tremor.
+        TipoDeSolo.Rocha =>
+            new("Rocha exposta", 0.05f, 0.20f, 1.00f, 152, 150, 146,
+                "Afloramento rochoso. Não absorve, mas não erode nem amplifica tremor.", 5f),
 
         // Asfalto e telhado: tudo o que cai vira escoamento.
         TipoDeSolo.Impermeavel =>
-            new("Área urbana", 0.02f, 0.10f, 1.00f, 122, 122, 134),
+            new("Área urbana", 0.02f, 0.10f, 1.00f, 122, 122, 134,
+                "Asfalto e telhados. Devolve toda a chuva como enxurrada.", 3f),
+
+        // Cidade que planejou drenagem: piso permeável, jardins de chuva.
+        TipoDeSolo.UrbanoDrenado =>
+            new("Cidade drenada", 1.2f, 0.40f, 0.95f, 128, 158, 152,
+                "Cidade com piso permeável e jardins de chuva. Absorve parte da água.", 60f),
+
+        // Planície de inundação: absorve muito e é onde o rio deveria transbordar.
+        TipoDeSolo.Varzea =>
+            new("Várzea", 2.8f, 0.75f, 0.70f, 92, 142, 120,
+                "Planície alagável. Guarda a cheia do rio — quando não é ocupada.", 210f),
 
         // Sem cobertura vegetal: infiltra menos e perde solo.
         TipoDeSolo.Desmatado =>
-            new("Desmatado", 1.1f, 0.20f, 0.30f, 168, 150, 96),
+            new("Desmatado", 1.1f, 0.20f, 0.30f, 168, 150, 96,
+                "Solo exposto. Sem raízes, a água corre e leva a terra.", 45f),
 
         // Fogo cria uma crosta hidrofóbica; a água escorre por cima.
         TipoDeSolo.Queimado =>
-            new("Queimado", 0.5f, 0.15f, 0.12f, 74, 62, 58),
+            new("Queimado", 0.5f, 0.15f, 0.12f, 74, 62, 58,
+                "Área queimada. O fogo cria uma crosta que repele a água.", 18f),
 
         _ => Calcular(TipoDeSolo.SoloArenoso),
     };
@@ -111,15 +156,21 @@ public readonly record struct PropriedadesDoSolo(
         return (uint)i < (uint)Tabela.Length ? Tabela[i] : Tabela[(int)TipoDeSolo.SoloArenoso];
     }
 
+    /// <summary>Ordem de exibição: da cobertura que mais protege à que menos protege.</summary>
     public static readonly TipoDeSolo[] Todos =
     [
         TipoDeSolo.Mata,
+        TipoDeSolo.Varzea,
+        TipoDeSolo.Pastagem,
+        TipoDeSolo.Agricultura,
         TipoDeSolo.SoloArenoso,
         TipoDeSolo.SoloArgiloso,
+        TipoDeSolo.UrbanoDrenado,
         TipoDeSolo.SoloCompactado,
-        TipoDeSolo.Impermeavel,
+        TipoDeSolo.Rocha,
         TipoDeSolo.Desmatado,
         TipoDeSolo.Queimado,
+        TipoDeSolo.Impermeavel,
     ];
 }
 

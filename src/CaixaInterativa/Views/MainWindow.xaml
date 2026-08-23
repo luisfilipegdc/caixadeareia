@@ -91,41 +91,65 @@
                     <Border Background="#FF15151B" CornerRadius="5" Padding="13"
                             Margin="0,12,0,0">
                         <StackPanel>
-                            <TextBlock Text="ENCHENTE" FontSize="11" FontWeight="Bold"
+                            <TextBlock Text="TERRENO" FontSize="11" FontWeight="Bold"
                                        Foreground="{StaticResource Accent}" Margin="0,0,0,4"/>
                             <TextBlock TextWrapping="Wrap" Opacity="0.55" FontSize="11"
-                                       Margin="0,0,0,10"
-                                       Text="Os estudantes constroem o território. Quando estiver pronto, faça chover."/>
+                                       Margin="0,0,0,8"
+                                       Text="O que cobre o solo muda a enchente e o terremoto ao mesmo tempo."/>
 
-                            <Button x:Name="BtnChuva" Click="OnChuva"
+                            <ComboBox x:Name="CmbCobertura" SelectionChanged="OnCoberturaChanged"/>
+                            <TextBlock x:Name="TxtCoberturaInfo" TextWrapping="Wrap"
+                                       FontSize="11" Opacity="0.7" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#FF15151B" CornerRadius="5" Padding="13"
+                            Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="SIMULAÇÕES" FontSize="11" FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}" Margin="0,0,0,8"/>
+
+                            <ComboBox x:Name="CmbSimulacao" SelectionChanged="OnSimulacaoChanged"/>
+                            <TextBlock x:Name="TxtSimulacaoInfo" TextWrapping="Wrap"
+                                       FontSize="11" Opacity="0.6" Margin="0,6,0,10"/>
+
+                            <!-- Configurações da chuva -->
+                            <StackPanel x:Name="CfgChuva">
+                                <TextBlock Text="Intensidade" FontSize="12"/>
+                                <ComboBox x:Name="CmbIntensidade"/>
+
+                                <TextBlock Text="Duração" FontSize="12" Margin="0,8,0,0"/>
+                                <DockPanel Margin="0,3,0,0">
+                                    <TextBlock x:Name="LblDuracao" DockPanel.Dock="Right"
+                                               Width="38" TextAlignment="Right" Opacity="0.75"/>
+                                    <Slider x:Name="SldDuracao" Minimum="4" Maximum="30" Value="12"
+                                            TickFrequency="1" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnConfigChanged"/>
+                                </DockPanel>
+                            </StackPanel>
+
+                            <!-- Configurações do terremoto -->
+                            <StackPanel x:Name="CfgTremor" Visibility="Collapsed">
+                                <TextBlock Text="Magnitude" FontSize="12"/>
+                                <DockPanel Margin="0,3,0,0">
+                                    <TextBlock x:Name="LblMagnitude" DockPanel.Dock="Right"
+                                               Width="38" TextAlignment="Right" Opacity="0.75"/>
+                                    <Slider x:Name="SldMagnitude" Minimum="3" Maximum="8" Value="6"
+                                            TickFrequency="0.5" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnConfigChanged"/>
+                                </DockPanel>
+                            </StackPanel>
+
+                            <Button x:Name="BtnExecutar" Click="OnExecutarSimulacao"
                                     Style="{StaticResource BotaoPrimario}"
-                                    Content="🌧  Fazer chover"/>
+                                    Content="▶  Executar" Margin="0,12,0,0"/>
 
-                            <TextBlock Text="Intensidade" FontSize="12" Margin="0,8,0,0"/>
-                            <ComboBox x:Name="CmbIntensidade" SelectedIndex="1">
-                                <ComboBoxItem Content="Garoa"/>
-                                <ComboBoxItem Content="Chuva forte"/>
-                                <ComboBoxItem Content="Tempestade"/>
-                            </ComboBox>
-
-                            <TextBlock Text="Cobertura do terreno" FontSize="12" Margin="0,10,0,0"/>
-                            <ComboBox x:Name="CmbCobertura" SelectedIndex="0"
-                                      SelectionChanged="OnCoberturaChanged">
-                                <ComboBoxItem Content="Mata preservada"/>
-                                <ComboBoxItem Content="Desmatado"/>
-                                <ComboBoxItem Content="Área queimada"/>
-                                <ComboBoxItem Content="Cidade no vale, mata na encosta"/>
-                                <ComboBoxItem Content="Tudo impermeabilizado"/>
-                                <ComboBoxItem Content="Solo arenoso"/>
-                                <ComboBoxItem Content="Solo argiloso"/>
-                            </ComboBox>
-
-                            <TextBlock x:Name="TxtAguaStatus" TextWrapping="Wrap"
+                            <TextBlock x:Name="TxtResultado" TextWrapping="Wrap"
                                        FontSize="12" Margin="0,10,0,0"
-                                       Text="Sem água na caixa."/>
+                                       Text="Nenhuma simulação executada."/>
 
                             <Button x:Name="BtnSecar" Click="OnSecar"
-                                    Content="Secar a caixa" Margin="0,8,0,0"/>
+                                    Content="Limpar simulação" Margin="0,8,0,0"/>
 
                             <Border Background="#FF1B1B22" CornerRadius="4" Padding="10"
                                     Margin="0,10,0,0">
@@ -134,7 +158,7 @@
                                                Foreground="{StaticResource Accent}" Margin="0,0,0,6"/>
                                     <TextBlock x:Name="TxtComparacao" TextWrapping="Wrap"
                                                FontSize="11" Opacity="0.85"
-                                               Text="Faça chover em duas coberturas diferentes para comparar."/>
+                                               Text="Execute a mesma simulação em coberturas diferentes para comparar."/>
                                     <Button x:Name="BtnLimparComparacao" Click="OnLimparComparacao"
                                             Content="Limpar comparação" Margin="0,8,0,0"/>
                                 </StackPanel>
@@ -142,34 +166,6 @@
                         </StackPanel>
                     </Border>
 
-
-                    <Border Background="#FF15151B" CornerRadius="5" Padding="13"
-                            Margin="0,12,0,0">
-                        <StackPanel>
-                            <TextBlock Text="TERREMOTO" FontSize="11" FontWeight="Bold"
-                                       Foreground="{StaticResource Accent}" Margin="0,0,0,4"/>
-                            <TextBlock TextWrapping="Wrap" Opacity="0.55" FontSize="11"
-                                       Margin="0,0,0,10"
-                                       Text="O tremor depende do solo e da encosta: a mesma magnitude poupa a rocha e destrói o solo mole."/>
-
-                            <Button x:Name="BtnTremor" Click="OnTremor"
-                                    Style="{StaticResource BotaoPrimario}"
-                                    Content="⚡  Provocar terremoto"/>
-
-                            <TextBlock Text="Magnitude" FontSize="12" Margin="0,8,0,0"/>
-                            <DockPanel Margin="0,3,0,0">
-                                <TextBlock x:Name="LblMagnitude" DockPanel.Dock="Right"
-                                           Width="34" TextAlignment="Right" Opacity="0.75"/>
-                                <Slider x:Name="SldMagnitude" Minimum="3" Maximum="8" Value="6"
-                                        TickFrequency="0.5" IsSnapToTickEnabled="True"
-                                        ValueChanged="OnMagnitudeChanged"/>
-                            </DockPanel>
-
-                            <TextBlock x:Name="TxtSismoStatus" TextWrapping="Wrap"
-                                       FontSize="12" Margin="0,8,0,0"
-                                       Text="Nenhum abalo registrado."/>
-                        </StackPanel>
-                    </Border>
                     <Border Background="#FF15151B" CornerRadius="5" Padding="13"
                             Margin="0,12,0,0">
                         <StackPanel>

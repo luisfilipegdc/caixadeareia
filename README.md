@@ -7,7 +7,7 @@ conforme os alunos moldam a areia.
 **Projeto Caixa de Areia** — Brasília, DF · 2026 ·
 Licenciado sob [GPL-2.0-or-later](LICENSE)
 
-`v1.0.0` · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
+`v1.3` · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
 [Suporte](mailto:contato@luisfilipegdc.com.br) ·
 [Repositório](https://github.com/luisfilipegdc/caixadeareia)
 
@@ -28,7 +28,7 @@ Licenciado sob [GPL-2.0-or-later](LICENSE)
 
 ## Baixar
 
-**[⬇ CaixaInterativa-v1.0.0-win-x64.exe](https://github.com/luisfilipegdc/caixadeareia/releases/latest/download/CaixaInterativa-v1.0.0-win-x64.exe)** — 68 MB · Windows 10/11 64 bits
+**[⬇ CaixaInterativa-v1.3-win-x64.exe](https://github.com/luisfilipegdc/caixadeareia/releases/latest/download/CaixaInterativa-v1.3-win-x64.exe)** — 68 MB · Windows 10/11 64 bits
 
 Arquivo único, **não precisa instalar nada**. O .NET já vai embutido; só o
 [Kinect SDK 1.8](https://www.microsoft.com/en-us/download/details.aspx?id=40278) é

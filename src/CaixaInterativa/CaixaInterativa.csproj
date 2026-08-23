@@ -18,7 +18,7 @@
     <!-- Identidade: aparece nas propriedades do executável no Windows e é lida
          em tempo de execução por AppInfo, para que a tela nunca mostre uma versão
          diferente da que foi compilada. -->
-    <Version>1.0.1</Version>
+    <Version>1.3</Version>
     <Product>Caixa de Areia Interativa</Product>
     <Authors>Projeto Caixa de Areia</Authors>
     <Company>Luis Filipe GDC</Company>

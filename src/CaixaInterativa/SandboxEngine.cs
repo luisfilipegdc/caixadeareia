@@ -56,6 +56,9 @@ public sealed class SandboxEngine : IDisposable
     /// <summary>Simulação de terremoto, compartilhando o mapa de solo com a água.</summary>
     public EarthquakeSimulation? Terremoto { get; private set; }
 
+    /// <summary>Simulação de queimada, que altera o mapa de solo ao terminar.</summary>
+    public FireSimulation? Fogo { get; private set; }
+
     public float[] Alturas => _heights;
     public int LarguraCampo => _source?.Width ?? 0;
     public int AlturaCampo => _source?.Height ?? 0;
@@ -152,6 +155,13 @@ public sealed class SandboxEngine : IDisposable
         // Os dois módulos leem o mesmo mapa de cobertura: mudar de mata para solo solto
         // deve afetar a enchente e o terremoto ao mesmo tempo, como no território real.
         Terremoto = new EarthquakeSimulation(source.Width, source.Height) { Solo = Agua.Solo };
+        // O fogo lê a água para saber onde não pode passar, e escreve no solo a cicatriz
+        // que a chuva seguinte vai encontrar.
+        Fogo = new FireSimulation(source.Width, source.Height)
+        {
+            Solo = Agua.Solo,
+            Agua = Agua.Profundidade,
+        };
         _latestFrame = null;
         _lastRenderedFrameNumber = -1;
 
@@ -305,6 +315,9 @@ public sealed class SandboxEngine : IDisposable
         if (Terremoto is { Ativo: true })
             Terremoto.Atualizar(_heights, frame.Width, frame.Height, dt);
 
+        if (Fogo is { Ativo: true })
+            Fogo.Atualizar(_heights, frame.Width, frame.Height, dt);
+
         bool mostrarAgua = Agua is { Ativo: true };
         bool mostrarSismo = Terremoto is { Ativo: true };
 
@@ -318,7 +331,10 @@ public sealed class SandboxEngine : IDisposable
             mostrarSismo ? Terremoto!.Intensidade : null,
             mostrarSismo ? Terremoto!.Dano : null,
             mostrarSismo ? Terremoto!.Width : 0,
-            mostrarSismo ? Terremoto!.Height : 0);
+            mostrarSismo ? Terremoto!.Height : 0,
+            Fogo is { Ativo: true } ? Fogo.Calor : null,
+            Fogo is { Ativo: true } ? Fogo.Width : 0,
+            Fogo is { Ativo: true } ? Fogo.Height : 0);
 
         EnsureBitmap(_renderer.Width, _renderer.Height);
 

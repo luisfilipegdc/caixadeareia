@@ -68,12 +68,77 @@
             </Setter>
         </Style>
 
-        <!-- Mesma razao: sem Foreground explicito o texto selecionado herda o azul do
-             GroupBox e some sobre o fundo claro do ComboBox. -->
+        <!-- ComboBox: três camadas tiveram que ser vencidas para o texto aparecer.
+             1) O campo fechado herdava o azul do GroupBox.
+             2) Os itens ficam num Popup, árvore visual separada.
+             3) E, decisivo: o tema do WPF define um ItemContainerStyle para o ComboBox,
+                que tem precedência sobre qualquer Style implícito em Application.Resources.
+                Por isso o template dos itens precisa vir daqui, de dentro do ComboBox —
+                estilo implícito e até Foreground no próprio elemento eram ignorados,
+                porque o template do tema não consulta o Foreground do item. -->
         <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#FF1A1A1E"/>
-            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Foreground" Value="#FF15151B"/>
+            <Setter Property="Background" Value="#FFEFEFF2"/>
+            <Setter Property="BorderBrush" Value="#FF4A4A57"/>
+            <Setter Property="Padding" Value="7,5"/>
             <Setter Property="Margin" Value="0,3"/>
+            <Setter Property="FontSize" Value="13"/>
+
+            <!-- O campo fechado desenha o item selecionado num TextBlock interno, que
+                 herda o Style implícito de TextBlock deste arquivo — claro, para o painel
+                 escuro. Sobre o fundo claro do ComboBox isso vira texto invisível, e o
+                 campo parece vazio. O ItemTemplate fixa a cor onde ela é realmente usada. -->
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Foreground="#FF15151B"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Foreground" Value="#FF15151B"/>
+                        <Setter Property="Background" Value="#FFFFFFFF"/>
+                        <Setter Property="Padding" Value="9,7"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Fundo"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="True">
+                                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Fundo" Property="Background" Value="#FF0E5C7A"/>
+                                            <Setter Property="Foreground" Value="#FFFFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Fundo" Property="Background" Value="#FFD6E9F2"/>
+                                            <Setter Property="Foreground" Value="#FF0B3F52"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- O cabeçalho do Expander também herdava a cor do container e ficava apagado. -->
+        <Style TargetType="Expander">
+            <Setter Property="Foreground" Value="{StaticResource PanelFg}"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style TargetType="Slider">
+            <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{StaticResource PanelFg}"/>

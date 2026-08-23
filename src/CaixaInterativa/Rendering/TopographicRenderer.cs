@@ -71,7 +71,10 @@ public sealed class TopographicRenderer
         float[]? quakeNow = null,
         float[]? quakeDamage = null,
         int quakeWidth = 0,
-        int quakeHeight = 0)
+        int quakeHeight = 0,
+        float[]? fireHeat = null,
+        int fireWidth = 0,
+        int fireHeight = 0)
     {
         int left = Math.Clamp(projection.RoiLeft, 0, fieldWidth - 1);
         int top = Math.Clamp(projection.RoiTop, 0, fieldHeight - 1);
@@ -218,6 +221,25 @@ public sealed class TopographicRenderer
                         r += (255f - r) * brilho * 0.75f;
                         g += (250f - g) * brilho * 0.70f;
                         b += (235f - b) * brilho * 0.60f;
+                    }
+                }
+
+                // Fogo por cima de tudo: é o evento mais urgente na tela, e precisa
+                // ser lido de longe, por uma turma inteira.
+                if (fireHeat is not null && fireWidth > 0 && fireHeight > 0)
+                {
+                    float calor = AmostrarBilinear(fireHeat, fireWidth, fireHeight,
+                                                   (x + left) / (float)fieldWidth,
+                                                   (y + top) / (float)fieldHeight);
+                    if (calor > 0.03f)
+                    {
+                        // Vermelho na borda da frente de fogo, amarelo no núcleo —
+                        // a mesma leitura de uma chama real.
+                        float t3 = Math.Clamp(calor, 0f, 1f);
+                        float alfa = Math.Min(0.92f, 0.35f + t3 * 0.7f);
+                        r = r * (1f - alfa) + (250f) * alfa;
+                        g = g * (1f - alfa) + (90f + 150f * t3) * alfa;
+                        b = b * (1f - alfa) + (30f * t3) * alfa;
                     }
                 }
 

@@ -41,7 +41,7 @@ public partial class MainWindow : Window
         _engine.StateChanged += OnStateChanged;
 
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarAgua(); AtualizarSismo(); };
+        _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarSimulacao(); };
         _uiTimer.Start();
 
         Loaded += OnWindowLoaded;
@@ -58,6 +58,7 @@ public partial class MainWindow : Window
         LnkPagina.NavigateUri = new Uri(AppInfo.PaginaDoProjeto);
         LnkGithub.NavigateUri = new Uri(AppInfo.Repositorio);
 
+        PreencherCombos();
         PopulateScreens();
         LoadSettingsIntoControls();
         ConfigPath.Text = AppConfig.DefaultPath;
@@ -182,104 +183,213 @@ public partial class MainWindow : Window
         _simulator.ReliefScale = ChkFlatSim.IsChecked == true ? 0.0 : 1.0;
     }
 
-    // ================= Enchente =================
+    // ================= Simulações =================
 
     /// <summary>
-    /// Intensidade e duração de cada tipo de chuva. Os valores não são milímetros reais
-    /// de precipitação — são o que produz um episódio legível em cerca de meio minuto,
-    /// que é o tempo que uma turma sustenta a atenção olhando a mesma coisa.
+    /// Catálogo de simulações. Chuva e terremoto são fenômenos que o professor dispara;
+    /// alagamento e deslizamento são resultados que eles produzem, não itens do menu —
+    /// tratá-los como opções separadas confundiria causa com efeito.
     /// </summary>
-    private static (float MmPorSegundo, float Segundos, string Nome) Intensidade(int indice) => indice switch
+    private enum Simulacao { Chuva, Terremoto }
+
+    private Simulacao _simulacaoAtual = Simulacao.Chuva;
+    private readonly List<(string Simulacao, string Cobertura, string Resultado, double Valor)> _historico = [];
+    private string _coberturaAtual = "Mata";
+    private bool _chovendoAntes, _tremendoAntes;
+
+    private void PreencherCombos()
     {
-        0 => (3f, 12f, "Garoa"),
-        2 => (18f, 10f, "Tempestade"),
-        _ => (8f, 12f, "Chuva forte"),
+        CmbSimulacao.Items.Clear();
+        CmbSimulacao.Items.Add("Chuva e enchente");
+        CmbSimulacao.Items.Add("Terremoto");
+        CmbSimulacao.SelectedIndex = 0;
+
+        CmbIntensidade.Items.Clear();
+        foreach (var n in new[] { "Garoa", "Chuva forte", "Tempestade" })
+            CmbIntensidade.Items.Add(n);
+        CmbIntensidade.SelectedIndex = 1;
+
+        // O catálogo de coberturas vem do próprio modelo, para que acrescentar um tipo
+        // de solo não exija lembrar de editar a interface.
+        CmbCobertura.Items.Clear();
+        foreach (var tipo in PropriedadesDoSolo.Todos)
+            CmbCobertura.Items.Add(PropriedadesDoSolo.De(tipo).Nome);
+        CmbCobertura.SelectedIndex = 0;
+    }
+
+    private void OnSimulacaoChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loaded) return;
+        _simulacaoAtual = CmbSimulacao.SelectedIndex == 1 ? Simulacao.Terremoto : Simulacao.Chuva;
+
+        CfgChuva.Visibility = _simulacaoAtual == Simulacao.Chuva ? Visibility.Visible : Visibility.Collapsed;
+        CfgTremor.Visibility = _simulacaoAtual == Simulacao.Terremoto ? Visibility.Visible : Visibility.Collapsed;
+
+        TxtSimulacaoInfo.Text = _simulacaoAtual switch
+        {
+            Simulacao.Terremoto =>
+                "Ondas sísmicas a partir do centro da caixa. O dano depende do solo e da encosta.",
+            _ => "Chuva sobre todo o território. A água escorre, acumula e alaga.",
+        };
+
+        AtualizarBotaoExecutar();
+    }
+
+    private void OnConfigChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (LblDuracao is not null) LblDuracao.Text = $"{SldDuracao.Value:F0}s";
+        if (LblMagnitude is not null) LblMagnitude.Text = $"{SldMagnitude.Value:F1}";
+    }
+
+    private void OnCoberturaChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loaded || _engine.Agua is null) return;
+
+        int i = Math.Clamp(CmbCobertura.SelectedIndex, 0, PropriedadesDoSolo.Todos.Length - 1);
+        var tipo = PropriedadesDoSolo.Todos[i];
+        var prop = PropriedadesDoSolo.De(tipo);
+
+        _coberturaAtual = prop.Nome;
+        _engine.Agua.Solo.Preencher(tipo);
+
+        TxtCoberturaInfo.Text = prop.Descricao + "\n" + prop.Resumo;
+        SetStatus($"Cobertura: {prop.Nome}. Execute a simulação para ver o efeito.");
+    }
+
+    private static (float MmPorSegundo, string Nome) IntensidadeChuva(int indice) => indice switch
+    {
+        0 => (3f, "Garoa"),
+        2 => (18f, "Tempestade"),
+        _ => (8f, "Chuva forte"),
     };
 
-    private void OnChuva(object sender, RoutedEventArgs e)
+    private void OnExecutarSimulacao(object sender, RoutedEventArgs e)
     {
-        if (_engine.Agua is null || _engine.State == EngineState.Parado)
+        if (_engine.State == EngineState.Parado)
         {
-            SetStatus("Ligue a caixa antes de fazer chover.");
+            SetStatus("Ligue a caixa antes de executar uma simulação.");
             return;
         }
 
         if (!_engine.IsCalibrated)
         {
             MessageBox.Show(
-                "A caixa ainda não foi calibrada, então o sistema não sabe onde é o fundo " +
-                "e a água não teria para onde escorrer.\n\n" +
+                "A caixa ainda não foi calibrada, então o sistema não conhece o relevo — " +
+                "a água não saberia para onde escorrer nem onde estariam as encostas.\n\n" +
                 "Alise a areia, toque em “Nivelar e calibrar” e tente de novo.",
                 AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        if (_engine.Agua.Chovendo)
-        {
-            _engine.Agua.PararChuva();
-            SetStatus("Chuva interrompida. A água continua escoando.");
-            return;
-        }
-
-        var (mm, seg, nome) = Intensidade(CmbIntensidade.SelectedIndex);
-        _engine.Agua.IniciarChuva(mm, seg);
-        SetStatus($"{nome} por {seg:F0} segundos. Observe por onde a água desce.");
+        if (_simulacaoAtual == Simulacao.Chuva) ExecutarChuva();
+        else ExecutarTerremoto();
     }
 
-    // Resultados dos episódios, para responder "melhorou ou piorou?".
-    private readonly List<(string Cobertura, double Pico, double Infiltrado)> _historico = [];
-    private string _coberturaAtual = "Mata preservada";
-
-    private void OnCoberturaChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-    {
-        if (!_loaded || _engine.Agua is null) return;
-        AplicarCobertura(CmbCobertura.SelectedIndex);
-    }
-
-    /// <summary>
-    /// Cenários prontos de cobertura. O professor não precisa pintar região por região
-    /// para fazer a pergunta central da aula — troca o cenário, faz chover de novo com
-    /// a mesma chuva, e compara.
-    /// </summary>
-    private void AplicarCobertura(int indice)
+    private void ExecutarChuva()
     {
         var agua = _engine.Agua;
         if (agua is null) return;
 
-        _coberturaAtual = (CmbCobertura.SelectedItem as System.Windows.Controls.ComboBoxItem)
-                          ?.Content?.ToString() ?? "Cobertura";
-
-        switch (indice)
+        if (agua.Chovendo)
         {
-            case 0: agua.Solo.Preencher(TipoDeSolo.Mata); break;
-            case 1: agua.Solo.Preencher(TipoDeSolo.Desmatado); break;
-            case 2: agua.Solo.Preencher(TipoDeSolo.Queimado); break;
-
-            case 3:
-                // A ocupação real segue o terreno: as pessoas constroem no plano do
-                // fundo do vale, que é exatamente onde a água chega.
-                agua.Solo.Preencher(TipoDeSolo.Mata);
-                agua.Solo.PintarPorAltitude(_engine.Alturas, _engine.LarguraCampo, _engine.AlturaCampo,
-                                            limiteMm: 15f, acima: false, TipoDeSolo.Impermeavel);
-                break;
-
-            case 4: agua.Solo.Preencher(TipoDeSolo.Impermeavel); break;
-            case 5: agua.Solo.Preencher(TipoDeSolo.SoloArenoso); break;
-            default: agua.Solo.Preencher(TipoDeSolo.SoloArgiloso); break;
+            agua.PararChuva();
+            SetStatus("Chuva interrompida. A água continua escoando.");
+            return;
         }
 
-        SetStatus($"Cobertura: {_coberturaAtual}. Faça chover para ver a diferença.");
+        var (mm, nome) = IntensidadeChuva(CmbIntensidade.SelectedIndex);
+        float duracao = (float)SldDuracao.Value;
+        agua.IniciarChuva(mm, duracao);
+        SetStatus($"{nome} por {duracao:F0}s sobre {_coberturaAtual}. Observe por onde a água desce.");
     }
 
-    private void RegistrarResultado()
+    private void ExecutarTerremoto()
     {
+        var sismo = _engine.Terremoto;
+        if (sismo is null || sismo.EmAndamento) return;
+
+        sismo.Disparar(0.5f, 0.5f, (float)SldMagnitude.Value);
+        SetStatus($"Terremoto de magnitude {SldMagnitude.Value:F1} sobre {_coberturaAtual}.");
+    }
+
+    private void OnSecar(object sender, RoutedEventArgs e)
+    {
+        _engine.Agua?.PararChuva();
+        _engine.Agua?.Limpar();
+        if (_engine.Agua is not null) _engine.Agua.Ativo = false;
+        _engine.Terremoto?.Limpar();
+        if (_engine.Terremoto is not null) _engine.Terremoto.Ativo = false;
+        SetStatus("Simulação limpa. O terreno continua como está.");
+        AtualizarSimulacao();
+    }
+
+    private void AtualizarBotaoExecutar()
+    {
+        bool ocupado = _engine.Terremoto?.EmAndamento == true;
+        BtnExecutar.IsEnabled = !ocupado;
+
+        BtnExecutar.Content = _simulacaoAtual switch
+        {
+            Simulacao.Chuva when _engine.Agua?.Chovendo == true => "⏸  Parar a chuva",
+            Simulacao.Chuva => "🌧  Fazer chover",
+            _ => "⚡  Provocar terremoto",
+        };
+    }
+
+    /// <summary>Estado das simulações, em linguagem de aula.</summary>
+    private void AtualizarSimulacao()
+    {
+        AtualizarBotaoExecutar();
+
         var agua = _engine.Agua;
-        if (agua is null || agua.PicoAlagamentoPercent <= 0) return;
+        var sismo = _engine.Terremoto;
 
-        // Uma entrada por cobertura: repetir o mesmo cenário atualiza, não empilha.
-        _historico.RemoveAll(h => h.Cobertura == _coberturaAtual);
-        _historico.Add((_coberturaAtual, agua.PicoAlagamentoPercent, agua.InfiltradoLitros));
+        // Registra o resultado na transição executando -> parou, quando o pico do
+        // episódio está fechado e ainda não foi diluído pelo escoamento.
+        if (agua is not null)
+        {
+            if (_chovendoAntes && !agua.Chovendo)
+                Registrar("Chuva", _coberturaAtual, $"{agua.PicoAlagamentoPercent:F0}% alagado", agua.PicoAlagamentoPercent);
+            _chovendoAntes = agua.Chovendo;
+        }
+        if (sismo is not null)
+        {
+            if (_tremendoAntes && !sismo.EmAndamento)
+                Registrar("Terremoto", _coberturaAtual, $"{sismo.AreaDeslizamentoPercent:F1}% de deslizamento", sismo.AreaDeslizamentoPercent);
+            _tremendoAntes = sismo.EmAndamento;
+        }
 
+        if (_simulacaoAtual == Simulacao.Terremoto && sismo is not null)
+        {
+            TxtResultado.Text = sismo.EmAndamento
+                ? $"Tremendo… {sismo.TempoDecorrido:F1}s\nÁrea afetada: {sismo.AreaAfetadaPercent:F0}%"
+                : sismo.Ativo && sismo.AreaAfetadaPercent > 0
+                    ? $"Magnitude {sismo.Magnitude:F1} sobre {_coberturaAtual}\n" +
+                      $"Área afetada: {sismo.AreaAfetadaPercent:F0}%\n" +
+                      $"Risco de deslizamento: {sismo.AreaDeslizamentoPercent:F1}%"
+                    : "Nenhuma simulação executada.";
+            return;
+        }
+
+        if (agua is null) { TxtResultado.Text = "Nenhuma simulação executada."; return; }
+
+        TxtResultado.Text = agua.Chovendo
+            ? $"Chovendo… {agua.ChuvaRestanteSegundos:F0}s\nÁrea alagada: {agua.AreaAlagadaPercent:F0}%"
+            : agua.Ativo && agua.VolumeLitros > 0.01
+                ? $"Escoando · {agua.VolumeLitros:F1} L\n" +
+                  $"Alagado: {agua.AreaAlagadaPercent:F0}%  ·  pico {agua.PicoAlagamentoPercent:F0}%\n" +
+                  $"Infiltrado: {agua.InfiltradoLitros:F1} L"
+                : agua.Ativo && agua.PicoAlagamentoPercent > 0
+                    ? $"A água escoou.\nPico de alagamento: {agua.PicoAlagamentoPercent:F0}%\n" +
+                      $"Infiltrado: {agua.InfiltradoLitros:F1} L"
+                    : "Nenhuma simulação executada.";
+    }
+
+    private void Registrar(string simulacao, string cobertura, string resultado, double valor)
+    {
+        if (valor <= 0) return;
+        _historico.RemoveAll(h => h.Simulacao == simulacao && h.Cobertura == cobertura);
+        _historico.Add((simulacao, cobertura, resultado, valor));
         AtualizarComparacao();
     }
 
@@ -287,26 +397,25 @@ public partial class MainWindow : Window
     {
         if (_historico.Count == 0)
         {
-            TxtComparacao.Text = "Faça chover em duas coberturas diferentes para comparar.";
+            TxtComparacao.Text = "Execute a mesma simulação em coberturas diferentes para comparar.";
             return;
         }
 
         var linhas = _historico
-            .OrderBy(h => h.Pico)
-            .Select(h => $"{h.Cobertura}: {h.Pico:F0}% alagado, {h.Infiltrado:F1} L absorvidos");
+            .OrderBy(h => h.Simulacao).ThenBy(h => h.Valor)
+            .Select(h => $"{h.Simulacao} · {h.Cobertura}: {h.Resultado}");
 
         string texto = string.Join("\n", linhas);
 
-        if (_historico.Count >= 2)
+        // A conclusão da aula é a razão entre o melhor e o pior cenário da mesma
+        // simulação — o número que responde se a intervenção adiantou.
+        foreach (var grupo in _historico.GroupBy(h => h.Simulacao).Where(g => g.Count() >= 2))
         {
-            var melhor = _historico.MinBy(h => h.Pico);
-            var pior = _historico.MaxBy(h => h.Pico);
-            if (melhor.Pico > 0.01)
-            {
-                double fator = pior.Pico / melhor.Pico;
-                texto += $"\n\n{pior.Cobertura} alagou {fator:F1}× mais que {melhor.Cobertura}, " +
-                         "com a mesma chuva.";
-            }
+            var melhor = grupo.MinBy(h => h.Valor);
+            var pior = grupo.MaxBy(h => h.Valor);
+            if (melhor.Valor > 0.01)
+                texto += $"\n\n{pior.Cobertura} teve {pior.Valor / melhor.Valor:F1}× " +
+                         $"o resultado de {melhor.Cobertura}, na mesma simulação.";
         }
 
         TxtComparacao.Text = texto;
@@ -316,117 +425,6 @@ public partial class MainWindow : Window
     {
         _historico.Clear();
         AtualizarComparacao();
-    }
-
-    private void OnSecar(object sender, RoutedEventArgs e)
-    {
-        if (_engine.Agua is null) return;
-        _engine.Agua.PararChuva();
-        _engine.Agua.Limpar();
-        _engine.Agua.Ativo = false;
-        SetStatus("Caixa seca. O terreno continua como está.");
-        AtualizarAgua();
-    }
-
-    /// <summary>
-    /// Estado da água em linguagem de aula. Durante a chuva mostra a contagem; depois,
-    /// o pico de alagamento — que é o número comparável entre uma tentativa e outra.
-    /// </summary>
-    private bool _chovendoAntes;
-
-    private void AtualizarAgua()
-    {
-        var agua = _engine.Agua;
-        if (agua is null) return;
-
-        // Registra o resultado na transição chovendo -> parou, que é quando o pico do
-        // episódio está fechado e ainda não foi diluído pelo escoamento.
-        if (_chovendoAntes && !agua.Chovendo) RegistrarResultado();
-        _chovendoAntes = agua.Chovendo;
-
-        BtnChuva.Content = agua.Chovendo ? "⏸  Parar a chuva" : "🌧  Fazer chover";
-
-        if (agua.Chovendo)
-        {
-            TxtAguaStatus.Text =
-                $"Chovendo… {agua.ChuvaRestanteSegundos:F0}s\n" +
-                $"Área alagada: {agua.AreaAlagadaPercent:F0}%";
-        }
-        else if (agua.Ativo && agua.VolumeLitros > 0.01)
-        // Registra assim que a chuva termina, enquanto o pico ainda é do episódio.
-        {
-            TxtAguaStatus.Text =
-                $"Escoando · {agua.VolumeLitros:F1} L na caixa\n" +
-                $"Área alagada: {agua.AreaAlagadaPercent:F0}%  ·  pico {agua.PicoAlagamentoPercent:F0}%";
-        }
-        else if (agua.Ativo)
-        {
-            TxtAguaStatus.Text = agua.PicoAlagamentoPercent > 0
-                ? $"A água escoou. Pico de alagamento: {agua.PicoAlagamentoPercent:F0}%"
-                : "Sem água na caixa.";
-        }
-        else
-        {
-            TxtAguaStatus.Text = "Sem água na caixa.";
-        }
-    }
-
-    // ================= Terremoto =================
-
-    private void OnMagnitudeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (LblMagnitude is not null) LblMagnitude.Text = $"{SldMagnitude.Value:F1}";
-    }
-
-    private void OnTremor(object sender, RoutedEventArgs e)
-    {
-        var sismo = _engine.Terremoto;
-        if (sismo is null || _engine.State == EngineState.Parado)
-        {
-            SetStatus("Ligue a caixa antes de provocar um terremoto.");
-            return;
-        }
-
-        if (!_engine.IsCalibrated)
-        {
-            MessageBox.Show(
-                "A caixa ainda não foi calibrada, então o sistema não conhece as encostas " +
-                "e não saberia onde haveria risco de deslizamento.\n\n" +
-                "Alise a areia, toque em “Nivelar e calibrar” e tente de novo.",
-                AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        // Epicentro no centro por enquanto. Escolher onde clicando na prévia é a
-        // evolução natural, e vale mais depois que a caixa física estiver montada.
-        sismo.Disparar(0.5f, 0.5f, (float)SldMagnitude.Value);
-        SetStatus($"Terremoto de magnitude {SldMagnitude.Value:F1}. Observe onde o dano se concentra.");
-    }
-
-    private void AtualizarSismo()
-    {
-        var sismo = _engine.Terremoto;
-        if (sismo is null) return;
-
-        BtnTremor.IsEnabled = !sismo.EmAndamento;
-
-        if (sismo.EmAndamento)
-        {
-            TxtSismoStatus.Text =
-                $"Tremendo… {sismo.TempoDecorrido:F1}s\n" +
-                $"Área afetada: {sismo.AreaAfetadaPercent:F0}%";
-        }
-        else if (sismo.Ativo && sismo.AreaAfetadaPercent > 0)
-        {
-            TxtSismoStatus.Text =
-                $"Magnitude {sismo.Magnitude:F1}\n" +
-                $"Área afetada: {sismo.AreaAfetadaPercent:F0}%\n" +
-                $"Risco de deslizamento: {sismo.AreaDeslizamentoPercent:F1}% da área";
-        }
-        else
-        {
-            TxtSismoStatus.Text = "Nenhum abalo registrado.";
-        }
     }
 
     // ================= Calibração =================
@@ -667,7 +665,6 @@ public partial class MainWindow : Window
         LblContour.Text = SldContour.Value < 0.5 ? "sem" : $"{SldContour.Value:F0} mm";
         LblBlur.Text = $"{SldBlur.Value:F0}";
         LblAlpha.Text = $"{SldAlpha.Value:F2}";
-        LblMagnitude.Text = $"{SldMagnitude.Value:F1}";
     }
 
     private void OnSave(object sender, RoutedEventArgs e) => SaveConfig();

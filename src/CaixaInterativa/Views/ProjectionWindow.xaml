@@ -32,6 +32,30 @@
              borda de madeira da caixa antes de por areia. Tecla G. -->
         <Canvas x:Name="AlignmentGrid" Visibility="Collapsed" IsHitTestVisible="False"/>
 
+        <!-- Números da simulação sobre a própria projeção.
+             A turma olha para a caixa, não para o notebook — se o resultado só
+             aparece no painel do professor, ninguém vê o que acabou de acontecer. -->
+        <Border x:Name="PainelDados"
+                Background="#D9000000"
+                CornerRadius="8"
+                Padding="26,20"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="28"
+                Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock x:Name="DadosTitulo" Text="ENCHENTE"
+                           FontSize="15" FontWeight="Bold" Foreground="#FF7FCFE8"
+                           Margin="0,0,0,14"/>
+
+                <StackPanel x:Name="DadosLinhas"/>
+
+                <TextBlock x:Name="DadosRodape" Foreground="#FFB9C4C9"
+                           FontSize="14" Margin="0,12,0,0" TextWrapping="Wrap"
+                           MaxWidth="330"/>
+            </StackPanel>
+        </Border>
+
         <Border x:Name="HelpPanel"
                 Background="#CC000000"
                 CornerRadius="6"
@@ -48,6 +72,7 @@
                     R / E          girar<LineBreak/>
                     H / V          espelhar horiz. / vert.<LineBreak/>
                     G              grade de alinhamento<LineBreak/>
+                    D              dados da simulação<LineBreak/>
                     C              calibrar plano-base<LineBreak/>
                     S              salvar configuracao<LineBreak/>
                     F1             mostrar/ocultar esta ajuda<LineBreak/>

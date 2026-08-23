@@ -16,8 +16,11 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Controls;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using CaixaInterativa.Config;
+using CaixaInterativa.Simulation;
 
 namespace CaixaInterativa.Views;
 
@@ -28,14 +31,22 @@ public partial class ProjectionWindow : Window
     public event Action? SaveRequested;
     public event Action? CalibrateRequested;
 
+    private readonly DispatcherTimer _dadosTimer;
+
     public ProjectionWindow(SandboxEngine engine)
     {
         InitializeComponent();
         _engine = engine;
 
+        // Meio segundo é o bastante: números que piscam a 30 Hz não se leem de longe,
+        // e a turma precisa acompanhar a tendência, não o valor instantâneo.
+        _dadosTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _dadosTimer.Tick += (_, _) => AtualizarDados();
+        _dadosTimer.Start();
+
         _engine.BitmapReplaced += AttachBitmap;
         Loaded += OnLoaded;
-        Closed += (_, _) => _engine.BitmapReplaced -= AttachBitmap;
+        Closed += (_, _) => { _engine.BitmapReplaced -= AttachBitmap; _dadosTimer.Stop(); };
         SizeChanged += (_, _) => BuildAlignmentGrid();
     }
 
@@ -148,6 +159,12 @@ public partial class ProjectionWindow : Window
             case Key.H: p.FlipHorizontal = !p.FlipHorizontal; break;
             case Key.V: p.FlipVertical = !p.FlipVertical; break;
 
+            case Key.D:
+                PainelDados.Visibility = PainelDados.Visibility == Visibility.Visible
+                    ? Visibility.Collapsed : Visibility.Visible;
+                AtualizarDados();
+                break;
+
             case Key.G:
                 AlignmentGrid.Visibility = AlignmentGrid.Visibility == Visibility.Visible
                     ? Visibility.Collapsed : Visibility.Visible;
@@ -170,6 +187,98 @@ public partial class ProjectionWindow : Window
 
         ApplyTransform();
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Monta as linhas de resultado da simulação que estiver rodando.
+    ///
+    /// Tipografia grande e poucos números: isto é lido a três metros de distância, por
+    /// uma sala inteira, e não é um painel de controle.
+    /// </summary>
+    private void AtualizarDados()
+    {
+        if (PainelDados.Visibility != Visibility.Visible) return;
+
+        var agua = _engine.Agua;
+        var sismo = _engine.Terremoto;
+        var fogo = _engine.Fogo;
+
+        DadosLinhas.Children.Clear();
+
+        if (fogo is { Ativo: true } && (fogo.EmAndamento || fogo.AreaQueimadaPercent > 0))
+        {
+            DadosTitulo.Text = "QUEIMADA";
+            Linha("Área queimada", $"{fogo.AreaQueimadaPercent:F0}%", "#FFE07A4A");
+            if (fogo.EmAndamento)
+            {
+                Linha("Em chamas agora", $"{fogo.AreaEmChamasPercent:F1}%", "#FFFFC048");
+                DadosRodape.Text = $"Vento de {fogo.VentoPorExtenso()} · {fogo.TempoDecorrido:F0}s";
+            }
+            else
+            {
+                DadosRodape.Text = "O fogo apagou. O solo queimado repele a água.";
+            }
+            return;
+        }
+
+        if (sismo is { Ativo: true } && (sismo.EmAndamento || sismo.AreaAfetadaPercent > 0))
+        {
+            DadosTitulo.Text = "TERREMOTO";
+            Linha("Magnitude", $"{sismo.Magnitude:F1}", "#FFFFC048");
+            Linha("Área afetada", $"{sismo.AreaAfetadaPercent:F0}%", "#FFE07A4A");
+            Linha("Risco de deslizamento", $"{sismo.AreaDeslizamentoPercent:F1}%", "#FFE06A55");
+            DadosRodape.Text = sismo.EmAndamento
+                ? $"Tremendo há {sismo.TempoDecorrido:F0}s"
+                : "O tremor passou. O mapa mostra onde bateu mais forte.";
+            return;
+        }
+
+        if (agua is { Ativo: true })
+        {
+            DadosTitulo.Text = agua.Chovendo ? "CHOVENDO" : "ENCHENTE";
+
+            Linha("Área alagada", $"{agua.AreaAlagadaPercent:F0}%", "#FF66B8E8");
+            if (agua.PicoAlagamentoPercent > agua.AreaAlagadaPercent + 0.5)
+                Linha("Pico do episódio", $"{agua.PicoAlagamentoPercent:F0}%", "#FF4A93C8");
+
+            Linha("Água na superfície", $"{agua.VolumeLitros:F1} L", "#FF7FCFE8");
+            Linha("Absorvida pelo solo", $"{agua.InfiltradoLitros:F1} L", "#FF7CC7A2");
+            Linha("Solo encharcado", $"{agua.SaturacaoMediaPercent:F0}%", "#FFDAB463");
+
+            DadosRodape.Text = agua.Chovendo
+                ? $"Faltam {agua.ChuvaRestanteSegundos:F0}s de chuva"
+                : agua.SaturacaoMediaPercent > 80
+                    ? "O solo está cheio: qualquer chuva agora vira enxurrada."
+                    : "A chuva parou. A água escoa e o solo absorve o que consegue.";
+            return;
+        }
+
+        DadosTitulo.Text = "CAIXA DE AREIA";
+        DadosRodape.Text = "Nenhuma simulação em andamento.";
+    }
+
+    /// <summary>Uma linha de resultado: rótulo pequeno, número grande.</summary>
+    private void Linha(string rotulo, string valor, string cor)
+    {
+        var painel = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+
+        painel.Children.Add(new TextBlock
+        {
+            Text = rotulo.ToUpperInvariant(),
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0xA6, 0xAE)),
+            Margin = new Thickness(0, 0, 0, 1),
+        });
+
+        painel.Children.Add(new TextBlock
+        {
+            Text = valor,
+            FontSize = 34,
+            FontWeight = FontWeights.Bold,
+            Foreground = (SolidColorBrush)new BrushConverter().ConvertFrom(cor)!,
+        });
+
+        DadosLinhas.Children.Add(painel);
     }
 
     private const uint SWP_SHOWWINDOW = 0x0040;
