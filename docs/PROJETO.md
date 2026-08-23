@@ -16,6 +16,11 @@ alaga sete vezes mais.
 [Código-fonte](https://github.com/luisfilipegdc/caixadeareia) ·
 [Manual do usuário](https://github.com/luisfilipegdc/caixadeareia/blob/main/docs/MANUAL.md)
 
+![Mapa topográfico projetado sobre o relevo](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/01-simulador-topografia.png)
+
+*O mapa topográfico gerado a partir do relevo: azul nas depressões, areia na linha d'água,
+verde nas planícies, marrom nas encostas, branco nos picos — com curvas de nível.*
+
 ---
 
 ## Por que existe
@@ -42,6 +47,11 @@ O Kinect mede a distância até cada ponto da areia, 640 × 480 vezes por quadro
 29 vezes por segundo. Uma calibração inicial ensina ao sistema onde é o fundo da caixa;
 tudo acima disso vira relevo.
 
+![Relevo real lido pelo Kinect](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/08-relevo-calibrado.png)
+
+*Leitura do sensor real: objetos sobre a superfície viram elevações e depressões, com as
+curvas de nível acompanhando o contorno.*
+
 ### Projeta um mapa topográfico
 
 Rampa hipsométrica clássica — azul nas depressões, areia na linha d'água, verde nas
@@ -56,6 +66,10 @@ Três simulações, todas afetadas pela cobertura do solo que o professor escolh
 **💧 Chuva e enchente.** A água cai, escorre pelo relevo, acumula nos vales e alaga as
 partes baixas. Quando a chuva para, o escoamento continua — que é metade do fenômeno.
 
+![Simulação de enchente em andamento](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/11-chuva-em-andamento.png)
+
+*Chuva em andamento: a água acumula nas depressões enquanto as elevações permanecem secas.*
+
 **🔥 Queimada.** O fogo começa num foco sorteado e se espalha conforme combustível, vento
 e encosta. Um rio o barra, como no território real. E quando apaga, **altera o solo**: a
 área queimada vira crosta que repele a água.
@@ -69,6 +83,8 @@ deslizamento exige três condições juntas: tremor, encosta e solo que não seg
 Mata, várzea, pastagem, agricultura, solo arenoso, argiloso, cidade drenada, solo
 compactado, rocha, desmatado, queimado e área urbana. Cada uma com infiltração, capacidade
 de armazenamento, rugosidade e resistência à erosão próprias.
+
+![Tipos de cobertura do solo](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/13-tipos-de-solo.png)
 
 **É aqui que mora a lição.** A mesma chuva, sobre o mesmo relevo, produz resultados muito
 diferentes conforme o que cobre o solo.
@@ -186,6 +202,11 @@ e a instabilidade de um solver de fluidos completo.
 Roda em metade da resolução do sensor. A decisão veio de uma medição: em resolução cheia
 seriam 86 milhões de operações por quadro; em metade, 11 milhões. A água é um campo suave,
 então a perda desaparece na reamostragem, e tudo continua cabendo na CPU.
+
+![Saída do solver de água](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/14-solver-de-agua.png)
+
+*Saída direta do modelo, sem a rampa de cores: a água contorna os dois morros — secos, em
+amarelo — e forma um canal de drenagem no vale entre eles.*
 
 Custo medido: **7,5 ms por quadro**, dentro do orçamento de 33 ms.
 

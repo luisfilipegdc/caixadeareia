@@ -187,6 +187,8 @@ Abra o programa. A janela tem três partes:
 
 **À direita**, a prévia: o que será projetado.
 
+![Interface do programa](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/16-bloco-simulacoes.png)
+
 ### Ligar
 
 Toque em **▶ Ligar a caixa**.
@@ -213,6 +215,8 @@ morro e o que é vale.
 4. Aguarde cerca de 2 segundos, sem mexer em nada
 
 Pronto. A prévia passa a mostrar o relevo colorido.
+
+![Relevo depois de calibrar](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/08-relevo-calibrado.png)
 
 ### A cobertura
 
@@ -257,6 +261,11 @@ Alinhar é fazer a imagem projetada coincidir com a caixa de verdade.
 7. Tecle **G** de novo para tirar a grade
 
 O alinhamento fica salvo. Nas próximas aulas não precisa repetir.
+
+![Grade de alinhamento](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/10-projecao-grade-alinhamento.png)
+
+*A grade com borda vermelha marca o limite exato da área projetada. Ajuste o projetor até
+ela coincidir com a borda da caixa.*
 
 ### Teclas da janela de projeção
 
@@ -340,6 +349,8 @@ protege à que menos protege:
 | **Queimado** | muito baixo | Crosta que repele água |
 | **Área urbana** | nada | Asfalto e telhados |
 
+![Tipos de cobertura](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/13-tipos-de-solo.png)
+
 **É aqui que está a lição.** A mesma chuva, sobre o mesmo relevo, produz resultados muito
 diferentes conforme a cobertura.
 
@@ -349,6 +360,8 @@ Escolha a intensidade e a duração, e toque em **Fazer chover**.
 
 A chuva tem começo e fim. Durante ela, a água cai, escorre pelo relevo, acumula nos vales
 e alaga as partes baixas. Quando para, você vê o escoamento — que é metade do fenômeno.
+
+![Chuva em andamento](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/11-chuva-em-andamento.png)
 
 **O que observar:**
 - por onde a água desce
@@ -384,6 +397,11 @@ Escolha a magnitude e toque em **Provocar terremoto**.
 
 O quadro **Comparação** guarda o resultado de cada simulação. Rode a mesma chuva em duas
 coberturas diferentes e ele diz quantas vezes uma alagou mais que a outra.
+
+![Resultado depois da simulação](https://raw.githubusercontent.com/luisfilipegdc/caixadeareia/main/docs/img/15-painel-apos-simulacao.png)
+
+*Depois que a chuva para, o painel guarda o pico do episódio — o número comparável entre um
+cenário e outro.*
 
 **É esse número que fecha a aula.**
 
