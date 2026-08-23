@@ -19,6 +19,8 @@ Licenciado sob [GPL-2.0-or-later](LICENSE)
 
 | Documento | O que traz |
 |---|---|
+| 🌐 **[Página do projeto](docs/PROJETO.md)** | Visão geral, resultados medidos e arquitetura — para quem chega sem contexto |
+| 📖 **[Manual do usuário](docs/MANUAL.md)** | Da instalação à primeira aula, sem pressupor conhecimento técnico |
 | 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas até a plataforma de simulações ambientais, com status de cada item |
 | 📐 **[Montagem física](docs/MONTAGEM-FISICA.md)** | Cálculo da altura do sensor, cobertura do campo de visão e throw ratio do projetor |
 | 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, justificativas, os seis bugs e as medições |
