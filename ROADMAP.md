@@ -13,6 +13,68 @@ Evoluir a Caixa de Areia Interativa de um sistema de visualização topográfica
 | **Próxima versão** | Água, enchentes e tipos de solo |
 | **Longo prazo** | Laboratório de fenômenos ambientais e geológicos |
 
+---
+
+## Onde estamos — agosto de 2026
+
+**Versão 1.3.** As simulações avançaram muito além do previsto para esta altura, e as
+etapas de campo ficaram para trás. Vale registrar o desvio em vez de escondê-lo.
+
+| Fase | Situação |
+|---|---|
+| 1. Estabilização | 🟡 O marco foi atingido — abre e funciona. Faltam log em arquivo, modo de diagnóstico, teste de longa duração e backup |
+| 2. Montagem física | ⬜ **Não iniciada.** A caixa existe, mas o sistema nunca rodou sobre areia real |
+| 3. Topografia 2.0 | ⬜ **Não iniciada.** Sem homografia, sem legenda de altitude, sem captura de imagem |
+| 4. Água e enchentes | ✅ Completa, com saturação do solo |
+| 5. Solo e erosão | ✅ Completa, doze coberturas |
+| 6. Clima e temperatura | ⬜ Não iniciada |
+| 7. Fenômenos geológicos | 🟡 Terremoto pronto; vulcão e fluxo de lava não |
+| 8. Camada pedagógica | 🟡 Seis cenários e dois roteiros no manual; falta o alinhamento com a BNCC |
+| 9. Plataforma aberta | 🟡 Documentação, manual e releases públicos; falta instalador e biblioteca compartilhada |
+
+Um módulo entrou fora do plano: **a queimada**, que não estava em nenhuma fase. Ela se
+justificou porque fecha o ciclo do módulo de solo — o fogo altera a cobertura, e a chuva
+seguinte encontra outro território.
+
+### O desvio, e por que ele importa
+
+Este documento estabelece, na seção *Princípio de execução*, que a prioridade era
+**concluir a estabilidade e a montagem física antes de abrir frentes de simulação**.
+Não foi o que aconteceu: as Fases 2 e 3 foram puladas, e as Fases 4, 5 e 7 foram
+construídas primeiro.
+
+A decisão foi consciente e faz sentido — o software podia avançar enquanto a caixa não
+estava disponível, e as simulações são o que dá sentido ao projeto. Mas ela cobra um preço
+que precisa estar visível:
+
+> **As três simulações foram validadas apenas sobre terreno sintético.** Nenhuma delas
+> rodou sobre areia de verdade, lida pelo sensor, numa caixa montada.
+
+O que só aparece na areia real:
+
+- **Sombra de infravermelho das mãos.** Enquanto o aluno molda, a mão bloqueia o sensor e
+  cria uma região sem leitura. A água vai reagir a isso — e ninguém sabe como ainda.
+- **Ruído da areia real.** Areia espalha infravermelho de forma diferente de uma superfície
+  lisa. A suavização pode precisar de outro ajuste.
+- **Escala do relevo.** Os limiares de alagamento e as alturas de cor foram calibrados em
+  terreno sintético. Uma caixa com 10 cm de areia tem outra amplitude.
+- **Alinhamento sob projeção real.** O mapa pode estar certo e a projeção, deslocada.
+
+Nada disso invalida o que foi feito: a física está verificada, com massa conservada e
+comportamento coerente. Mas **verificado em simulação não é o mesmo que validado em
+campo**, e o roadmap não deve sugerir que está.
+
+### Prioridade recomendada agora
+
+1. **Fase 2 — rodar sobre a caixa real.** É a única forma de descobrir o que os testes não
+   pegam, e destrava tudo o que vem depois.
+2. **Fase 1 — log em arquivo.** Sem ele, um problema durante uma aula vira relato sem
+   evidência. É o que torna a Fase 2 diagnosticável.
+3. **Fase 3 — homografia**, se o projetor não puder ficar perpendicular à caixa.
+4. Só então novos módulos.
+
+---
+
 ## Etapas
 
 | # | Etapa | Objetivo | Principais entregas |
@@ -149,21 +211,21 @@ nível e bacias hidrográficas.
 
 ---
 
-# Fase 4 — Água, chuva e enchentes
+# Fase 4 — Água, chuva e enchentes ✅
 
-**Marco:** os estudantes constroem um território, provocam uma chuva e investigam por que
-determinadas áreas alagam.
+**Marco atingido** — em terreno sintético. Falta a validação sobre areia real.
 
-- [ ] Adicionar água em um ponto
-- [ ] Criar chuva em toda a área
-- [ ] Calcular o sentido do escoamento
-- [ ] Formar rios, lagos e áreas alagadas
-- [ ] Controlar intensidade e duração da chuva
-- [ ] Exibir profundidade da água por cores
-- [ ] Comparar relevos antes e depois
-- [ ] Criar obstáculos, barragens e canais
-- [ ] Simular ocupação urbana
-- [ ] Testar intervenções contra enchentes
+- [x] Criar chuva em toda a área, com intensidade e duração configuráveis
+- [x] Calcular o sentido do escoamento
+- [x] Formar rios, lagos e áreas alagadas
+- [x] Exibir profundidade da água por cores
+- [x] Simular ocupação urbana (via cobertura do solo)
+- [x] Testar intervenções (comparação entre cenários)
+- [x] **Saturação do solo** — não estava previsto, e é o que explica a enchente real:
+      o solo enche, para de absorver, e a chuva seguinte alaga mais
+- [ ] Adicionar água num ponto escolhido pelo professor
+- [ ] Obstáculos e barragens desenhados na interface
+- [ ] Comparação lado a lado de dois relevos
 
 > **Decisão técnica pendente:** a simulação de água é iterativa e provavelmente exige GPU.
 > A renderização atual é em CPU, escolha adequada para colorização mas insuficiente para
@@ -172,9 +234,14 @@ determinadas áreas alagam.
 
 ---
 
-# Fase 5 — Solos, infiltração e erosão
+# Fase 5 — Solos, infiltração e erosão ✅
 
-**Marco:** a mesma chuva produz consequências diferentes dependendo do solo e da ocupação.
+**Marco atingido:** a mesma chuva produz consequências diferentes conforme o solo.
+Medido — mata alaga 7,5%, desmatado alaga 51,2%, com a mesma chuva.
+
+Doze coberturas implementadas, cada uma com infiltração, capacidade de armazenamento,
+rugosidade e resistência à erosão. A erosão é calculada como previsão, não aplicada ao
+relevo: mexer no terreno faria o mapa divergir do que está fisicamente na caixa.
 
 Cada região da caixa poderá receber propriedades distintas:
 
@@ -221,21 +288,22 @@ na forma física da areia.
 
 ---
 
-# Fase 7 — Terremotos e fenômenos geológicos
+# Fase 7 — Terremotos e fenômenos geológicos 🟡
 
 O relevo físico representa o território; a projeção mostra ondas, intensidade, risco e
 consequências.
 
-- [ ] Epicentro e ondas sísmicas
-- [ ] Intensidade conforme a distância
-- [ ] Diferentes tipos de solo
-- [ ] Amplificação das ondas em solo menos resistente
-- [ ] Áreas de risco
+- [x] Epicentro e ondas sísmicas
+- [x] Intensidade conforme a distância
+- [x] Amplificação das ondas em solo menos resistente
+- [x] Áreas de risco (mapa de dano acumulado)
+- [x] Deslizamentos e estabilidade das encostas
+- [ ] Epicentro escolhido clicando no mapa
 - [ ] Falhas geológicas
-- [ ] Vulcões
-- [ ] Fluxo de lava
-- [ ] Deslizamentos
-- [ ] Estabilidade das encostas
+- [ ] Vulcões e fluxo de lava
+
+**Medido:** magnitude 7 sobre solo solto dá 22,99% de risco de deslizamento numa encosta,
+0,00% em terreno plano, e 0,00% numa encosta com mata.
 
 ---
 
