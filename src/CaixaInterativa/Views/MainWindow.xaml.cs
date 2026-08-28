@@ -15,6 +15,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CaixaInterativa.Config;
+using CaixaInterativa.Diagnostico;
 using CaixaInterativa.Depth;
 using CaixaInterativa.Simulation;
 
@@ -251,6 +252,7 @@ public partial class MainWindow : Window
 
         _coberturaAtual = prop.Nome;
         _engine.Agua.Solo.Preencher(tipo);
+        Registro.Info($"Cobertura do terreno: {prop.Nome}");
 
         TxtCoberturaInfo.Text = prop.Descricao + "\n" + prop.Resumo;
         SetStatus($"Cobertura: {prop.Nome}. Execute a simulação para ver o efeito.");
@@ -300,6 +302,7 @@ public partial class MainWindow : Window
         var (mm, nome) = IntensidadeChuva(CmbIntensidade.SelectedIndex);
         float duracao = (float)SldDuracao.Value;
         agua.IniciarChuva(mm, duracao);
+        Registro.Info($"Chuva: {nome} ({mm:F0} mm/s) por {duracao:F0}s sobre {_coberturaAtual}");
         SetStatus($"{nome} por {duracao:F0}s sobre {_coberturaAtual}. Observe por onde a água desce.");
     }
 
@@ -309,6 +312,7 @@ public partial class MainWindow : Window
         if (sismo is null || sismo.EmAndamento) return;
 
         sismo.Disparar(0.5f, 0.5f, (float)SldMagnitude.Value);
+        Registro.Info($"Terremoto: magnitude {SldMagnitude.Value:F1} sobre {_coberturaAtual}");
         SetStatus($"Terremoto de magnitude {SldMagnitude.Value:F1} sobre {_coberturaAtual}.");
     }
 
@@ -390,6 +394,9 @@ public partial class MainWindow : Window
         if (valor <= 0) return;
         _historico.RemoveAll(h => h.Simulacao == simulacao && h.Cobertura == cobertura);
         _historico.Add((simulacao, cobertura, resultado, valor));
+        // O resultado de cada episódio fica registrado: é o que permite reconstruir uma
+        // aula depois, e comparar o que aconteceu em turmas diferentes.
+        Registro.Info($"Resultado — {simulacao} sobre {cobertura}: {resultado}");
         AtualizarComparacao();
     }
 

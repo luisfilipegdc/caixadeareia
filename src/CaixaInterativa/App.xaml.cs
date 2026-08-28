@@ -12,6 +12,7 @@
 // detalhes. Uma cópia acompanha este programa no arquivo LICENSE.
 
 using System.Windows;
+using CaixaInterativa.Diagnostico;
 
 namespace CaixaInterativa;
 
@@ -21,10 +22,15 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        Registro.Iniciar(AppInfo.Versao);
+
         // Uma excecao nao tratada numa aula significa tela preta na parede. Preferimos
         // avisar e continuar rodando a derrubar o processo.
         DispatcherUnhandledException += (_, args) =>
         {
+            // Registrar antes de mostrar: se a caixa de diálogo travar, o registro já foi.
+            Registro.Erro("Exceção não tratada", args.Exception);
+
             MessageBox.Show(
                 $"Erro nao tratado:\n\n{args.Exception.Message}",
                 "Caixa Interativa",
@@ -32,5 +38,7 @@ public partial class App : Application
                 MessageBoxImage.Warning);
             args.Handled = true;
         };
+
+        Exit += (_, _) => Registro.Info("Sessão encerrada.");
     }
 }

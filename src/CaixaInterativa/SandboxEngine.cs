@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CaixaInterativa.Config;
+using CaixaInterativa.Diagnostico;
 using CaixaInterativa.Depth;
 using CaixaInterativa.Processing;
 using CaixaInterativa.Rendering;
@@ -52,13 +53,13 @@ public sealed class SandboxEngine : IDisposable
     /// <summary>Simulação de água. Criada junto com a fonte, porque depende da resolução.</summary>
     public WaterSimulation? Agua { get; private set; }
 
-    /// <summary>Campo de alturas atual, para módulos que precisam consultar o relevo.</summary>
     /// <summary>Simulação de terremoto, compartilhando o mapa de solo com a água.</summary>
     public EarthquakeSimulation? Terremoto { get; private set; }
 
     /// <summary>Simulação de queimada, que altera o mapa de solo ao terminar.</summary>
     public FireSimulation? Fogo { get; private set; }
 
+    /// <summary>Campo de alturas atual, para módulos que precisam consultar o relevo.</summary>
     public float[] Alturas => _heights;
     public int LarguraCampo => _source?.Width ?? 0;
     public int AlturaCampo => _source?.Height ?? 0;
@@ -171,6 +172,7 @@ public sealed class SandboxEngine : IDisposable
         source.Start();
         _timer.Start();
         StatusChanged?.Invoke($"Fonte iniciada: {source.Name}");
+        Registro.Info($"Fonte iniciada: {source.Name} ({source.Width}x{source.Height})");
 
         // Restaura a calibração salva antes de qualquer coisa: se houver uma válida,
         // o professor abre o programa e já vê o relevo, sem passar pela calibração.
@@ -196,6 +198,8 @@ public sealed class SandboxEngine : IDisposable
         StatusChanged?.Invoke(
             $"Calibração de {dados.SavedAt:dd/MM HH:mm} carregada " +
             $"({dados.CoveragePercent:F0}% de cobertura).");
+        Registro.Info($"Calibração carregada de {dados.SavedAt:dd/MM HH:mm}, " +
+                      $"{dados.CoveragePercent:F1}% de cobertura");
         return true;
     }
 
@@ -211,6 +215,10 @@ public sealed class SandboxEngine : IDisposable
         {
             CalibrationStore.Save(dados);
             StatusChanged?.Invoke("Calibração salva. Nas próximas vezes ela é carregada sozinha.");
+            Registro.Info($"Calibração salva: {dados.CoveragePercent:F1}% de cobertura, " +
+                          $"distância média {dados.AverageDistanceMm:F0} mm");
+            if (dados.CoveragePercent < 80)
+                Registro.Aviso($"Cobertura abaixo do recomendado: {dados.CoveragePercent:F1}%");
             return true;
         }
         catch (Exception ex)
@@ -249,6 +257,7 @@ public sealed class SandboxEngine : IDisposable
         => Application.Current?.Dispatcher.Invoke(() =>
         {
             StatusChanged?.Invoke(message);
+            Registro.Erro($"Sensor caiu: {message}");
             SetState(EngineState.Erro, "Sensor desconectado");
             if (Config.Sensor.AutoReconnect) StartReconnectTimer();
         });
@@ -274,6 +283,7 @@ public sealed class SandboxEngine : IDisposable
                 var nova = _sourceFactory!();
                 StartSource(nova);   // limpa o timer e restaura a calibração
                 StatusChanged?.Invoke($"Sensor reconectado após {_reconnectAttempts} tentativa(s).");
+                Registro.Info($"Sensor reconectado após {_reconnectAttempts} tentativa(s).");
                 _reconnectAttempts = 0;
             }
             catch (Exception ex)
