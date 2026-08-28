@@ -22,6 +22,20 @@ namespace CaixaInterativa.Simulation;
 /// pergunta da aula não é "como era o vale do Taquari", é "o que aconteceria com o vale
 /// que vocês construíram, se fosse ocupado assim e chovesse assim".
 /// </summary>
+/// <remarks>
+/// <b>Não conectado ao fluxo oficial.</b> Nada no aplicativo referencia estes cenários:
+/// eles não aparecem em nenhuma tela e não são aplicados por nenhum caminho. A primeira
+/// atividade oficial — Urbanização e Enchentes — não os usa, de propósito.
+///
+/// <b>Por que não foram ligados.</b> Três deles pintam a cobertura com
+/// <c>PintarPorAltitude</c> em cotas absolutas (45 mm e 30 mm). Sobre areia real essas
+/// cotas não significam nada fixo: a faixa útil depende da calibração de cada montagem —
+/// numa medição real ela foi de −11 mm a 102 mm, e "acima de 45 mm" caiu em lugar
+/// arbitrário. Ligados assim, pintariam cidade no topo do morro.
+///
+/// <b>Não ative automaticamente sem revisar.</b> O que vale a pena aqui é a forma do
+/// registro — contexto, pergunta, chuva, duração e saturação inicial — e não os limiares.
+/// </remarks>
 public sealed record Cenario(
     string Nome,
     string Contexto,

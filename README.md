@@ -293,6 +293,7 @@ tests/CaixaInterativa.Tests/      regressão visual e comportamento
 | 📦 **[Dados públicos](docs/DADOS-PUBLICOS.md)** | Contexto real do INPE, preparado offline: fluxo, decisões estatísticas e limites |
 | 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, bugs e medições |
 | 🔍 **[Auditoria técnica](docs/AUDITORIA-TECNICA.md)** | Leitura integral do código: arquitetura real, gargalos, dívida |
+| 🌧 **[Urbanização e Enchentes](docs/ATIVIDADE-URBANIZACAO-ENCHENTES.md)** | Primeira atividade pedagógica: mesmo relevo, mesma chuva, coberturas diferentes |
 | 🛠 **[Guia de desenvolvimento](docs/DESENVOLVIMENTO.md)** | Caminho de um quadro, como acrescentar um fenômeno, regras de performance e de teste |
 | 🖼️ **[Catálogo de imagens](docs/img/README.md)** | Capturas de cada etapa, com contexto |
 
