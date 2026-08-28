@@ -74,6 +74,7 @@ Nada abaixo da linha "roadmap" existe no código.
 | Erosão | Calculada a cada quadro, ainda **não exibida** na projeção |
 | Cenários pedagógicos prontos | Seis cenários existem no código (Enchente no RS, várzea preservada, cidade drenada…) e ainda **não têm caminho de interface** |
 | Região de interesse (ROI) | Existe na configuração, sem controle na tela — o mapa cobre todo o campo de visão do sensor |
+| Contexto de dados públicos | **Experimental.** Focos de calor do INPE, preparados fora da aula e lidos de arquivo local. É contexto: não alimenta nenhum parâmetro de simulação. Ver [Dados públicos](docs/DADOS-PUBLICOS.md) |
 
 ### 🗺️ Roadmap — **não implementado**
 
@@ -286,6 +287,7 @@ tests/CaixaInterativa.Tests/      regressão visual e comportamento
 | 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas, com o estado real de cada uma |
 | 📐 **[Montagem física](docs/MONTAGEM-FISICA.md)** | Altura do sensor, campo de visão, relação de projeção |
 | 📏 **[Calibração física](docs/CALIBRACAO-FISICA.md)** | Como medir a largura que o sensor cobre e tornar os litros confiáveis |
+| 📦 **[Dados públicos](docs/DADOS-PUBLICOS.md)** | Contexto real do INPE, preparado offline: fluxo, decisões estatísticas e limites |
 | 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, bugs e medições |
 | 🔍 **[Auditoria técnica](docs/AUDITORIA-TECNICA.md)** | Leitura integral do código: arquitetura real, gargalos, dívida |
 | 🛠 **[Guia de desenvolvimento](docs/DESENVOLVIMENTO.md)** | Caminho de um quadro, como acrescentar um fenômeno, regras de performance e de teste |
