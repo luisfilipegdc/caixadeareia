@@ -184,6 +184,9 @@ public sealed class SandboxEngine : IDisposable
             Agua = Agua.Profundidade,
         };
 
+        _nearMode.Reiniciar();
+        _avisouNearMode = false;
+
         // A ordem de registro é a ordem de atualização e de composição visual.
         _modulos.Clear();
         _modulos.Add(Agua);
@@ -331,6 +334,8 @@ public sealed class SandboxEngine : IDisposable
         _processor.Settings = Config.Processing;
         _processor.ProcessFrame(frame, _heights);
 
+        ObservarNearMode(frame);
+
         // dt real, limitado a 100ms. Um travamento momentâneo não pode virar um salto
         // que despeja meio segundo de chuva de uma vez e estoura a simulação.
         float dt = (float)Math.Min(0.1, _simClock.Elapsed.TotalSeconds);
@@ -420,6 +425,42 @@ public sealed class SandboxEngine : IDisposable
     private void Acrescentar(IReadOnlyList<CamadaVisual> camadas)
     {
         for (int i = 0; i < camadas.Count; i++) _camadasDoQuadro.Add(camadas[i]);
+    }
+
+    /// <summary>
+    /// Diagnóstico do near mode. Vazio até uma fonte iniciar.
+    /// </summary>
+    private readonly DiagnosticoDeNearMode _nearMode = new();
+
+    /// <summary>Menor profundidade válida observada desde que a fonte iniciou, em mm.</summary>
+    public ushort MenorProfundidadeMm => _nearMode.MinimaObservadaMm;
+
+    private bool _avisouNearMode;
+
+    /// <summary>
+    /// Observa os primeiros quadros para saber se apareceu alguma leitura abaixo dos
+    /// 800 mm que o sensor entrega sem near mode.
+    ///
+    /// É indício, não prova: se a areia estiver toda a mais de 80 cm, a mínima fica acima
+    /// de 800 mm com o near mode funcionando. Por isso o resultado sai como aviso no
+    /// status, uma única vez, e não interrompe nada.
+    /// </summary>
+    private void ObservarNearMode(RawDepthFrame frame)
+    {
+        if (_avisouNearMode) return;
+
+        _nearMode.Observar(frame.Data,
+                           Config.Processing.MinValidDepthMm,
+                           Config.Processing.MaxValidDepthMm);
+
+        if (!_nearMode.Concluido) return;
+
+        // Só faz sentido perguntar isso do sensor real; o simulador não tem near mode.
+        bool sensorReal = _source is KinectV1Source;
+        string? aviso = _nearMode.Aviso(sensorReal && Config.Sensor.NearMode);
+
+        _avisouNearMode = true;
+        if (aviso is not null) StatusChanged?.Invoke(aviso);
     }
 
     private void EnsureBitmap(int width, int height)
