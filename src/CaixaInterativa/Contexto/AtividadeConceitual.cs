@@ -59,4 +59,37 @@ public sealed record AtividadeConceitual(
             "Modelo didático: a propagação do fogo é uma simulação de sala de aula, " +
             "calibrada para o fenômeno aparecer numa aula. Não é previsão, e não reproduz " +
             "os focos observados.");
+
+    /// <summary>
+    /// A atividade que usa dois períodos do mesmo território.
+    ///
+    /// A segunda pergunta é <b>hipotética de propósito</b>. Ela convida a mexer numa
+    /// condição da caixa e ver o que muda — mas quem escolhe a condição é o professor. O
+    /// dado observado não configura nada: se ele escolhesse a cobertura ou a força do
+    /// vento, a aula passaria a sugerir que a caixa está reproduzindo aquele período, e
+    /// ela não está.
+    /// </summary>
+    public static readonly AtividadeConceitual MesmoTerritorioPeriodosDiferentes = new(
+        Titulo: "O mesmo território em períodos diferentes",
+
+        PerguntaInvestigativa:
+            "O que mudou nas condições observadas entre estes dois períodos? E, mantendo " +
+            "o mesmo relevo na caixa, o que aconteceria se mudássemos apenas uma condição " +
+            "didática — a cobertura do solo, por exemplo?",
+
+        DeOndeVemOContexto:
+            "Dado externo observado: os dois períodos vêm do mesmo conjunto do INPE, com a " +
+            "mesma agregação. A comparação descreve o que foi medido em cada um — e só isso. " +
+            "Um período com mais dias sem chuva e também mais focos são duas observações, " +
+            "não uma relação de causa.",
+
+        DeOndeVemORelevo:
+            "Medição da caixa: o relevo continua sendo o que os estudantes moldaram. Ele não " +
+            "muda entre os dois períodos — é justamente o que permite investigar uma " +
+            "variável de cada vez.",
+
+        DeOndeVemAPropagacao:
+            "Modelo didático: a segunda pergunta é hipotética. A caixa não reproduz nenhum " +
+            "dos dois períodos; ela mostra o que o modelo faz com a condição que o professor " +
+            "escolher.");
 }
