@@ -52,7 +52,8 @@ proteger.
 
 ```bash
 dotnet run --project tools/CaixaInterativa.DataPrep -- \
-  --fonte https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/diario/Brasil/focos_diario_br_20260827.csv \
+  --fonte https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/mensal/Brasil/focos_mensal_br_202606.csv \
+  --fonte https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/mensal/Brasil/focos_mensal_br_202607.csv \
   --saida src/CaixaInterativa/Dados/contexto-queimadas.json
 ```
 
@@ -60,12 +61,29 @@ O comando também fica gravado **dentro do próprio pacote**, no campo
 `proveniencia.comandoParaRegenerar` — quem abrir o JSON descobre como refazê-lo sem
 procurar documentação.
 
-`--fonte` aceita URL ou caminho local. Sem `--saida`, o JSON sai na saída padrão.
-`--ajuda` mostra o uso.
+`--fonte` aceita URL ou caminho local e **pode repetir**: cada arquivo entra como uma
+fonte a mais. `--ajuda` mostra o uso; sem `--saida`, o JSON sai na saída padrão.
 
-Para trocar o dia, mude a data no nome do arquivo. Os diários do Brasil ficam em
-`.../focos/csv/diario/Brasil/` e pesam alguns MB; o mensal existe, mas tem ~85 MB e não é
-necessário para o que a aula usa.
+**O período não vem do nome do arquivo, vem da data de cada linha.** Isso importa: um
+arquivo diário promovido a "mês" produziria um rótulo verdadeiro no formato e falso no
+conteúdo. O pacote grava, por período, quantos dias distintos foram observados, e o
+aplicativo marca como amostra parcial qualquer período com menos de 20.
+
+### Os dois períodos do pacote atual, e por que estes
+
+| Período | Arquivo | Dias | Focos lidos |
+|---|---|---|---|
+| 2026-06 | `focos_mensal_br_202606.csv` | 30 | 132.772 |
+| 2026-07 | `focos_mensal_br_202607.csv` | 31 | 159.934 |
+
+**Critério: os dois meses completos mais recentes, em sequência.** Junho e julho de 2026
+são os últimos dois meses fechados na data de acesso. Agosto foi recusado porque está em
+curso — comparar 31 dias com 28 dias faria a contagem de focos parecer menor por um
+motivo que não tem nada a ver com fogo.
+
+Nenhum dos dois foi escolhido por ser extremo. O critério é posicional (os dois últimos
+fechados), não estatístico, exatamente para que a diferença encontrada seja o que os dados
+trouxerem, e não o que a escolha plantou.
 
 ---
 
@@ -73,13 +91,18 @@ necessário para o que a aula usa.
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "proveniencia": {
     "fonte": "INPE — Programa Queimadas",
-    "recurso": "focos_diario_br_20260827.csv",
-    "url": "https://dataserver-coids.inpe.br/...",
-    "periodoObservado": "2026-08",
     "dataDeAcesso": "2026-08-28",
+    "periodos": [
+      { "periodo": "2026-06", "recurso": "focos_mensal_br_202606.csv",
+        "url": "https://dataserver-coids.inpe.br/...",
+        "diasObservados": 30, "focosLidos": 132772 },
+      { "periodo": "2026-07", "recurso": "focos_mensal_br_202607.csv",
+        "url": "https://dataserver-coids.inpe.br/...",
+        "diasObservados": 31, "focosLidos": 159934 }
+    ],
     "comandoParaRegenerar": "dotnet run --project tools/...",
     "filtros": [...],
     "metodoDeAgregacao": "...",
@@ -88,16 +111,16 @@ necessário para o que a aula usa.
   },
   "contextos": [
     {
-      "bioma": "Cerrado", "uf": "BAHIA", "periodo": "2026-08",
+      "bioma": "Cerrado", "uf": "GOIÁS", "periodo": "2026-06",
       "observado": {
-        "focos": 975,
+        "focos": 3483,
         "riscoFogoMediano": 1.0, "riscoFogoP25": 0.9, "riscoFogoP75": 1.0,
-        "diasSemChuvaMediano": 79.0, "frpMedianoMw": 76.4,
-        "amostras": { "riscoFogo": 975, "diasSemChuva": 975, ... }
+        "diasSemChuvaMediano": 14.0, "frpMedianoMw": 5.9,
+        "amostras": { "riscoFogo": 3483, "diasSemChuva": 3483, ... }
       },
       "classesDidaticas": {
-        "risco": "Sem variação suficiente",
-        "secura": "Muito seco",
+        "risco": "Alto",
+        "secura": "Seco",
         "classificacao": "relativa_ao_recorte"
       }
     }
@@ -105,7 +128,17 @@ necessário para o que a aula usa.
 }
 ```
 
-Estado atual: **29 recortes, 22 KB**, gerado do dia 27/08/2026 (28.519 focos).
+**O período é a chave.** Cada recorte é `bioma × UF × período`, então o mesmo território
+aparece uma vez por período, e a procedência de cada período fica em `proveniencia.periodos`.
+Foi a menor mudança que comporta mais de um período sem virar banco de dados: uma lista a
+mais no cabeçalho, mais linhas na mesma tabela, e o diff continua legível.
+
+Estado atual: **84 recortes, 58,4 KB**, gerado de junho e julho de 2026 (292.706 focos
+lidos, 41 territórios com os dois períodos).
+
+Os quartis são calculados **sobre os dois períodos juntos**, e é isso que torna as classes
+comparáveis entre eles: se cada período tivesse os seus próprios cortes, "Alto" em junho e
+"Alto" em julho não significariam a mesma coisa.
 
 ---
 
@@ -113,8 +146,9 @@ Estado atual: **29 recortes, 22 KB**, gerado do dia 27/08/2026 (28.519 focos).
 
 ### Mediana e quartis, nunca média
 
-Medido na amostra real: a média de FRP é **43,7 MW** e a mediana **11,5 MW**. A cauda de
-incêndios enormes puxa a média para longe do que é típico do conjunto.
+Medido nos focos de 27/08/2026, a amostra que motivou a decisão: a média de FRP era
+**43,7 MW** e a mediana **11,5 MW**. A cauda de incêndios enormes puxa a média para longe
+do que é típico do conjunto.
 
 ### A sentinela −999 é descartada na entrada
 
@@ -143,13 +177,87 @@ verificados seria inventar ciência.
 Se os quartis empatam, não existe fronteira que separe quatro níveis, e a classe vira
 **"Sem variação suficiente"**.
 
-Isso acontece de verdade com o risco de fogo: no pacote atual, **29 de 29 recortes**
-caem nesse caso, porque nos focos *detectados* o risco satura perto de 1 — o fogo acontece
-justamente onde o risco é alto. Uma escala forçada colocaria todo bioma em "crítico", o
-que é tecnicamente defensável e pedagogicamente inútil.
+#### Correção de uma conclusão anterior sobre o risco de fogo
 
-**Para comparar territórios, use a secura**, que distribui bem: no pacote atual vai de 0 a
-79 dias sem chuva, e as quatro classes aparecem.
+A versão anterior deste documento afirmava que o risco de fogo satura e por isso **não
+serve** para separar recortes: 29 de 29 caíam em "Sem variação suficiente".
+
+**Isso descrevia a amostra, não o campo.** Aquele pacote vinha de um único dia. Com os
+dois meses atuais, o mesmo campo distribui: **Alto 42, Moderado 21, Baixo 21**, e nenhum
+recorte cai em "Sem variação suficiente". O que saturava era um dia de detecções, não a
+variável.
+
+A regra de saturação continua no código, e continua disparando — só que agora onde de
+fato há saturação. São dois gatilhos independentes:
+
+1. **A classe do pacote é "Sem variação suficiente"** — os quartis empataram sobre todos
+   os recortes.
+2. **Os dois períodos estão no teto da escala.** O risco de fogo do INPE vai de 0 a 1; no
+   teto não existe aumento possível. Este caso apareceu na validação em tela: Cerrado ·
+   GOIÁS deu 1,00 em junho e 1,00 em julho, com classe "Alto" nos dois — o gatilho 1 não
+   dispara, e a comparação respondia *"semelhante"*. É verdade e é enganoso: sugere uma
+   medida que encontrou igualdade, quando o campo não tinha como encontrar diferença.
+
+**Para comparar territórios, a secura continua sendo a mais legível**, porque distribui
+num intervalo largo e as quatro classes aparecem.
+
+---
+
+## Comparar dois períodos do mesmo território
+
+O pacote guarda mais de um período, e a interface deixa escolher um segundo para o mesmo
+bioma e a mesma UF. O resultado é uma lista de campos com o formato `A → B (veredito)`.
+
+### O exemplo que a ferramenta produz hoje
+
+**Cerrado · GOIÁS — 2026-06 vs 2026-07**
+
+| Campo | 2026-06 | 2026-07 | Veredito |
+|---|---|---|---|
+| Focos | 3.483 | 5.384 | aumentou |
+| Dias sem chuva (mediana) | 14 dias | 30 dias | aumentou |
+| Precipitação (mediana) | 0 mm | 0 mm | semelhante |
+| Potência radiativa (mediana) | 5,9 MW | 8,1 MW | aumentou |
+| Risco de fogo (mediana) | 1,00 | 1,00 | **sem poder discriminante neste recorte** |
+
+### A distinção de quatro pontas
+
+**DADO OBSERVADO EM A vs DADO OBSERVADO EM B ≠ CAUSA ≠ PREVISÃO ≠ CALIBRAÇÃO AUTOMÁTICA
+DA SIMULAÇÃO.**
+
+Lendo a tabela acima, a frase que se forma sozinha na cabeça é *"secou mais, então
+queimou mais"*. Ela pode até estar certa — mas **não é isto que está escrito ali**, e a
+diferença não é preciosismo:
+
+| | O que é | O que a tabela sustenta |
+|---|---|---|
+| **Observação em A e em B** | Dois números medidos, cada um com sua procedência | **Sim.** É tudo o que ela faz. |
+| **Causa** | "Os 16 dias a mais sem chuva produziram os 1.901 focos a mais" | **Não.** Nada aqui separa a seca de safra, de política de fiscalização, de cobertura de nuvem, ou de qualquer outra coisa que também mudou entre junho e julho. |
+| **Previsão** | "Agosto vai ter mais ainda" | **Não.** Dois pontos não são uma tendência, e o pacote não modela nada. |
+| **Calibração da simulação** | Usar 30 dias sem chuva para ajustar a propagação do fogo na caixa | **Não.** Ver a seção seguinte: nenhum valor do pacote toca um solver. |
+
+Por isso o texto que vai à tela é sempre da forma **"no período B houve mais X e também
+mais Y"** — nunca "X provocou Y". A ressalva *"Comparação de observações externas. Não
+estabelece causa."* acompanha toda comparação, sem exceção, e há um teste que falha se o
+vocabulário causal (`causou`, `provocou`, `porque`, `devido`, `resultou`, `por isso`)
+aparecer nos textos desta capacidade.
+
+### O critério de "semelhante", e sua honestidade
+
+Dois valores são semelhantes quando a diferença não passa do maior entre:
+
+- **10% da escala** — convenção **declarada, não derivada**. Não há base para afirmar qual
+  variação é estatisticamente significativa numa contagem de detecções por satélite
+  sujeita a nuvem e a horário de passagem; estimar esse ruído exigiria um estudo que este
+  projeto não fez. O que os 10% fazem é evitar os dois erros grosseiros: chamar 2% de
+  "aumentou" e chamar 40% de "semelhante".
+- **um piso absoluto por campo** — 10 focos, 1 dia, 0,5 mm, 2 MW. Sem ele, "2 focos → 3
+  focos" viraria "aumentou 50%", que é precisão falsa sobre ruído.
+
+A atividade conceitual que acompanha a comparação faz uma segunda pergunta
+**hipotética** — "e se mudássemos apenas uma condição na caixa?". Ela é hipotética de
+propósito: a caixa não reproduz nenhum dos dois períodos, e **nenhuma condição didática é
+ajustada automaticamente pelo dado externo. Quem decide é quem dá a aula.**
 
 ---
 
@@ -178,8 +286,14 @@ mundo.**
   resolução do sensor.
 - **Precipitação é quase sempre zero** — é o acumulado do dia da detecção, e o fogo
   acontece onde não choveu.
-- **Uma fonte, um período.** Nenhuma generalização para "qualquer dado aberto" foi feita,
-  de propósito.
+- **Uma fonte, dois períodos.** Nenhuma generalização para "qualquer dado aberto" nem
+  para série temporal foi feita, de propósito. O formato guarda uma lista de períodos, não
+  um banco histórico.
+- **Dois pontos não são uma série.** A comparação diz o que mudou entre A e B. Ela não
+  distingue variação sazonal de tendência, e não deveria ser lida como se distinguisse.
+- **A comparação exige o mesmo bioma e a mesma UF.** Dos 84 recortes do pacote, 41
+  territórios têm os dois períodos; os demais não oferecem comparação, e a interface
+  simplesmente não mostra o seletor.
 - **Nunca usado em sala.** A capacidade é experimental no sentido literal.
 
 ---
