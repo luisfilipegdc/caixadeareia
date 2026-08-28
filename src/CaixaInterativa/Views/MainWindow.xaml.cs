@@ -191,7 +191,7 @@ public partial class MainWindow : Window
     /// alagamento e deslizamento são resultados que eles produzem, não itens do menu —
     /// tratá-los como opções separadas confundiria causa com efeito.
     /// </summary>
-    private enum Simulacao { Chuva, Terremoto }
+    private enum Simulacao { Chuva, Terremoto, Queimada }
 
     private Simulacao _simulacaoAtual = Simulacao.Chuva;
     /// <summary>
@@ -210,13 +210,14 @@ public partial class MainWindow : Window
 
     private readonly List<Execucao> _historico = [];
     private string _coberturaAtual = "Mata";
-    private bool _chovendoAntes, _tremendoAntes;
+    private bool _chovendoAntes, _tremendoAntes, _queimandoAntes;
 
     private void PreencherCombos()
     {
         CmbSimulacao.Items.Clear();
         CmbSimulacao.Items.Add("Chuva e enchente");
         CmbSimulacao.Items.Add("Terremoto");
+        CmbSimulacao.Items.Add("Queimada");
         CmbSimulacao.SelectedIndex = 0;
 
         CmbIntensidade.Items.Clear();
@@ -235,15 +236,24 @@ public partial class MainWindow : Window
     private void OnSimulacaoChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (!_loaded) return;
-        _simulacaoAtual = CmbSimulacao.SelectedIndex == 1 ? Simulacao.Terremoto : Simulacao.Chuva;
+        _simulacaoAtual = CmbSimulacao.SelectedIndex switch
+        {
+            1 => Simulacao.Terremoto,
+            2 => Simulacao.Queimada,
+            _ => Simulacao.Chuva,
+        };
 
         CfgChuva.Visibility = _simulacaoAtual == Simulacao.Chuva ? Visibility.Visible : Visibility.Collapsed;
         CfgTremor.Visibility = _simulacaoAtual == Simulacao.Terremoto ? Visibility.Visible : Visibility.Collapsed;
+        CfgFogo.Visibility = _simulacaoAtual == Simulacao.Queimada ? Visibility.Visible : Visibility.Collapsed;
 
         TxtSimulacaoInfo.Text = _simulacaoAtual switch
         {
             Simulacao.Terremoto =>
                 "Ondas sísmicas a partir do centro da caixa. O dano depende do solo e da encosta.",
+            Simulacao.Queimada =>
+                "O fogo começa onde há vegetação e se espalha conforme o vento, a encosta e " +
+                "o que existe para queimar. Água no caminho segura a frente de chama.",
             _ => "Chuva sobre todo o território. A água escorre, acumula e alaga.",
         };
 
@@ -254,6 +264,7 @@ public partial class MainWindow : Window
     {
         if (LblDuracao is not null) LblDuracao.Text = $"{SldDuracao.Value:F0}s";
         if (LblMagnitude is not null) LblMagnitude.Text = $"{SldMagnitude.Value:F1}";
+        if (LblVento is not null) LblVento.Text = $"{SldVento.Value:F2}";
     }
 
     private void OnCoberturaChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -299,8 +310,12 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_simulacaoAtual == Simulacao.Chuva) ExecutarChuva();
-        else ExecutarTerremoto();
+        switch (_simulacaoAtual)
+        {
+            case Simulacao.Chuva: ExecutarChuva(); break;
+            case Simulacao.Queimada: ExecutarQueimada(); break;
+            default: ExecutarTerremoto(); break;
+        }
     }
 
     private void ExecutarChuva()
@@ -330,6 +345,34 @@ public partial class MainWindow : Window
         SetStatus($"Terremoto de magnitude {SldMagnitude.Value:F1} sobre {_coberturaAtual}.");
     }
 
+    /// <summary>
+    /// Ateia fogo. O foco cai num ponto sorteado entre os que têm o que queimar — a
+    /// própria simulação escolhe, para o incêndio não começar no asfalto e não pegar.
+    /// </summary>
+    private void ExecutarQueimada()
+    {
+        var fogo = _engine.Fogo;
+        if (fogo is null || fogo.EmAndamento) return;
+
+        fogo.VentoForca = (float)SldVento.Value;
+
+        if (!fogo.Atear())
+        {
+            // Atear devolve falso quando nenhuma célula tem combustível suficiente. É o
+            // caso da cobertura padrão, que é solo arenoso — dizer o que fazer vale mais
+            // que um botão que não responde.
+            MessageBox.Show(
+                "Não há vegetação que possa queimar nesta cobertura.\n\n" +
+                "Escolha uma cobertura com material combustível — Mata, Pastagem ou " +
+                "Agricultura — e ateie o fogo de novo.",
+                AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        SetStatus($"Fogo ateado sobre {_coberturaAtual}. " +
+                  $"Vento de {fogo.VentoPorExtenso()}. Observe por onde a frente avança.");
+    }
+
     private void OnSecar(object sender, RoutedEventArgs e)
     {
         // Genérico: limpa todos os módulos registrados. Antes eram duas linhas por
@@ -341,13 +384,15 @@ public partial class MainWindow : Window
 
     private void AtualizarBotaoExecutar()
     {
-        bool ocupado = _engine.Terremoto?.EmAndamento == true;
+        bool ocupado = _engine.Terremoto?.EmAndamento == true
+                       || _engine.Fogo?.EmAndamento == true;
         BtnExecutar.IsEnabled = !ocupado;
 
         BtnExecutar.Content = _simulacaoAtual switch
         {
             Simulacao.Chuva when _engine.Agua?.Chovendo == true => "⏸  Parar a chuva",
             Simulacao.Chuva => "🌧  Fazer chover",
+            Simulacao.Queimada => "🔥  Atear fogo",
             _ => "⚡  Provocar terremoto",
         };
     }
@@ -373,6 +418,28 @@ public partial class MainWindow : Window
             if (_tremendoAntes && !sismo.EmAndamento)
                 Registrar("Terremoto", _coberturaAtual, $"{sismo.AreaDeslizamentoPercent:F1}% de deslizamento", sismo.AreaDeslizamentoPercent);
             _tremendoAntes = sismo.EmAndamento;
+        }
+
+        var fogo = _engine.Fogo;
+        if (fogo is not null)
+        {
+            if (_queimandoAntes && !fogo.EmAndamento)
+                Registrar("Queimada", _coberturaAtual,
+                          $"{fogo.AreaQueimadaPercent:F0}% queimado", fogo.AreaQueimadaPercent);
+            _queimandoAntes = fogo.EmAndamento;
+        }
+
+        if (_simulacaoAtual == Simulacao.Queimada && fogo is not null)
+        {
+            TxtResultado.Text = fogo.EmAndamento
+                ? $"Queimando… {fogo.TempoDecorrido:F0}s\n" +
+                  $"Área queimada: {fogo.AreaQueimadaPercent:F0}%\n" +
+                  $"Vento de {fogo.VentoPorExtenso()}"
+                : fogo.Ativo && fogo.AreaQueimadaPercent > 0
+                    ? $"O fogo apagou.\nÁrea queimada: {fogo.AreaQueimadaPercent:F0}%\n" +
+                      "O solo queimado repele a água — faça chover para ver a diferença."
+                    : "Nenhuma simulação executada.";
+            return;
         }
 
         if (_simulacaoAtual == Simulacao.Terremoto && sismo is not null)

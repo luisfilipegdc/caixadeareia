@@ -230,3 +230,44 @@ sempre**, mesmo depois que a água seca. Reescrevi a pendência P2 com a versão
 
 **Arquivos:** `SandboxEngine.cs`, novo `AcoplamentoFogoAguaTests.cs`.
 **Resultado:** build 0/0, **54 testes aprovados**.
+
+---
+
+## Etapa 5b — A queimada ganhou caminho de UI
+
+`FireSimulation` tinha 350 linhas funcionais, era instanciada, atualizada e desenhada — e
+`Atear()` não era chamado em lugar nenhum do projeto. O combo de simulações oferecia
+"Chuva" e "Terremoto".
+
+### O que foi feito
+
+Um item no combo, um painel `CfgFogo` com a força do vento, e a ligação de `Atear()`.
+Segui exatamente o padrão dos painéis existentes (`CfgChuva`, `CfgTremor`), inclusive na
+visibilidade alternada — nada de layout novo, porque não tenho como verificar a tela.
+
+**A direção do vento continua sorteada a cada incêndio.** É decisão do código original,
+documentada como intencional: *"a mesma mata queima de forma diferente conforme a
+direção"*. Expus só a força.
+
+### O caso que teria virado botão quebrado
+
+A cobertura padrão do `SoilMap` é solo arenoso, cujo combustível (0,05) fica abaixo do
+limiar que `Atear` exige. Sem tratamento, o professor apertaria "Atear fogo" e nada
+aconteceria — sem erro, sem explicação.
+
+`Atear()` já devolvia `false` nesse caso. A interface agora usa esse retorno para dizer o
+que fazer: escolher Mata, Pastagem ou Agricultura.
+
+### Armadilha registrada, não resolvida
+
+Quando o fogo apaga, `AplicarCicatriz` grava `Queimado` no mapa de solo compartilhado —
+é o ponto do módulo. Mas o combo de cobertura continua mostrando a seleção antiga, e
+**tocar nele chama `Preencher` e apaga a cicatriz**. É comportamento pré-existente e
+defensável (escolher cobertura nova é justamente refazer o território), mas não é óbvio.
+Não mexi: mudar isso é decisão de produto.
+
+**Arquivos:** `MainWindow.xaml`, `MainWindow.xaml.cs`.
+**Resultado:** build 0/0, **54 testes aprovados**.
+
+**Limitação conhecida ao expor:** o defeito descrito em P2 — célula molhada fica imune
+para sempre, mesmo depois de a água secar. Não afeta o uso normal e está documentado.
