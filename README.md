@@ -69,7 +69,7 @@ Nada abaixo da linha "roadmap" existe no código.
 
 | Recurso | Ressalva |
 |---|---|
-| Volumes em litros | **Estimativa.** Dependem da largura que o sensor cobre, ainda não medida em campo. A interface marca com "≈". Porcentagens não têm esse problema |
+| Volumes em litros | **Estimativa.** Dependem da largura que o sensor cobre, ainda não medida em campo. A interface marca com "≈". O [procedimento de medição](docs/CALIBRACAO-FISICA.md) está escrito. Porcentagens não têm esse problema |
 | Alinhamento projetor↔caixa | Apenas afim. Projetor muito oblíquo deixa distorção de perspectiva que só uma homografia corrige |
 | Erosão | Calculada a cada quadro, ainda **não exibida** na projeção |
 | Cenários pedagógicos prontos | Seis cenários existem no código (Enchente no RS, várzea preservada, cidade drenada…) e ainda **não têm caminho de interface** |
@@ -285,6 +285,7 @@ tests/CaixaInterativa.Tests/      regressão visual e comportamento
 | 🌐 **[Página do projeto](docs/PROJETO.md)** | Visão geral, resultados medidos e arquitetura |
 | 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas, com o estado real de cada uma |
 | 📐 **[Montagem física](docs/MONTAGEM-FISICA.md)** | Altura do sensor, campo de visão, relação de projeção |
+| 📏 **[Calibração física](docs/CALIBRACAO-FISICA.md)** | Como medir a largura que o sensor cobre e tornar os litros confiáveis |
 | 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, bugs e medições |
 | 🔍 **[Auditoria técnica](docs/AUDITORIA-TECNICA.md)** | Leitura integral do código: arquitetura real, gargalos, dívida |
 | 🛠 **[Guia de desenvolvimento](docs/DESENVOLVIMENTO.md)** | Caminho de um quadro, como acrescentar um fenômeno, regras de performance e de teste |

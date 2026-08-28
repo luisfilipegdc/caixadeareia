@@ -36,9 +36,13 @@ um erro de ~11% no lado, ~24% na área.
 
 ### O que falta — e é você quem precisa fazer
 
-Medir. Uma forma: colocar marcadores nas bordas da caixa, ver onde aparecem no mapa
-projetado, e calcular quantos milímetros o quadro de 640 px cobre. Depois preencher
-`larguraCobertaPeloSensorMm` no `config.json` e marcar `larguraMedida: true`.
+**Medir.** O procedimento completo, passo a passo e reproduzível em qualquer instalação,
+está em **[CALIBRACAO-FISICA.md](CALIBRACAO-FISICA.md)**: dois marcadores a uma distância
+conhecida, a grade de alinhamento da projeção (tecla `G`) para ler que fração do quadro
+eles ocupam, e uma divisão.
+
+Escrito nesta sessão porque a medição em si continua dependendo de fita métrica e do
+sensor ligado — nenhum dos dois disponível de onde eu trabalho.
 
 **Não inventei um valor.** Trocar 1250 por 1390 "porque a conta dá" seria substituir uma
 suposição por outra, e o roadmap do projeto proíbe exatamente isso.
@@ -173,3 +177,71 @@ lugar errado.
 **Recomendação:** conectar depois que a Fase 2 do roadmap tiver medido a amplitude real do
 relevo, ou tornar os limiares relativos (percentis do relevo atual) em vez de absolutos.
 A segunda opção é uma mudança de modelo e precisa da sua decisão.
+
+---
+
+## P9 — As células da simulação não são quadradas
+
+**Risco:** baixo · **Tipo:** modelo · **Documentado, não corrigido**
+
+`WaterSimulation` calcula `areaCelula = _tamanhoCelulaMm * _tamanhoCelulaMm`, usando o
+tamanho derivado do **eixo horizontal** para os dois lados.
+
+### Quanto isso custa
+
+O Kinect v1 tem 57° na horizontal e 43° na vertical:
+
+| | fração da distância |
+|---|---|
+| largura coberta | `2·tan(28,5°)` = 1,0859 |
+| altura coberta | `2·tan(21,5°)` = 0,7878 |
+
+Proporção do campo: **1,378**. Proporção da grade da simulação (320×240): **1,333**.
+As células são **3,38% mais largas que altas**, e a área calculada supera a real nessa
+mesma proporção.
+
+### Por que não corrigi
+
+Porque o erro dominante é outro. Se a largura assumida (1250 mm) estiver mesmo errada em
+~11%, como a geometria documentada sugere, o erro na área é de **~24%**. Corrigir 3,4%
+antes de resolver 24% seria falsa precisão — e a correção certa depende de saber a altura
+real do sensor, que vem da mesma medição de P1.
+
+### Correção proposta, para depois de P1
+
+Acrescentar `alturaCobertaPeloSensorMm` ao lado da largura em `CaixaSettings`, derivar
+dois tamanhos de célula, e trocar `tamanho × tamanho` por `tamanhoX × tamanhoY`. Muda
+`VolumeLitros` e `InfiltradoLitros` em ~3,4%, então é mudança de modelo e precisa de
+decisão consciente.
+
+**Nada disso afeta porcentagens.** Elas são contagens de células e não passam por área.
+
+---
+
+## P10 — Duas pastas de saída divergentes conforme o modo de build
+
+**Risco:** médio · **Tipo:** armadilha de ambiente · **Documentado, não corrigido**
+
+Compilar pela solução e compilar pelo `.csproj` produzem executáveis em **pastas
+diferentes**:
+
+| Comando | Saída |
+|---|---|
+| `dotnet build CaixaInterativa.sln` | `src/CaixaInterativa/bin/x64/Release/net8.0-windows/` |
+| `dotnet build src/CaixaInterativa/CaixaInterativa.csproj` | `src/CaixaInterativa/bin/Release/net8.0-windows/` |
+
+A causa: a solução fixa a plataforma `x64`, e o MSBuild insere o nome da plataforma no
+caminho de saída.
+
+**Custou tempo real nesta sessão.** Rodei o app a partir de `bin/Release` depois de
+compilar pela solução, e passei a validar visualmente um binário **de dois commits
+atrás** — a queimada não aparecia no menu, e a primeira correção parecia não ter efeito.
+Só o tamanho do arquivo (138.752 contra 148.480 bytes) denunciou.
+
+O README instrui a compilar pela solução e a rodar com `dotnet run --project ...`, que
+usam caminhos diferentes. Funciona, mas convida ao erro.
+
+**Opções:** unificar a saída no `.csproj` (mexe no empacotamento da release, que tem
+script próprio), ou documentar. Escolhi documentar — está em
+[CALIBRACAO-FISICA.md](CALIBRACAO-FISICA.md) e no guia de desenvolvimento. Unificar é
+decisão sua, porque toca a geração do executável distribuído.
