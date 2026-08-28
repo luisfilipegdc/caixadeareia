@@ -181,6 +181,49 @@
                           Expanded="OnAvancadoToggled" Collapsed="OnAvancadoToggled">
                     <StackPanel Margin="0,10,0,0">
 
+                        <!-- EXPERIMENTAL. Contexto público observado, lido de um arquivo
+                             local gerado antes da aula. Fica aqui, e não no painel
+                             principal, porque é experimento: não alimenta nenhum
+                             parâmetro de simulação e não deve competir com os controles
+                             que o professor usa em sala. -->
+                        <GroupBox Header="Contexto real (experimental)">
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Opacity="0.6"
+                                           Margin="0,0,0,8"
+                                           Text="Dado público observado, carregado de arquivo local. Nunca consultado pela internet."/>
+
+                                <ComboBox x:Name="CmbContexto" SelectionChanged="OnContextoChanged"/>
+
+                                <Border x:Name="BoxContexto" Background="#FF10202A" CornerRadius="4"
+                                        Padding="10" Margin="0,8,0,0" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock Text="DADOS EXTERNOS OBSERVADOS" FontSize="10"
+                                                   FontWeight="Bold" Foreground="#FF6FC3E8"
+                                                   Margin="0,0,0,6"/>
+                                        <TextBlock x:Name="TxtContextoObservado" TextWrapping="Wrap"
+                                                   FontSize="12"/>
+                                        <TextBlock x:Name="TxtContextoProcedencia" TextWrapping="Wrap"
+                                                   FontSize="10" Opacity="0.6" Margin="0,8,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border x:Name="BoxAtividade" Background="#FF1B1B22" CornerRadius="4"
+                                        Padding="10" Margin="0,8,0,0" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock x:Name="TxtAtividadeTitulo" FontSize="12"
+                                                   FontWeight="Bold" Margin="0,0,0,4"/>
+                                        <TextBlock x:Name="TxtAtividadePergunta" TextWrapping="Wrap"
+                                                   FontSize="11" Opacity="0.85" Margin="0,0,0,8"/>
+                                        <TextBlock x:Name="TxtAtividadeOrigens" TextWrapping="Wrap"
+                                                   FontSize="10" Opacity="0.7"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock x:Name="TxtContextoErro" TextWrapping="Wrap"
+                                           FontSize="11" Opacity="0.55" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </GroupBox>
+
                         <!-- Ajuste fino da leitura do mapa. Saiu do painel principal na
                              validação de campo: são três deslizadores que o professor
                              mexe uma vez e esquece, e ocupavam espaço acima do botão de

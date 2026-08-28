@@ -15,6 +15,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CaixaInterativa.Config;
+using CaixaInterativa.Contexto;
 using CaixaInterativa.Depth;
 using CaixaInterativa.Processing;
 using CaixaInterativa.Simulation;
@@ -68,6 +69,7 @@ public partial class MainWindow : Window
 
         DetectSensor();
         AtualizarResumoCalibracao();
+        CarregarContexto();
 
         // OnStateChanged só dispara quando o estado MUDA. Ao abrir, o estado já é Parado
         // desde o construtor, então nenhum evento acontece e os botões ficam como o XAML
@@ -840,6 +842,102 @@ public partial class MainWindow : Window
         LblContour.Text = SldContour.Value < 0.5 ? "sem" : $"{SldContour.Value:F0} mm";
         LblBlur.Text = $"{SldBlur.Value:F0}";
         LblAlpha.Text = $"{SldAlpha.Value:F2}";
+    }
+
+    // ================= Contexto real (experimental) =================
+
+    private ResultadoDoCarregamento? _contexto;
+
+    /// <summary>
+    /// Carrega o pacote de contexto do arquivo local, uma vez, ao abrir.
+    ///
+    /// Se não houver pacote, ou se ele estiver corrompido ou numa versão que este programa
+    /// não entende, a seção informa e some de cena. Contexto externo é enfeite pedagógico:
+    /// nada aqui pode impedir a caixa de funcionar.
+    /// </summary>
+    private void CarregarContexto()
+    {
+        _contexto = LeitorDeContexto.Carregar();
+
+        CmbContexto.Items.Clear();
+        foreach (var c in _contexto.Contextos) CmbContexto.Items.Add(c.Rotulo);
+
+        bool temContexto = _contexto.Contextos.Count > 0;
+        CmbContexto.IsEnabled = temContexto;
+
+        TxtContextoErro.Text = temContexto
+            ? ""
+            : _contexto.Erro ?? "Nenhum contexto disponível neste pacote.";
+    }
+
+    private void OnContextoChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loaded || _contexto is null) return;
+
+        int i = CmbContexto.SelectedIndex;
+        if (i < 0 || i >= _contexto.Contextos.Count)
+        {
+            BoxContexto.Visibility = Visibility.Collapsed;
+            BoxAtividade.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var c = _contexto.Contextos[i];
+        var obs = c.Observado;
+        var classes = c.ClassesDidaticas;
+
+        // Número observado e classe lado a lado. O número fica porque é auditável; a
+        // classe fica porque é o que a aula usa. Nenhum dos dois vira parâmetro.
+        var linhas = new List<string>
+        {
+            $"Bioma: {c.Bioma}    UF: {c.Uf}    Período: {c.Periodo}",
+            $"Focos detectados: {obs?.Focos:N0}",
+        };
+
+        if (obs?.DiasSemChuvaMediano is double dias)
+            linhas.Add($"Dias sem chuva (mediana): {dias:F0}  →  {classes?.Secura}");
+
+        if (obs?.RiscoFogoMediano is double risco)
+            linhas.Add($"Risco de fogo (mediana): {risco:F2}  →  {classes?.Risco}");
+
+        if (obs?.FrpMedianoMw is double frp)
+            linhas.Add($"Potência radiativa (mediana): {frp:F1} MW");
+
+        if (classes is not null)
+            linhas.Add($"Classificação: {classes.Classificacao}");
+
+        TxtContextoObservado.Text = string.Join("\n", linhas);
+
+        var p = _contexto.Pacote?.Proveniencia;
+        TxtContextoProcedencia.Text = p is null
+            ? ""
+            : string.Join("\n",
+                [
+                    p.Resumo,
+                    $"Recurso: {p.Recurso}",
+                    $"Classificação: {p.MetodoDeClassificacao}",
+                    .. p.Observacoes,
+                ]);
+
+        BoxContexto.Visibility = Visibility.Visible;
+        MostrarAtividade();
+    }
+
+    /// <summary>
+    /// Mostra a atividade conceitual. Ela apenas <b>descreve</b> de onde vem cada parte —
+    /// não configura cobertura, vento nem chuva. Ligar contexto observado a parâmetro de
+    /// simulação é decisão pedagógica que precisa ser tomada de propósito.
+    /// </summary>
+    private void MostrarAtividade()
+    {
+        var a = AtividadeConceitual.QueimadasNoCerrado;
+
+        TxtAtividadeTitulo.Text = a.Titulo;
+        TxtAtividadePergunta.Text = a.PerguntaInvestigativa;
+        TxtAtividadeOrigens.Text = string.Join("\n\n",
+            a.DeOndeVemOContexto, a.DeOndeVemORelevo, a.DeOndeVemAPropagacao);
+
+        BoxAtividade.Visibility = Visibility.Visible;
     }
 
     private void OnSave(object sender, RoutedEventArgs e) => SaveConfig();
