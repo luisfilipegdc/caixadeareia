@@ -125,6 +125,73 @@ public class AcoplamentoFogoAguaTests
     }
 
     /// <summary>
+    /// Água que seca durante o incêndio devolve a célula à condição de queimar.
+    ///
+    /// O defeito (pendência P2): <c>TentarAcender</c> gravava <c>Estado.NaoQueima</c> ao
+    /// encontrar água, e esse estado é terminal — a célula ficava imune pelo resto
+    /// daquele incêndio, mesmo depois de a água sumir.
+    ///
+    /// Duas condições foram necessárias para o teste enxergar o defeito:
+    ///
+    /// 1. **Corredor de uma célula.** Numa faixa larga o fogo contorna: a frente só testa
+    ///    vizinhos imediatos, boa parte da barreira nunca é marcada, e sobra caminho.
+    /// 2. **Secar dentro do mesmo incêndio.** Um incêndio novo chama <c>Preparar</c>, que
+    ///    reconstrói o estado a partir do solo e apaga qualquer <c>NaoQueima</c> antigo —
+    ///    então a comparação entre dois incêndios não mostra nada.
+    ///
+    /// Duas versões anteriores deste teste passavam sem a correção por violarem 1 e 2.
+    /// </summary>
+    [Fact]
+    public void AguaQueSecaDuranteOIncendioLiberaAPassagem()
+    {
+        static double PercorrerCorredor(bool secar)
+        {
+            const int Lw = 160, Lh = 120;
+
+            var agua = new WaterSimulation(Lw, Lh);
+            int ws = agua.Width, hs = agua.Height;
+
+            // Rocha em tudo menos um corredor horizontal de uma célula: existe um único
+            // caminho possível, e ele passa pela célula molhada.
+            agua.Solo.Preencher(TipoDeSolo.Rocha);
+            int linha = hs / 2;
+            for (int x = 0; x < ws; x++) agua.Solo.Celulas[linha * ws + x] = TipoDeSolo.Mata;
+
+            var lamina = agua.Profundidade;
+            lamina[linha * ws + ws / 2] = 40f;
+
+            var fogo = new FireSimulation(Lw, Lh, semente: 31) { Solo = agua.Solo, Agua = lamina };
+            var terreno = new float[Lw * Lh];
+            Assert.True(fogo.Atear(0.05f, linha / (float)hs));
+
+            bool secou = false;
+            for (int i = 0; i < 4000 && fogo.EmAndamento; i++)
+            {
+                // Seca quando a frente já chegou à porta e o vizinho dela ainda queima.
+                if (secar && !secou && fogo.AreaQueimadaPercent > 40)
+                {
+                    Array.Clear(lamina);
+                    secou = true;
+                }
+                fogo.Atualizar(terreno, Lw, Lh, 0.05f);
+            }
+
+            if (secar) Assert.True(secou, "A frente não chegou a 40% antes de o fogo acabar.");
+            return fogo.AreaQueimadaPercent;
+        }
+
+        double comAgua = PercorrerCorredor(secar: false);
+        double secando = PercorrerCorredor(secar: true);
+
+        // A célula molhada segura o fogo no meio do corredor.
+        Assert.InRange(comAgua, 20.0, 70.0);
+
+        // Secando durante o incêndio, a passagem reabre e o fogo termina o corredor.
+        Assert.True(secando > comAgua + 25,
+            $"A água secou e o fogo não passou: {comAgua:F1}% -> {secando:F1}%.");
+    }
+
+    /// <summary>
     /// Numa cobertura sem material combustível, atear devolve falso em vez de iniciar um
     /// incêndio que não pega. A interface usa esse retorno para explicar o que fazer.
     /// </summary>

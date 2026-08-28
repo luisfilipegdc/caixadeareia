@@ -292,7 +292,12 @@ public sealed class FireSimulation : ISimulationModule
 
         // Água apaga: rio e área alagada são as barreiras naturais que os brigadistas
         // usam, e o aluno descobre isso deixando um rio no caminho do fogo.
-        if (Agua is not null && Agua[i] > 2f) { _estado[i] = Estado.NaoQueima; return; }
+        //
+        // A recusa vale para esta tentativa e só. Gravar `NaoQueima` aqui — como era
+        // feito antes — tornava a imunidade permanente: a célula continuava incombustível
+        // pelo resto do incêndio mesmo depois de a água infiltrar ou escoar. Uma poça que
+        // seca deve devolver a passagem, e é a água do instante que decide.
+        if (Agua is not null && Agua[i] > 2f) return;
 
         float chance = _combustivel[i] * 0.30f;
 

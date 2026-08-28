@@ -45,43 +45,28 @@ suposição por outra, e o roadmap do projeto proíbe exatamente isso.
 
 ---
 
-## P2 — A imunidade à água, no fogo, nunca é revogada
+## P2 — ~~A imunidade à água, no fogo, nunca é revogada~~ ✅ CORRIGIDO em 28/08/2026
 
-**Risco:** baixo · **Tipo:** mudaria resultado de simulação · **Não corrigido de propósito**
+`TentarAcender` gravava `Estado.NaoQueima` ao encontrar água, e esse estado é terminal: a
+célula ficava incombustível pelo resto do incêndio mesmo depois de a água sumir. A recusa
+agora vale só para a tentativa em curso — é a água do instante que decide.
 
-> **Correção de uma afirmação anterior.** A auditoria registrou que "um canal cavado
-> durante o incêndio não barra o fogo". **Isso está errado, e o teste
-> `AguaExistenteBarraAPropagacao` mostra por quê.** `TentarAcender` é chamado sobre os
-> vizinhos das células em chamas *a cada passo*, e lê a água naquele instante. Uma célula
-> ainda não alcançada pela frente de fogo nunca foi avaliada — então água que apareça ali
-> antes de a chama chegar barra normalmente. Cavar um aceiro à frente do fogo funciona.
+**O que custou para provar.** Duas versões do teste passaram *sem* a correção, por motivos
+que valem ficar registrados:
 
-### O que de fato está errado
+1. **Faixa larga de água não expõe o defeito.** A frente de chama só testa os vizinhos
+   imediatos, então boa parte da barreira nunca chega a ser marcada e o fogo contorna por
+   ali depois que a água seca.
+2. **Comparar dois incêndios também não expõe.** `Atear` chama `Preparar`, que reconstrói
+   o estado a partir do solo e apaga qualquer `NaoQueima` anterior.
 
-Em `FireSimulation.TentarAcender`:
+O cenário que isola: corredor de **uma célula** de largura, e secar a água **dentro do
+mesmo incêndio**, enquanto o vizinho da porta ainda queima. Aí o defeito aparece limpo —
+antes da correção o fogo parava em 50,6% com ou sem secagem.
 
-```csharp
-if (Agua is not null && Agua[i] > 2f) { _estado[i] = Estado.NaoQueima; return; }
-```
-
-`Estado.NaoQueima` é terminal. Uma vez que uma célula foi testada com água presente, ela
-fica imune **para sempre** — mesmo depois que a água infiltra ou escoa. Numa aula longa,
-onde chove, o fogo é ateado e a água seca, o território guarda faixas incombustíveis
-invisíveis.
-
-### Por que não corrigi
-
-Reavaliar a cada passo muda o comportamento de toda queimada, e o módulo acabou de ganhar
-caminho de UI nesta sessão — mudar o modelo no mesmo momento em que ele passa a ser usado
-misturaria duas variáveis.
-
-### Recomendação
-
-Trocar o estado terminal por uma consulta a cada tentativa, **num PR próprio**, com teste:
-"célula molhada que seca volta a poder queimar". O impacto é pequeno; a separação é que
-importa.
-
----
+**Correção da estimativa de impacto.** A pendência original sugeria que uma barreira
+inteira ficava permanentemente inutilizada. Não é o caso: o trinco cria buracos numa
+barreira larga, não um bloqueio total. O impacto real era menor do que eu havia descrito.
 
 ## P3 — `EscoadoLitros` nunca é calculado
 
