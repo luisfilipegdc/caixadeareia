@@ -421,14 +421,6 @@ public sealed class WaterSimulation : ISimulationModule
     }
 
     /// <summary>
-    /// Acumula onde a água passa com força sobre solo frágil.
-    ///
-    /// Não movemos areia: o relevo vem do sensor, e mexer nele faria o mapa divergir do
-    /// que está fisicamente na caixa. O que o sistema entrega é a previsão — "aqui o
-    /// solo seria levado" — e o estudante decide se protege a encosta ou se cava para
-    /// ver o que acontece.
-    /// </summary>
-    /// <summary>
     /// O solo devolve água ao subsolo e recupera capacidade de absorver, devagar.
     /// Sem isso a caixa saturaria na primeira chuva e nunca mais absorveria nada.
     /// </summary>
@@ -449,6 +441,14 @@ public sealed class WaterSimulation : ISimulationModule
         });
     }
 
+    /// <summary>
+    /// Acumula onde a água passa com força sobre solo frágil.
+    ///
+    /// Não movemos areia: o relevo vem do sensor, e mexer nele faria o mapa divergir do
+    /// que está fisicamente na caixa. O que o sistema entrega é a previsão — "aqui o
+    /// solo seria levado" — e o estudante decide se protege a encosta ou se cava para
+    /// ver o que acontece.
+    /// </summary>
     private void AcumularErosao(float dt)
     {
         var solo = Solo.Celulas;

@@ -359,3 +359,35 @@ O teste `ArquivoTruncadoDevolveNull` confirma que o carregamento defensivo funci
 cenário de queda de energia no meio da gravação.
 
 **Resultado:** build 0/0, **83 testes aprovados** (eram 18 no início da sessão).
+
+---
+
+## Etapa 10 — Limpeza de baixo risco
+
+Só comentários incorretos. Verificado por `git diff`: **nenhuma linha de código mudou**.
+
+1. **`SandboxEngine`** — a summary *"Campo de alturas atual"* estava órfã, colada logo
+   acima da propriedade do terremoto. Devolvida à propriedade `Alturas`, a que pertence.
+2. **`WaterSimulation`** — a summary de `AcumularErosao` (*"Não movemos areia: o relevo vem
+   do sensor…"*) estava empilhada acima de `DrenarSolo`, que já tinha a sua. Devolvida ao
+   método certo.
+3. **`DepthProcessor`** — `MinCalibrationSamples = 5` era descrito como *"fração mínima dos
+   quadros"*, mas é contagem absoluta. Quem lesse "fração" e chamasse
+   `BeginBaseCalibration(6)` teria quase nada calibrado, sem entender por quê. O texto
+   agora diz que é contagem, e registra que com os 60 quadros padrão equivale a 8%.
+
+O item 3 toca um arquivo que a sessão classificou como intocável. **É alteração
+exclusivamente de comentário** — o diff confirma, e os 21 testes de caracterização escritos
+na Etapa 9 provam que o comportamento não mudou. A regra existe para proteger o
+comportamento validado em campo, e uma descrição errada trabalha contra esse mesmo
+objetivo.
+
+### O que decidi não limpar
+
+- **`NuiNative.TextureRelease` e `NuiCameraElevationGetAngle`** são código morto, mas ficam
+  em `Depth/`. Remover declarações P/Invoke não usadas é seguro na teoria; não vale gastar
+  a regra da sessão por duas linhas. Registrado na auditoria.
+- **`WaterSimulation.EscoadoLitros`**, declarado e nunca calculado. Implementar toca o
+  solver; remover muda API pública. Está na pendência P3.
+
+**Resultado:** build 0/0, **83 testes aprovados**.

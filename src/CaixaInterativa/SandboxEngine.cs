@@ -52,7 +52,6 @@ public sealed class SandboxEngine : IDisposable
     /// <summary>Simulação de água. Criada junto com a fonte, porque depende da resolução.</summary>
     public WaterSimulation? Agua { get; private set; }
 
-    /// <summary>Campo de alturas atual, para módulos que precisam consultar o relevo.</summary>
     /// <summary>Simulação de terremoto, compartilhando o mapa de solo com a água.</summary>
     public EarthquakeSimulation? Terremoto { get; private set; }
 
@@ -77,6 +76,7 @@ public sealed class SandboxEngine : IDisposable
     /// </summary>
     public IReadOnlyList<ISimulationModule> Modulos => _modulos;
 
+    /// <summary>Campo de alturas atual, para quem precisa consultar o relevo.</summary>
     public float[] Alturas => _heights;
     public int LarguraCampo => _source?.Width ?? 0;
     public int AlturaCampo => _source?.Height ?? 0;
