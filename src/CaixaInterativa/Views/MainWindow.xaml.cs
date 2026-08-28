@@ -909,18 +909,96 @@ public partial class MainWindow : Window
         TxtContextoObservado.Text = string.Join("\n", linhas);
 
         var p = _contexto.Pacote?.Proveniencia;
+        var origem = p?.Origem(c.Periodo);
+
         TxtContextoProcedencia.Text = p is null
             ? ""
             : string.Join("\n",
                 [
                     p.Resumo,
-                    $"Recurso: {p.Recurso}",
+                    origem is null
+                        ? $"Origem do período {c.Periodo}: não declarada no pacote."
+                        : $"Recurso: {origem.Recurso} ({origem.DiasObservados} dia(s) observados)" +
+                          (origem.AmostraParcial ? " — amostra parcial do mês" : ""),
                     $"Classificação: {p.MetodoDeClassificacao}",
                     .. p.Observacoes,
                 ]);
 
         BoxContexto.Visibility = Visibility.Visible;
-        MostrarAtividade();
+        PrepararComparacao(c);
+        MostrarAtividade(_comparaveis.Count > 0
+            ? AtividadeConceitual.MesmoTerritorioPeriodosDiferentes
+            : AtividadeConceitual.QueimadasNoCerrado);
+    }
+
+    /// <summary>Os contextos do mesmo território em outros períodos.</summary>
+    private List<ContextoTerritorial> _comparaveis = [];
+
+    /// <summary>
+    /// Oferece os outros períodos do mesmo território, se houver.
+    ///
+    /// Só aparece quando existe com o que comparar — um combo vazio na tela sugere que
+    /// falta alguma coisa, quando na verdade o pacote é de um período só.
+    /// </summary>
+    private void PrepararComparacao(ContextoTerritorial a)
+    {
+        _comparaveis = (_contexto?.Contextos ?? [])
+            .Where(outro => ComparadorDeContextos.SaoCompativeis(a, outro))
+            .OrderBy(outro => outro.Periodo, StringComparer.Ordinal)
+            .ToList();
+
+        CmbContextoB.SelectionChanged -= OnContextoBChanged;
+        CmbContextoB.Items.Clear();
+        foreach (var outro in _comparaveis) CmbContextoB.Items.Add(outro.Periodo);
+        CmbContextoB.SelectionChanged += OnContextoBChanged;
+
+        var visivel = _comparaveis.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        LblComparar.Visibility = visivel;
+        CmbContextoB.Visibility = visivel;
+        BoxComparacao.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnContextoBChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loaded || _contexto is null) return;
+
+        int ia = CmbContexto.SelectedIndex;
+        int ib = CmbContextoB.SelectedIndex;
+        if (ia < 0 || ia >= _contexto.Contextos.Count || ib < 0 || ib >= _comparaveis.Count)
+        {
+            BoxComparacao.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var comparacao = ComparadorDeContextos.Comparar(_contexto.Contextos[ia], _comparaveis[ib]);
+        if (comparacao is null)
+        {
+            BoxComparacao.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        TxtComparacaoTitulo.Text =
+            $"{comparacao.Bioma} · {comparacao.Uf}    " +
+            $"{comparacao.PeriodoA}  vs  {comparacao.PeriodoB}".ToUpperInvariant();
+
+        TxtComparacaoCampos.Text =
+            string.Join("\n", comparacao.Campos.Select(campo => campo.Descrever()));
+
+        // A ressalva de não causalidade acompanha toda comparação. Junto vai a origem de
+        // cada período: quantos dias cada um representa muda o que a contagem significa.
+        var avisos = new List<string> { ComparacaoDeContextos.AvisoDeNaoCausalidade };
+
+        foreach (string periodo in new[] { comparacao.PeriodoA, comparacao.PeriodoB })
+        {
+            var origem = _contexto.Pacote?.Proveniencia?.Origem(periodo);
+            if (origem is null) continue;
+
+            avisos.Add($"{periodo}: {origem.Recurso}, {origem.DiasObservados} dia(s) observados" +
+                       (origem.AmostraParcial ? " — amostra parcial do mês" : ""));
+        }
+
+        TxtComparacaoAviso.Text = string.Join("\n", avisos);
+        BoxComparacao.Visibility = Visibility.Visible;
     }
 
     /// <summary>
@@ -928,10 +1006,8 @@ public partial class MainWindow : Window
     /// não configura cobertura, vento nem chuva. Ligar contexto observado a parâmetro de
     /// simulação é decisão pedagógica que precisa ser tomada de propósito.
     /// </summary>
-    private void MostrarAtividade()
+    private void MostrarAtividade(AtividadeConceitual a)
     {
-        var a = AtividadeConceitual.QueimadasNoCerrado;
-
         TxtAtividadeTitulo.Text = a.Titulo;
         TxtAtividadePergunta.Text = a.PerguntaInvestigativa;
         TxtAtividadeOrigens.Text = string.Join("\n\n",
