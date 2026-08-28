@@ -45,11 +45,18 @@ suposição por outra, e o roadmap do projeto proíbe exatamente isso.
 
 ---
 
-## P2 — A barreira de água do fogo é um trinco permanente
+## P2 — A imunidade à água, no fogo, nunca é revogada
 
-**Risco:** médio · **Tipo:** mudaria resultado de simulação · **Não corrigido de propósito**
+**Risco:** baixo · **Tipo:** mudaria resultado de simulação · **Não corrigido de propósito**
 
-### Problema
+> **Correção de uma afirmação anterior.** A auditoria registrou que "um canal cavado
+> durante o incêndio não barra o fogo". **Isso está errado, e o teste
+> `AguaExistenteBarraAPropagacao` mostra por quê.** `TentarAcender` é chamado sobre os
+> vizinhos das células em chamas *a cada passo*, e lê a água naquele instante. Uma célula
+> ainda não alcançada pela frente de fogo nunca foi avaliada — então água que apareça ali
+> antes de a chama chegar barra normalmente. Cavar um aceiro à frente do fogo funciona.
+
+### O que de fato está errado
 
 Em `FireSimulation.TentarAcender`:
 
@@ -57,34 +64,22 @@ Em `FireSimulation.TentarAcender`:
 if (Agua is not null && Agua[i] > 2f) { _estado[i] = Estado.NaoQueima; return; }
 ```
 
-`Estado.NaoQueima` é terminal. A decisão é tomada **uma única vez**, na primeira tentativa
-de acender aquela célula. Consequências:
-
-1. Uma célula molhada continua imune depois que a água seca.
-2. **Um canal cavado durante o incêndio não barra o fogo** — a célula à frente da chama já
-   foi avaliada e gravada.
-
-O item 2 é justamente a interação pedagógica mais interessante do módulo: o aluno cava um
-aceiro e vê o fogo parar.
+`Estado.NaoQueima` é terminal. Uma vez que uma célula foi testada com água presente, ela
+fica imune **para sempre** — mesmo depois que a água infiltra ou escoa. Numa aula longa,
+onde chove, o fogo é ateado e a água seca, o território guarda faixas incombustíveis
+invisíveis.
 
 ### Por que não corrigi
 
-A regra da sessão é não alterar significativamente resultados científicos sem revisão.
-Reavaliar a água a cada passo muda o comportamento de toda queimada — inclusive as que já
-foram observadas. É uma mudança de modelo, não um bug de digitação.
-
-### Opções
-
-| Opção | Efeito | Risco |
-|---|---|---|
-| Reavaliar `Agua[i] > limiar` a cada passo, sem gravar estado | Aceiro cavado funciona | Muda toda queimada |
-| Manter `NaoQueima` mas revalidá-lo quando a água some | Corrige só o item 1 | Menor, resolve menos |
-| Não mexer | — | A interação prometida não existe |
+Reavaliar a cada passo muda o comportamento de toda queimada, e o módulo acabou de ganhar
+caminho de UI nesta sessão — mudar o modelo no mesmo momento em que ele passa a ser usado
+misturaria duas variáveis.
 
 ### Recomendação
 
-Primeira opção, **num PR próprio**, com teste de regressão específico: "água que aparece
-depois do início do fogo barra a frente de chama". Hoje esse teste falharia.
+Trocar o estado terminal por uma consulta a cada tentativa, **num PR próprio**, com teste:
+"célula molhada que seca volta a poder queimar". O impacto é pequeno; a separação é que
+importa.
 
 ---
 

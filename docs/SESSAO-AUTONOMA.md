@@ -184,3 +184,49 @@ nenhum parâmetro inventado.
 
 **Resultado:** build 0/0, **50 testes aprovados**. `DepthProcessor` não foi tocado — a
 classe nova só divide o namespace com ele.
+
+---
+
+## Etapa 5a — Bug encontrado por medição: o fogo lia um buffer defasado
+
+Antes de expor a queimada na interface, fui verificar o acoplamento fogo↔água. Encontrei
+um bug real, e de passagem **desmenti uma afirmação da minha própria auditoria**.
+
+### O bug
+
+`SandboxEngine.StartSource` entregava a referência do array de profundidade ao fogo **uma
+única vez**:
+
+```csharp
+Fogo = new FireSimulation(...) { Solo = Agua.Solo, Agua = Agua.Profundidade };
+```
+
+Mas `WaterSimulation.MoverAgua` termina com `(_agua, _aguaNova) = (_aguaNova, _agua)`.
+Como o número de substeps por quadro varia, a referência devolvida por `Profundidade`
+alterna entre dois arrays.
+
+**Medido com uma sonda descartável:** em **7 de 20 quadros** a referência guardada pelo
+fogo apontava para o buffer anterior. É o mesmo defeito que a camada visual da água já
+tinha e que foi corrigido no PR anterior — só que aqui ninguém tinha notado.
+
+**Correção:** uma linha em `OnTick` reaponta `Fogo.Agua` antes de atualizar os módulos.
+
+**Por que corrigir foi seguro:** a queimada não tinha nenhum caminho de UI. Nenhum
+comportamento observável mudou, porque ninguém nunca rodou este módulo.
+
+### A afirmação que eu tinha feito errado
+
+A auditoria dizia: *"um canal cavado durante o incêndio não barra o fogo"*, porque
+`Estado.NaoQueima` é terminal.
+
+**Está errado.** `TentarAcender` roda sobre os vizinhos das células em chamas a cada
+passo e lê a água naquele instante. Uma célula ainda não alcançada nunca foi avaliada —
+água que apareça ali antes de a chama chegar barra normalmente. O teste
+`AguaExistenteBarraAPropagacao` demonstra: com uma faixa de água atravessando a caixa, o
+fogo queima mais de 5% e menos de 60%, parando na barreira.
+
+O defeito real é mais estreito: uma célula testada com água presente fica imune **para
+sempre**, mesmo depois que a água seca. Reescrevi a pendência P2 com a versão correta.
+
+**Arquivos:** `SandboxEngine.cs`, novo `AcoplamentoFogoAguaTests.cs`.
+**Resultado:** build 0/0, **54 testes aprovados**.

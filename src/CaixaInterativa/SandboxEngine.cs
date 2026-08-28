@@ -336,6 +336,13 @@ public sealed class SandboxEngine : IDisposable
         float dt = (float)Math.Min(0.1, _simClock.Elapsed.TotalSeconds);
         _simClock.Restart();
 
+        // O fogo lê a água para saber onde não pode passar, e `WaterSimulation` troca o
+        // buffer de profundidade a cada substep (`MoverAgua` faz o swap com `_aguaNova`).
+        // A referência entregue uma única vez em `StartSource` ficava defasada: medido,
+        // em 7 de 20 quadros ela apontava para o buffer anterior. Reapontar aqui custa
+        // uma atribuição e mantém a barreira de água lendo o estado corrente.
+        if (Fogo is not null && Agua is not null) Fogo.Agua = Agua.Profundidade;
+
         // Genérico: o laço não sabe quantos módulos existem nem quais são. Acrescentar
         // um fenômeno deixa de exigir uma linha aqui.
         for (int i = 0; i < _modulos.Count; i++)
