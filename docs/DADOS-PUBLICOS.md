@@ -214,11 +214,14 @@ bioma e a mesma UF. O resultado é uma lista de campos com o formato `A → B (v
 
 | Campo | 2026-06 | 2026-07 | Veredito |
 |---|---|---|---|
-| Focos | 3.483 | 5.384 | aumentou |
-| Dias sem chuva (mediana) | 14 dias | 30 dias | aumentou |
-| Precipitação (mediana) | 0 mm | 0 mm | semelhante |
-| Potência radiativa (mediana) | 5,9 MW | 8,1 MW | aumentou |
-| Risco de fogo (mediana) | 1,00 | 1,00 | **sem poder discriminante neste recorte** |
+| Focos de calor | 3.483 | 5.384 | aumentou |
+| Dias sem chuva (valor típico) | 14 dias | 30 dias | aumentou |
+| Chuva registrada (valor típico) | 0 mm | 0 mm | parecido nos dois |
+| Calor liberado pelos focos (valor típico) | 5,9 MW | 8,1 MW | aumentou |
+| Risco de fogo (índice de 0 a 1) | 1,00 | 1,00 | **os dois ficaram no mesmo patamar; este dado não separa os períodos** |
+
+Os rótulos mudaram na auditoria pedagógica; as contas, não. Onde a tela diz "valor
+típico", o número continua sendo a mediana, e a procedência continua dizendo isso.
 
 ### A distinção de quatro pontas
 
@@ -237,7 +240,7 @@ diferença não é preciosismo:
 | **Calibração da simulação** | Usar 30 dias sem chuva para ajustar a propagação do fogo na caixa | **Não.** Ver a seção seguinte: nenhum valor do pacote toca um solver. |
 
 Por isso o texto que vai à tela é sempre da forma **"no período B houve mais X e também
-mais Y"** — nunca "X provocou Y". A ressalva *"Comparação de observações externas. Não
+mais Y"** — nunca "X provocou Y". A ressalva *"São duas medições postas lado a lado. Não
 estabelece causa."* acompanha toda comparação, sem exceção, e há um teste que falha se o
 vocabulário causal (`causou`, `provocou`, `porque`, `devido`, `resultou`, `por isso`)
 aparecer nos textos desta capacidade.
@@ -277,6 +280,32 @@ o sistema tem, sem travar e sem avisar.
 A conversão correta também enganaria: o solver roda numa caixa de ~1 m² com a infiltração
 ajustada para o contraste aparecer em meia hora. **A escala temporal do modelo não é a do
 mundo.**
+
+---
+
+## A auditoria pedagógica, e o que ela mudou
+
+A capacidade foi percorrida como quem nunca viu o código: abrir, achar os dados, escolher
+território e períodos, ler a comparação, ler a atividade, rodar uma simulação. O que a
+travessia encontrou:
+
+| Achado | Antes | Agora |
+|---|---|---|
+| O rótulo do risco enganava | `Risco de fogo (mediana): 1,00 → Alto` | `Risco de fogo: Alto (índice 1,00, numa escala de 0 a 1)` |
+| Identificador cru na tela | `Classificação: relativa_ao_recorte` | "Seco" e "Alto" comparam este território com os outros deste pacote — não são categorias oficiais do INPE |
+| Jargão na leitura principal | "mediana", "poder discriminante", "recorte" | "valor típico", "os dois ficaram no mesmo patamar"; os termos exatos ficaram na procedência |
+| A ressalva era abstrata | "Não estabelece causa." | "…duas coisas terem mudado juntas não quer dizer que uma tenha mudado a outra." |
+| A areia parecia ser o território | nada dizia o contrário | aviso próprio, em amarelo, no quadro de dados |
+| A hipótese vinha grudada no dado | uma frase só, com as duas perguntas | quatro blocos: PERGUNTA · OBSERVAÇÃO · HIPÓTESE · EXPERIMENTO |
+| "Contexto real" | real em oposição a quê? | "Dados públicos do INPE (experimental)" |
+| Dois "comparar" na mesma tela | COMPARAÇÃO (simulações) e comparar períodos | "COMPARAR SIMULAÇÕES" e "Comparar com outro período do mesmo território" |
+
+O roteiro de aula que saiu dela está em [ROTEIRO-DE-AULA.md](ROTEIRO-DE-AULA.md).
+
+**O que ficou como está, de propósito:** a seleção continua num combo único de 84 itens
+(`bioma · UF · período`) em vez de três seletores encadeados, e a projeção continua sem
+mostrar contexto externo nenhum. As duas coisas são mudanças de estrutura, não de texto, e
+ficaram registradas como decisão pendente em vez de resolvidas de passagem.
 
 ---
 
