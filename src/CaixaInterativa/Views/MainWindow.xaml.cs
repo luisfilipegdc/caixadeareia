@@ -628,6 +628,15 @@ public partial class MainWindow : Window
         PainelAtividadeEntrada.Visibility = ativa ? Visibility.Collapsed : Visibility.Visible;
         PainelSimulacaoLivre.Visibility = ativa ? Visibility.Collapsed : Visibility.Visible;
 
+        // Esconder o painel livre não bastava: cobertura, intensidade e duração vivem na
+        // área rolável, e continuavam alcançáveis por quem rolasse a barra. Trocar a
+        // cobertura ali repinta o solo no meio do experimento, em silêncio — encontrado
+        // no teste de interrupções. A atividade congela as três; desabilitá-las diz isso
+        // sem precisar de aviso.
+        CmbCobertura.IsEnabled = !ativa;
+        CmbIntensidade.IsEnabled = !ativa;
+        SldDuracao.IsEnabled = !ativa;
+
         _projection?.MostrarAtividade(ativa ? _atividade : null);
 
         if (!ativa) return;
@@ -1109,6 +1118,12 @@ public partial class MainWindow : Window
             BtnProjetar.Content = "🖵  Abrir projeção";
         };
         _projection.Show();
+
+        // A projeção nasce sem saber o que já está acontecendo. Abrir a projeção no meio
+        // de uma atividade — que é o caso comum, porque o professor alinha o projetor
+        // depois de começar — deixava a turma olhando um mapa sem contexto nenhum.
+        if (_atividade.EmAndamento) _projection.MostrarAtividade(_atividade);
+
         BtnProjetar.Content = "🖵  Fechar projeção";
         SetStatus("Projeção aberta. F1 mostra os atalhos de alinhamento.");
     }
