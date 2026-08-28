@@ -14,7 +14,7 @@ A pergunta da aula deixa de ser *"o que é uma bacia hidrográfica?"* e passa a 
 **Projeto Caixa de Areia** — Brasília, DF · 2026 · Licenciado sob
 [GPL-2.0-or-later](LICENSE)
 
-`v1.3` · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
+`v1.4` · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
 [Suporte](mailto:contato@luisfilipegdc.com.br) ·
 [Repositório](https://github.com/luisfilipegdc/caixadeareia)
 
