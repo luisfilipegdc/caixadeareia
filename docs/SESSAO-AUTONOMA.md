@@ -301,3 +301,26 @@ no repositório.
 
 **Ressalva registrada no próprio README:** as imagens atuais vieram do simulador e do
 sensor sobre uma mesa, não da caixa montada.
+
+---
+
+## Etapa 8 — Guia de desenvolvimento
+
+Novo `docs/DESENVOLVIMENTO.md`, escrito para não repetir o README. Cobre só o que importa
+na hora de editar código:
+
+- **O caminho de um quadro**, com as implicações práticas: tudo pesado roda na UI thread;
+  o timer a 60 Hz sobre sensor de 30 é proposital; as simulações congelam junto com o
+  sensor; o clone do buffer na captura é o que garante a segurança entre threads.
+- **Como acrescentar um fenômeno** — um arquivo novo e uma linha de registro, com a
+  armadilha do buffer trocado documentada (o defeito que já apareceu duas vezes no
+  projeto, uma delas medida nesta sessão).
+- **Como acrescentar um modo de cor**, com as regras do laço de pixels.
+- **A tabela medição / derivação / modelo / efeito visual**, com as regras de o que pode
+  ir à tela e como.
+- **Como testar sem Kinect**, incluindo por que o baseline de regressão não deve ser
+  reescrito e por que os testes de fogo usam grade menor.
+- **O que não mexer** e as convenções da base.
+
+Preferi um documento só a espalhar as regras: quem chega ao projeto precisa de um lugar
+para começar, e o README já ficou longo.
