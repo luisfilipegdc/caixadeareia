@@ -11,6 +11,8 @@
 // UMA FINALIDADE ESPECÍFICA. Consulte a Licença Pública Geral GNU para mais
 // detalhes. Uma cópia acompanha este programa no arquivo LICENSE.
 
+using CaixaInterativa.Rendering;
+
 namespace CaixaInterativa.Simulation;
 
 /// <summary>
@@ -63,6 +65,15 @@ public sealed class EarthquakeSimulation : ISimulationModule
     /// <summary>Maior intensidade que cada ponto já sentiu — o mapa de danos.</summary>
     public float[] Dano => _danoAcumulado;
 
+    private readonly CamadaVisual[] _camadas;
+
+    /// <summary>
+    /// Duas camadas, nesta ordem: o mapa de dano, que fica depois que tudo passa, e a
+    /// frente de onda por cima, que só existe enquanto o abalo acontece. Montadas uma vez
+    /// no construtor — os dois arrays são readonly e nunca trocam de instância.
+    /// </summary>
+    public IReadOnlyList<CamadaVisual> Camadas => _camadas;
+
     /// <summary>Epicentro em coordenadas normalizadas, 0 a 1.</summary>
     public float EpicentroU { get; private set; } = 0.5f;
     public float EpicentroV { get; private set; } = 0.5f;
@@ -98,6 +109,14 @@ public sealed class EarthquakeSimulation : ISimulationModule
         _danoAcumulado = new float[n];
         _declividade = new float[n];
         _terreno = new float[n];
+
+        _camadas =
+        [
+            new CamadaVisual(_danoAcumulado, _w, _h,
+                             CamadaVisual.OrdemRisco, ModoDeCor.Risco, Limiar: 0.15f),
+            new CamadaVisual(_intensidade, _w, _h,
+                             CamadaVisual.OrdemClarao, ModoDeCor.Clarao, Limiar: 0.04f),
+        ];
     }
 
     /// <summary>

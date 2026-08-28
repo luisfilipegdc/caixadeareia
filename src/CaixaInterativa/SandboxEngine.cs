@@ -318,23 +318,12 @@ public sealed class SandboxEngine : IDisposable
         if (Fogo is { Ativo: true })
             Fogo.Atualizar(_heights, frame.Width, frame.Height, dt);
 
-        bool mostrarAgua = Agua is { Ativo: true };
-        bool mostrarSismo = Terremoto is { Ativo: true };
+        ColetarCamadas();
 
         var pixels = _renderer.Render(
             _heights, frame.Width, frame.Height,
             Config.Projection, Config.Processing, Config.Render,
-            mostrarAgua ? Agua!.Profundidade : null,
-            mostrarAgua ? Agua!.Width : 0,
-            mostrarAgua ? Agua!.Height : 0,
-            mostrarAgua ? Agua!.Velocidade : null,
-            mostrarSismo ? Terremoto!.Intensidade : null,
-            mostrarSismo ? Terremoto!.Dano : null,
-            mostrarSismo ? Terremoto!.Width : 0,
-            mostrarSismo ? Terremoto!.Height : 0,
-            Fogo is { Ativo: true } ? Fogo.Calor : null,
-            Fogo is { Ativo: true } ? Fogo.Width : 0,
-            Fogo is { Ativo: true } ? Fogo.Height : 0);
+            _camadasDoQuadro);
 
         EnsureBitmap(_renderer.Width, _renderer.Height);
 
@@ -349,6 +338,40 @@ public sealed class SandboxEngine : IDisposable
             _framesSinceTick = 0;
             _fpsClock.Restart();
         }
+    }
+
+    /// <summary>
+    /// Camadas visuais do quadro. Lista reaproveitada entre quadros: <c>Clear</c> zera a
+    /// contagem sem devolver o array, então o caminho de renderização não aloca depois do
+    /// primeiro quadro.
+    /// </summary>
+    private readonly List<CamadaVisual> _camadasDoQuadro = new(4);
+
+    /// <summary>
+    /// Junta as camadas dos módulos ativos, na ordem em que precisam ser desenhadas.
+    ///
+    /// A ordem sai daqui já correta e o renderizador não ordena nada: os módulos são
+    /// percorridos na sequência água → terremoto → fogo, e as camadas de cada um já vêm
+    /// em ordem crescente, o que dá 100 · 200, 210 · 300. Acrescentar um módulo exige
+    /// respeitar essa invariante — ou passar a ordenar aqui, nunca por quadro no laço
+    /// de pixels.
+    /// </summary>
+    private void ColetarCamadas()
+    {
+        _camadasDoQuadro.Clear();
+
+        if (Agua is { Ativo: true }) Acrescentar(Agua.Camadas);
+        if (Terremoto is { Ativo: true }) Acrescentar(Terremoto.Camadas);
+        if (Fogo is { Ativo: true }) Acrescentar(Fogo.Camadas);
+    }
+
+    /// <summary>
+    /// Por índice, e não com <c>foreach</c>: percorrer um <see cref="IReadOnlyList{T}"/>
+    /// com foreach aloca um enumerador por chamada, e isto roda a cada quadro.
+    /// </summary>
+    private void Acrescentar(IReadOnlyList<CamadaVisual> camadas)
+    {
+        for (int i = 0; i < camadas.Count; i++) _camadasDoQuadro.Add(camadas[i]);
     }
 
     private void EnsureBitmap(int width, int height)

@@ -12,6 +12,7 @@
 // detalhes. Uma cópia acompanha este programa no arquivo LICENSE.
 
 using System.Security.Cryptography;
+using CaixaInterativa.Rendering;
 
 namespace CaixaInterativa.Tests;
 
@@ -179,6 +180,40 @@ internal static class CenariosDeRegressao
         "7. terremoto + fogo",
         "8. todos ativos",
     ];
+
+    /// <summary>
+    /// As camadas de um cenário, na mesma ordem em que o <c>SandboxEngine</c> as monta:
+    /// água, depois terremoto (dano e onda), depois fogo.
+    ///
+    /// Os limiares e as ordens repetem os valores que os módulos declaram. Ficam
+    /// escritos aqui de propósito: se alguém mudar um limiar dentro de um módulo, este
+    /// teste continua renderizando com o valor antigo e o hash acusa a divergência — que
+    /// é exatamente o que se quer saber.
+    /// </summary>
+    public static IReadOnlyList<CamadaVisual> Camadas(int cenario)
+    {
+        var (temAgua, temSismo, temFogo) = Combinacoes[cenario];
+        var lista = new List<CamadaVisual>(4);
+
+        if (temAgua)
+            lista.Add(new CamadaVisual(Agua(), LarguraSim, AlturaSim,
+                                       CamadaVisual.OrdemAgua, ModoDeCor.Agua,
+                                       Limiar: 0.25f, CampoAuxiliar: VelocidadeDaAgua()));
+
+        if (temSismo)
+        {
+            lista.Add(new CamadaVisual(DanoSismico(), LarguraSim, AlturaSim,
+                                       CamadaVisual.OrdemRisco, ModoDeCor.Risco, Limiar: 0.15f));
+            lista.Add(new CamadaVisual(OndaSismica(), LarguraSim, AlturaSim,
+                                       CamadaVisual.OrdemClarao, ModoDeCor.Clarao, Limiar: 0.04f));
+        }
+
+        if (temFogo)
+            lista.Add(new CamadaVisual(CalorDoFogo(), LarguraSim, AlturaSim,
+                                       CamadaVisual.OrdemCalor, ModoDeCor.Calor, Limiar: 0.03f));
+
+        return lista;
+    }
 
     /// <summary>Quais camadas cada cenário liga: (água, terremoto, fogo).</summary>
     public static readonly (bool Agua, bool Sismo, bool Fogo)[] Combinacoes =

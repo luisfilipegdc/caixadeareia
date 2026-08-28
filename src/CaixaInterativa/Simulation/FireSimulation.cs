@@ -11,6 +11,8 @@
 // UMA FINALIDADE ESPECÍFICA. Consulte a Licença Pública Geral GNU para mais
 // detalhes. Uma cópia acompanha este programa no arquivo LICENSE.
 
+using CaixaInterativa.Rendering;
+
 namespace CaixaInterativa.Simulation;
 
 /// <summary>
@@ -53,6 +55,14 @@ public sealed class FireSimulation : ISimulationModule
 
     /// <summary>Intensidade da chama por célula, para desenhar.</summary>
     public float[] Calor => _calor;
+
+    private readonly CamadaVisual[] _camadas;
+
+    /// <summary>
+    /// Uma camada: o calor da chama, desenhado acima de tudo. Montada uma vez no
+    /// construtor — <c>_calor</c> é readonly e nunca troca de instância, só de conteúdo.
+    /// </summary>
+    public IReadOnlyList<CamadaVisual> Camadas => _camadas;
 
     /// <summary>Direção do vento em radianos; 0 aponta para a direita.</summary>
     public float VentoDirecao { get; set; }
@@ -99,6 +109,12 @@ public sealed class FireSimulation : ISimulationModule
         // Semente fixa deixa a aula reproduzível quando o professor quiser repetir o
         // mesmo cenário; semente zero sorteia, para o foco cair em lugar diferente.
         _sorteio = semente == 0 ? new Random() : new Random(semente);
+
+        _camadas =
+        [
+            new CamadaVisual(_calor, _w, _h,
+                             CamadaVisual.OrdemCalor, ModoDeCor.Calor, Limiar: 0.03f),
+        ];
     }
 
     /// <summary>

@@ -11,6 +11,8 @@
 // UMA FINALIDADE ESPECÍFICA. Consulte a Licença Pública Geral GNU para mais
 // detalhes. Uma cópia acompanha este programa no arquivo LICENSE.
 
+using CaixaInterativa.Rendering;
+
 namespace CaixaInterativa.Simulation;
 
 /// <summary>
@@ -49,4 +51,18 @@ public interface ISimulationModule
 
     /// <summary>Volta ao estado inicial, sem perder a configuração.</summary>
     void Limpar();
+
+    /// <summary>
+    /// O que este módulo quer ver desenhado sobre o relevo, em ordem crescente de
+    /// <see cref="CamadaVisual.Ordem"/>.
+    ///
+    /// É por aqui que um fenômeno novo aparece na projeção sem que o renderizador
+    /// precise conhecê-lo: o módulo descreve **o que** desenhar, e o renderizador decide
+    /// **como**, a partir do <see cref="ModoDeCor"/>.
+    ///
+    /// Quem lê deve percorrer por índice e consumir na hora. A lista é reaproveitada
+    /// entre quadros para não gerar lixo, e os campos apontados podem ser trocados pelo
+    /// módulo no quadro seguinte.
+    /// </summary>
+    IReadOnlyList<CamadaVisual> Camadas { get; }
 }

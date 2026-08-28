@@ -52,11 +52,31 @@ public sealed class TopographicRenderer
     private int _bufferWidth;
     private int _bufferHeight;
 
+    /// <summary>
+    /// Copia local das camadas do quadro. O laco de pixels precisa indexar um array
+    /// concreto: percorrer <see cref="IReadOnlyList{T}"/> la dentro custaria um despacho
+    /// de interface por camada por pixel — mais de um milhao de chamadas por quadro.
+    /// Cresce quando aparece um quadro com mais camadas, e nunca encolhe.
+    /// </summary>
+    private CamadaVisual[] _camadas = [];
+
     public int Width => _bufferWidth;
     public int Height => _bufferHeight;
     public int Stride => _bufferWidth * 4;
     public byte[] Buffer => _buffer;
 
+    /// <summary>
+    /// Compoe o mapa: rampa hipsometrica, sombreamento, curvas de nivel e, por cima,
+    /// as camadas que os modulos de simulacao entregaram.
+    ///
+    /// O renderizador nao sabe de onde vem cada camada. Ele sabe desenhar cada
+    /// <see cref="ModoDeCor"/>, e a ordem vem declarada em <see cref="CamadaVisual.Ordem"/>.
+    /// </summary>
+    /// <param name="camadas">
+    /// Ja ordenadas por <see cref="CamadaVisual.Ordem"/> crescente. Nao ordenamos aqui:
+    /// isso custaria uma ordenacao por quadro para reproduzir uma sequencia que quem
+    /// monta a lista conhece de antemao.
+    /// </param>
     public byte[] Render(
         float[] heightsMm,
         int fieldWidth,
@@ -64,17 +84,7 @@ public sealed class TopographicRenderer
         ProjectionSettings projection,
         ProcessingSettings processing,
         RenderSettings render,
-        float[]? waterMm = null,
-        int waterWidth = 0,
-        int waterHeight = 0,
-        float[]? waterSpeed = null,
-        float[]? quakeNow = null,
-        float[]? quakeDamage = null,
-        int quakeWidth = 0,
-        int quakeHeight = 0,
-        float[]? fireHeat = null,
-        int fireWidth = 0,
-        int fireHeight = 0)
+        IReadOnlyList<CamadaVisual>? camadas = null)
     {
         int left = Math.Clamp(projection.RoiLeft, 0, fieldWidth - 1);
         int top = Math.Clamp(projection.RoiTop, 0, fieldHeight - 1);
@@ -97,7 +107,10 @@ public sealed class TopographicRenderer
         bool contours = interval > 0.01f;
         int majorEvery = Math.Max(1, render.MajorContourEvery);
 
+        int nCamadas = ReceberCamadas(camadas);
+
         var buffer = _buffer;
+        var camadasDoQuadro = _camadas;
 
         Parallel.For(0, h, y =>
         {
@@ -149,97 +162,90 @@ public sealed class TopographicRenderer
                     }
                 }
 
-                // A água entra por cima do terreno, não substituindo a cor: assim o
-                // aluno continua vendo o relevo por baixo e entende que a água está
-                // *sobre* o que ele construiu.
-                if (waterMm is not null && waterWidth > 0 && waterHeight > 0)
-                {
-                    float prof = AmostrarBilinear(waterMm, waterWidth, waterHeight,
-                                                  (x + left) / (float)fieldWidth,
-                                                  (y + top) / (float)fieldHeight);
-
-                    if (prof > 0.25f)
-                    {
-                        // Opacidade cresce rápido nos primeiros milímetros e satura:
-                        // uma poça rasa precisa ser visível, e depois de ~35mm mais
-                        // profundidade não muda o que se enxerga.
-                        float cobertura = MathF.Min(1f, prof / 35f);
-                        float alfa = 0.30f + 0.55f * cobertura;
-
-                        // Raso esverdeado, fundo azul-escuro — a mesma leitura de um
-                        // mapa náutico.
-                        float wr = 40f - 32f * cobertura;
-                        float wg = 150f - 92f * cobertura;
-                        float wb = 210f - 40f * cobertura;
-
-                        if (waterSpeed is not null)
-                        {
-                            // Correnteza clareia: distingue um rio correndo de um
-                            // lago parado, que é a diferença que a aula quer mostrar.
-                            float v = AmostrarBilinear(waterSpeed, waterWidth, waterHeight,
-                                                       (x + left) / (float)fieldWidth,
-                                                       (y + top) / (float)fieldHeight);
-                            float espuma = MathF.Min(1f, v / 260f);
-                            wr += 150f * espuma;
-                            wg += 80f * espuma;
-                            wb += 35f * espuma;
-                        }
-
-                        r = r * (1f - alfa) + wr * alfa;
-                        g = g * (1f - alfa) + wg * alfa;
-                        b = b * (1f - alfa) + wb * alfa;
-                    }
-                }
-
-                // Terremoto: o dano acumulado pinta o mapa de risco, e a frente de onda
-                // passa por cima como um clarão. Assim a turma vê o abalo acontecer e
-                // continua vendo onde ele bateu depois que tudo parou.
-                if (quakeNow is not null && quakeWidth > 0 && quakeHeight > 0)
+                // As camadas dos modulos entram por cima do terreno, na ordem declarada
+                // e sempre por mistura, nunca substituindo a cor: assim o aluno continua
+                // vendo o relevo por baixo e entende que o fenomeno esta *sobre* o que
+                // ele construiu.
+                if (nCamadas > 0)
                 {
                     float u = (x + left) / (float)fieldWidth;
                     float vv = (y + top) / (float)fieldHeight;
 
-                    if (quakeDamage is not null)
+                    for (int c = 0; c < nCamadas; c++)
                     {
-                        float dano = AmostrarBilinear(quakeDamage, quakeWidth, quakeHeight, u, vv);
-                        if (dano > 0.15f)
+                        var camada = camadasDoQuadro[c];
+                        float valor = AmostrarBilinear(camada.Campo, camada.Largura, camada.Altura, u, vv);
+
+                        // Comparacao positiva, e nao "<= continue": para um valor NaN as
+                        // duas formas divergem, e a original nao desenhava.
+                        if (!(valor > camada.Limiar)) continue;
+
+                        switch (camada.Modo)
                         {
-                            // Amarelo para dano leve, vermelho para severo — a mesma
-                            // convenção dos mapas de risco sísmico.
-                            float t2 = Math.Clamp((dano - 0.15f) / 0.65f, 0f, 1f);
-                            float alfa = 0.20f + 0.42f * t2;
-                            r = r * (1f - alfa) + (238f) * alfa;
-                            g = g * (1f - alfa) + (200f - 168f * t2) * alfa;
-                            b = b * (1f - alfa) + (70f - 46f * t2) * alfa;
+                            case ModoDeCor.Agua:
+                            {
+                                // Opacidade cresce rápido nos primeiros milímetros e satura:
+                                // uma poça rasa precisa ser visível, e depois de ~35mm mais
+                                // profundidade não muda o que se enxerga.
+                                float cobertura = MathF.Min(1f, valor / 35f);
+                                float alfa = 0.30f + 0.55f * cobertura;
+
+                                // Raso esverdeado, fundo azul-escuro — a mesma leitura de um
+                                // mapa náutico.
+                                float wr = 40f - 32f * cobertura;
+                                float wg = 150f - 92f * cobertura;
+                                float wb = 210f - 40f * cobertura;
+
+                                if (camada.CampoAuxiliar is not null)
+                                {
+                                    // Correnteza clareia: distingue um rio correndo de um
+                                    // lago parado, que é a diferença que a aula quer mostrar.
+                                    float v = AmostrarBilinear(camada.CampoAuxiliar, camada.Largura, camada.Altura, u, vv);
+                                    float espuma = MathF.Min(1f, v / 260f);
+                                    wr += 150f * espuma;
+                                    wg += 80f * espuma;
+                                    wb += 35f * espuma;
+                                }
+
+                                r = r * (1f - alfa) + wr * alfa;
+                                g = g * (1f - alfa) + wg * alfa;
+                                b = b * (1f - alfa) + wb * alfa;
+                                break;
+                            }
+
+                            case ModoDeCor.Risco:
+                            {
+                                // Amarelo para dano leve, vermelho para severo — a mesma
+                                // convenção dos mapas de risco sísmico.
+                                float t2 = Math.Clamp((valor - 0.15f) / 0.65f, 0f, 1f);
+                                float alfa = 0.20f + 0.42f * t2;
+                                r = r * (1f - alfa) + (238f) * alfa;
+                                g = g * (1f - alfa) + (200f - 168f * t2) * alfa;
+                                b = b * (1f - alfa) + (70f - 46f * t2) * alfa;
+                                break;
+                            }
+
+                            case ModoDeCor.Clarao:
+                            {
+                                float brilho = MathF.Min(1f, valor * 1.5f);
+                                r += (255f - r) * brilho * 0.75f;
+                                g += (250f - g) * brilho * 0.70f;
+                                b += (235f - b) * brilho * 0.60f;
+                                break;
+                            }
+
+                            case ModoDeCor.Calor:
+                            {
+                                // Vermelho na borda da frente de fogo, amarelo no núcleo —
+                                // a mesma leitura de uma chama real.
+                                float t3 = Math.Clamp(valor, 0f, 1f);
+                                float alfa = Math.Min(0.92f, 0.35f + t3 * 0.7f);
+                                r = r * (1f - alfa) + (250f) * alfa;
+                                g = g * (1f - alfa) + (90f + 150f * t3) * alfa;
+                                b = b * (1f - alfa) + (30f * t3) * alfa;
+                                break;
+                            }
                         }
-                    }
-
-                    float onda = AmostrarBilinear(quakeNow, quakeWidth, quakeHeight, u, vv);
-                    if (onda > 0.04f)
-                    {
-                        float brilho = MathF.Min(1f, onda * 1.5f);
-                        r += (255f - r) * brilho * 0.75f;
-                        g += (250f - g) * brilho * 0.70f;
-                        b += (235f - b) * brilho * 0.60f;
-                    }
-                }
-
-                // Fogo por cima de tudo: é o evento mais urgente na tela, e precisa
-                // ser lido de longe, por uma turma inteira.
-                if (fireHeat is not null && fireWidth > 0 && fireHeight > 0)
-                {
-                    float calor = AmostrarBilinear(fireHeat, fireWidth, fireHeight,
-                                                   (x + left) / (float)fieldWidth,
-                                                   (y + top) / (float)fieldHeight);
-                    if (calor > 0.03f)
-                    {
-                        // Vermelho na borda da frente de fogo, amarelo no núcleo —
-                        // a mesma leitura de uma chama real.
-                        float t3 = Math.Clamp(calor, 0f, 1f);
-                        float alfa = Math.Min(0.92f, 0.35f + t3 * 0.7f);
-                        r = r * (1f - alfa) + (250f) * alfa;
-                        g = g * (1f - alfa) + (90f + 150f * t3) * alfa;
-                        b = b * (1f - alfa) + (30f * t3) * alfa;
                     }
                 }
 
@@ -252,6 +258,28 @@ public sealed class TopographicRenderer
         });
 
         return buffer;
+    }
+
+    /// <summary>
+    /// Traz as camadas do quadro para um array proprio, descartando as que nao tem campo
+    /// ou dimensao valida. Devolve quantas sobraram.
+    ///
+    /// Sem alocacao no caso comum: o array so cresce quando aparece um quadro com mais
+    /// camadas do que qualquer quadro anterior.
+    /// </summary>
+    private int ReceberCamadas(IReadOnlyList<CamadaVisual>? camadas)
+    {
+        if (camadas is null || camadas.Count == 0) return 0;
+
+        if (_camadas.Length < camadas.Count) _camadas = new CamadaVisual[camadas.Count];
+
+        int n = 0;
+        for (int i = 0; i < camadas.Count; i++)
+        {
+            var camada = camadas[i];
+            if (camada.Desenhavel) _camadas[n++] = camada;
+        }
+        return n;
     }
 
     private static void Sample(float t, out float r, out float g, out float b)

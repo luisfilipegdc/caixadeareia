@@ -93,10 +93,7 @@ public class RegressaoVisualTests
 
     private static byte[] Renderizar(int cenario)
     {
-        var (temAgua, temSismo, temFogo) = CenariosDeRegressao.Combinacoes[cenario];
-
         var terreno = CenariosDeRegressao.Terreno();
-        int ws = CenariosDeRegressao.LarguraSim, hs = CenariosDeRegressao.AlturaSim;
 
         // Renderizador novo por cenário: o buffer interno é reutilizado entre chamadas,
         // e queremos cada cenário isolado do anterior.
@@ -109,16 +106,6 @@ public class RegressaoVisualTests
             new ProjectionSettings(),
             new ProcessingSettings(),
             new RenderSettings(),
-            temAgua ? CenariosDeRegressao.Agua() : null,
-            temAgua ? ws : 0,
-            temAgua ? hs : 0,
-            temAgua ? CenariosDeRegressao.VelocidadeDaAgua() : null,
-            temSismo ? CenariosDeRegressao.OndaSismica() : null,
-            temSismo ? CenariosDeRegressao.DanoSismico() : null,
-            temSismo ? ws : 0,
-            temSismo ? hs : 0,
-            temFogo ? CenariosDeRegressao.CalorDoFogo() : null,
-            temFogo ? ws : 0,
-            temFogo ? hs : 0);
+            CenariosDeRegressao.Camadas(cenario));
     }
 }
