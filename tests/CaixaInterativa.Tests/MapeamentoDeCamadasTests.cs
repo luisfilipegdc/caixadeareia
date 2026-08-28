@@ -130,6 +130,55 @@ public class MapeamentoDeCamadasTests
     }
 
     /// <summary>
+    /// O ciclo de quadro do engine percorre os módulos pela interface, sem conhecer
+    /// nenhum deles pelo nome. Este teste exercita esse caminho: atualizar só os ativos,
+    /// coletar camadas só dos ativos, e limpar todos genericamente.
+    /// </summary>
+    [Fact]
+    public void ModulosFuncionamPolimorficamente()
+    {
+        var agua = new WaterSimulation(W, H);
+        var modulos = new List<ISimulationModule>
+        {
+            agua,
+            new EarthquakeSimulation(W, H),
+            new FireSimulation(W, H, semente: 42),
+        };
+
+        var terreno = new float[W * H];
+
+        // Nenhum ativo: nada atualiza, nada é desenhado.
+        var camadas = new List<CamadaVisual>();
+        foreach (var m in modulos)
+        {
+            if (m.Ativo) m.Atualizar(terreno, W, H, 0.033f);
+            if (m.Ativo) camadas.AddRange(m.Camadas);
+        }
+        Assert.Empty(camadas);
+
+        // Só a água ativa: só a camada dela aparece.
+        agua.IniciarChuva(12f, 4f);
+        Assert.True(agua.Ativo);
+
+        camadas.Clear();
+        foreach (var m in modulos)
+        {
+            if (m.Ativo) m.Atualizar(terreno, W, H, 0.033f);
+            if (m.Ativo) camadas.AddRange(m.Camadas);
+        }
+
+        Assert.Single(camadas);
+        Assert.Equal(ModoDeCor.Agua, camadas[0].Modo);
+        Assert.True(agua.VolumeLitros > 0, "A chuva devia ter colocado água na caixa.");
+
+        // Limpeza genérica, como LimparSimulacoes faz.
+        foreach (var m in modulos) { m.Limpar(); m.Ativo = false; }
+
+        Assert.All(modulos, m => Assert.False(m.Ativo));
+        Assert.Equal(0, agua.VolumeLitros);
+    }
+
+    /// <summary>
     /// A lista de camadas é reaproveitada entre quadros. Se cada acesso devolvesse um
     /// array novo, o caminho de renderização voltaria a alocar 30 vezes por segundo.
     /// </summary>

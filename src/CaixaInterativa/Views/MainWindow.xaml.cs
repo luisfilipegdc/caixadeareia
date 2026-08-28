@@ -314,11 +314,9 @@ public partial class MainWindow : Window
 
     private void OnSecar(object sender, RoutedEventArgs e)
     {
-        _engine.Agua?.PararChuva();
-        _engine.Agua?.Limpar();
-        if (_engine.Agua is not null) _engine.Agua.Ativo = false;
-        _engine.Terremoto?.Limpar();
-        if (_engine.Terremoto is not null) _engine.Terremoto.Ativo = false;
+        // Genérico: limpa todos os módulos registrados. Antes eram duas linhas por
+        // fenômeno aqui, e o fogo tinha ficado de fora da limpeza.
+        _engine.LimparSimulacoes();
         SetStatus("Simulação limpa. O terreno continua como está.");
         AtualizarSimulacao();
     }

@@ -59,6 +59,24 @@ public sealed class SandboxEngine : IDisposable
     /// <summary>Simulação de queimada, que altera o mapa de solo ao terminar.</summary>
     public FireSimulation? Fogo { get; private set; }
 
+    private readonly List<ISimulationModule> _modulos = new(3);
+
+    /// <summary>
+    /// Os módulos de simulação, na ordem em que são atualizados e desenhados.
+    ///
+    /// O ciclo de quadro (atualizar, coletar camadas, limpar) percorre esta lista e não
+    /// conhece nenhum módulo pelo nome. As propriedades concretas acima continuam
+    /// existindo porque a interface precisa de controles próprios de cada fenômeno —
+    /// intensidade de chuva, magnitude — e generalizar isso exigiria um sistema de
+    /// parâmetros que não cabe neste passo.
+    ///
+    /// **Invariante:** a ordem desta lista precisa produzir <see cref="CamadaVisual.Ordem"/>
+    /// crescente na concatenação. Hoje água (100) · terremoto (200, 210) · fogo (300).
+    /// Um módulo novo respeita a ordem ou o engine passa a ordenar — nunca o renderizador,
+    /// que ordenaria dentro do laço de pixels.
+    /// </summary>
+    public IReadOnlyList<ISimulationModule> Modulos => _modulos;
+
     public float[] Alturas => _heights;
     public int LarguraCampo => _source?.Width ?? 0;
     public int AlturaCampo => _source?.Height ?? 0;
@@ -162,6 +180,12 @@ public sealed class SandboxEngine : IDisposable
             Solo = Agua.Solo,
             Agua = Agua.Profundidade,
         };
+
+        // A ordem de registro é a ordem de atualização e de composição visual.
+        _modulos.Clear();
+        _modulos.Add(Agua);
+        _modulos.Add(Terremoto);
+        _modulos.Add(Fogo);
         _latestFrame = null;
         _lastRenderedFrameNumber = -1;
 
@@ -309,14 +333,13 @@ public sealed class SandboxEngine : IDisposable
         float dt = (float)Math.Min(0.1, _simClock.Elapsed.TotalSeconds);
         _simClock.Restart();
 
-        if (Agua is { Ativo: true })
-            Agua.Atualizar(_heights, frame.Width, frame.Height, dt);
-
-        if (Terremoto is { Ativo: true })
-            Terremoto.Atualizar(_heights, frame.Width, frame.Height, dt);
-
-        if (Fogo is { Ativo: true })
-            Fogo.Atualizar(_heights, frame.Width, frame.Height, dt);
+        // Genérico: o laço não sabe quantos módulos existem nem quais são. Acrescentar
+        // um fenômeno deixa de exigir uma linha aqui.
+        for (int i = 0; i < _modulos.Count; i++)
+        {
+            var modulo = _modulos[i];
+            if (modulo.Ativo) modulo.Atualizar(_heights, frame.Width, frame.Height, dt);
+        }
 
         ColetarCamadas();
 
@@ -360,9 +383,24 @@ public sealed class SandboxEngine : IDisposable
     {
         _camadasDoQuadro.Clear();
 
-        if (Agua is { Ativo: true }) Acrescentar(Agua.Camadas);
-        if (Terremoto is { Ativo: true }) Acrescentar(Terremoto.Camadas);
-        if (Fogo is { Ativo: true }) Acrescentar(Fogo.Camadas);
+        for (int i = 0; i < _modulos.Count; i++)
+        {
+            var modulo = _modulos[i];
+            if (modulo.Ativo) Acrescentar(modulo.Camadas);
+        }
+    }
+
+    /// <summary>
+    /// Encerra todas as simulações e devolve a caixa ao mapa topográfico puro. O relevo
+    /// não é tocado: continua sendo o que está fisicamente na areia.
+    /// </summary>
+    public void LimparSimulacoes()
+    {
+        for (int i = 0; i < _modulos.Count; i++)
+        {
+            _modulos[i].Limpar();
+            _modulos[i].Ativo = false;
+        }
     }
 
     /// <summary>
