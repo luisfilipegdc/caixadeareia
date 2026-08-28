@@ -248,7 +248,7 @@ decisão sua, porque toca a geração do executável distribuído.
 
 ---
 
-## P11 — A barra lateral não cabe no monitor do professor
+## P11 — ~~A barra lateral não cabe no monitor do professor~~ ✅ CORRIGIDO em 28/08/2026
 
 **Risco:** médio · **Tipo:** decisão de produto · **Encontrado na validação visual**
 
@@ -267,3 +267,37 @@ seção de calibração depois de calibrada; deixar o painel de simulação fixo
 
 **Por que não fiz:** é redesenho de layout, não correção pontual, e a escolha depende de
 como você quer que a aula flua.
+
+---
+
+## P12 — O seletor de cobertura ainda exige rolagem em 1366×768
+
+**Risco:** baixo · **Tipo:** layout · **Encontrado na validação de campo**
+
+Depois da correção de P11, os sete controles da lista de prioridade ficam visíveis sem
+rolar. O seletor de **cobertura do solo** não estava nessa lista, e ficou logo abaixo da
+dobra — exige uma rolagem curta.
+
+Ele é pedagogicamente central: "mata contra cidade, mesma chuva" é a comparação principal
+da aula. Não movi para a barra fixa porque ela já tem seletor de simulação, executar e
+limpar; um quarto controle começaria a comer a área rolável que sobra.
+
+**Opções:** encolher o bloco TERRENO (o texto de ajuda de duas linhas pode sair); ou
+juntar cobertura e simulação num único bloco fixo mais compacto.
+
+---
+
+## P13 — O painel de atalhos aparece projetado sobre a areia
+
+**Risco:** baixo · **Tipo:** decisão de produto
+
+Ao abrir a projeção, o painel com a lista de teclas aparece por cima da imagem. Faz
+sentido enquanto o professor alinha o projetor — é onde estão as teclas de ajuste. Mas
+depois de alinhado ele continua lá até alguém apertar `F1`, e é a primeira coisa que a
+turma vê na areia.
+
+**Opções:** esconder sozinho depois de alguns segundos sem tecla de alinhamento; ou
+começar oculto e aparecer na primeira tecla pressionada.
+
+Não mexi porque é escolha de comportamento, e o alinhamento é justamente o momento em que
+a ajuda é útil.
