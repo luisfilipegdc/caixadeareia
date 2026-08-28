@@ -169,10 +169,13 @@ public sealed class SandboxEngine : IDisposable
         };
 
         _heights = new float[source.Width * source.Height];
-        Agua = new WaterSimulation(source.Width, source.Height);
+        // A largura vem da configuração em vez de um literal escondido no construtor.
+        // O padrão é o mesmo 1250 mm de antes, então nada muda até alguém medir.
+        float larguraMm = Config.Caixa.LarguraCobertaPeloSensorMm;
+        Agua = new WaterSimulation(source.Width, source.Height, larguraMm);
         // Os dois módulos leem o mesmo mapa de cobertura: mudar de mata para solo solto
         // deve afetar a enchente e o terremoto ao mesmo tempo, como no território real.
-        Terremoto = new EarthquakeSimulation(source.Width, source.Height) { Solo = Agua.Solo };
+        Terremoto = new EarthquakeSimulation(source.Width, source.Height, larguraMm) { Solo = Agua.Solo };
         // O fogo lê a água para saber onde não pode passar, e escreve no solo a cicatriz
         // que a chuva seguinte vai encontrar.
         Fogo = new FireSimulation(source.Width, source.Height)

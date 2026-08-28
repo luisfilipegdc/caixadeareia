@@ -75,3 +75,61 @@ renderizador, que ordenaria dentro do laço de pixels.
 camadas só dos ativos e limpar todos pela interface.
 
 **Resultado:** build 0/0, **19 testes aprovados**. Regressão visual intacta.
+
+---
+
+## Etapa 4 — Honestidade científica
+
+Duas violações apontadas pela auditoria, ambas corrigidas sem tocar em nenhum coeficiente
+do modelo.
+
+### Falsa precisão nas propriedades de solo
+
+`PropriedadesDoSolo.Resumo` exibia ao professor *"Absorve 3,2 mm/s · guarda até 160 mm ·
+resiste 95% à erosão"*. Aparência de medição hidrológica sobre valores que o comentário
+doze linhas acima declara didáticos.
+
+**Decisão:** o resumo virou qualitativo — *"Absorve muita água · retém muito · resiste bem
+à erosão"* — e ganhou a ressalva `AvisoDidatico` junto na tela.
+
+As faixas que classificam os valores foram escolhidas olhando a distribuição da tabela
+existente. **Nenhum número novo foi inventado** e os coeficientes da simulação estão
+intactos — travado pelo teste `CoeficientesDoModeloNaoMudaram`.
+
+### Litros calculados com dimensão não calibrada
+
+`WaterSimulation` derivava o tamanho da célula de `larguraCaixaMm = 1250f`, um literal que
+nunca era passado por ninguém.
+
+**Decisão — a de menor risco entre três.** Considerei (a) esconder os litros, (b) corrigir
+o valor para ~1390 mm conforme a geometria documentada, (c) tornar configurável e marcar
+como estimativa.
+
+Descartei (a) porque remove informação que o professor pode usar. Descartei (b) porque
+seria trocar uma suposição por outra — o roadmap do projeto proíbe exatamente isso, e o
+número correto depende da altura real do sensor, que só a medição em campo dá.
+
+Fiz (c): a largura virou `Config.Caixa.LarguraCobertaPeloSensorMm` **com o mesmo padrão de
+1250 mm**, então nada mudou de comportamento; e enquanto `LarguraMedida` for falso a
+interface marca os litros com "≈" e explica no painel do professor. A medição ficou
+registrada como pendência P1.
+
+**Hipótese não validada:** que a largura real seja ~1390 mm. Deriva do cálculo em
+`MONTAGEM-FISICA.md` e de uma altura de sensor que ainda não foi confirmada. Por isso não
+virou valor padrão.
+
+### O que continua confiável
+
+As porcentagens — área alagada, queimada, saturação — são razões entre contagens de
+células e não passam pelo tamanho da célula. Continuam válidas sem calibração, e por isso
+**não** levam marca de estimativa. Travado pelo teste
+`PorcentagemDeAlagamentoNaoDependeDaLargura`.
+
+**Arquivos:** `SoilMap.cs`, `AppConfig.cs`, `SandboxEngine.cs`, `MainWindow.xaml.cs`,
+`ProjectionWindow.xaml.cs`, novo `HonestidadeCientificaTests.cs`.
+
+**Resultado:** build 0/0, **36 testes aprovados**. Regressão visual intacta.
+
+**Percalço registrado:** o heredoc do shell colapsou barras invertidas duplas e escreveu
+um `\n` como quebra de linha real dentro de uma string C#, quebrando o build. Corrigido na
+mesma etapa; nenhum commit quebrado foi criado.

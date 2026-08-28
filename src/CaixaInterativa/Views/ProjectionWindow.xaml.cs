@@ -241,8 +241,8 @@ public partial class ProjectionWindow : Window
             if (agua.PicoAlagamentoPercent > agua.AreaAlagadaPercent + 0.5)
                 Linha("Pico do episódio", $"{agua.PicoAlagamentoPercent:F0}%", "#FF4A93C8");
 
-            Linha("Água na superfície", $"{agua.VolumeLitros:F1} L", "#FF7FCFE8");
-            Linha("Absorvida pelo solo", $"{agua.InfiltradoLitros:F1} L", "#FF7CC7A2");
+            Linha("Água na superfície", Litros(agua.VolumeLitros), "#FF7FCFE8");
+            Linha("Absorvida pelo solo", Litros(agua.InfiltradoLitros), "#FF7CC7A2");
             Linha("Solo encharcado", $"{agua.SaturacaoMediaPercent:F0}%", "#FFDAB463");
 
             DadosRodape.Text = agua.Chovendo
@@ -256,6 +256,14 @@ public partial class ProjectionWindow : Window
         DadosTitulo.Text = "CAIXA DE AREIA";
         DadosRodape.Text = "Nenhuma simulação em andamento.";
     }
+
+    /// <summary>
+    /// Volume em litros, com a marca de estimativa enquanto a largura coberta pelo sensor
+    /// não for medida. Aqui não cabe a explicação longa — o painel é lido de três metros
+    /// —, mas o sinal impede que a turma leia o número como medição exata.
+    /// </summary>
+    private string Litros(double valor)
+        => _engine.Config.Caixa.LarguraMedida ? $"{valor:F1} L" : $"≈ {valor:F1} L";
 
     /// <summary>Uma linha de resultado: rótulo pequeno, número grande.</summary>
     private void Linha(string rotulo, string valor, string cor)

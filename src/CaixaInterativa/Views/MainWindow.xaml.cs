@@ -252,7 +252,10 @@ public partial class MainWindow : Window
         _coberturaAtual = prop.Nome;
         _engine.Agua.Solo.Preencher(tipo);
 
-        TxtCoberturaInfo.Text = prop.Descricao + "\n" + prop.Resumo;
+        // A ressalva vai junto do parâmetro, e não só no código-fonte: sem ela o professor
+        // lê uma comparação didática como se fosse dado hidrológico medido.
+        TxtCoberturaInfo.Text = prop.Descricao + "\n" + prop.Resumo
+                              + "\n" + PropriedadesDoSolo.AvisoDidatico;
         SetStatus($"Cobertura: {prop.Nome}. Execute a simulação para ver o efeito.");
     }
 
@@ -374,14 +377,30 @@ public partial class MainWindow : Window
         TxtResultado.Text = agua.Chovendo
             ? $"Chovendo… {agua.ChuvaRestanteSegundos:F0}s\nÁrea alagada: {agua.AreaAlagadaPercent:F0}%"
             : agua.Ativo && agua.VolumeLitros > 0.01
-                ? $"Escoando · {agua.VolumeLitros:F1} L\n" +
+                ? $"Escoando · {Litros(agua.VolumeLitros)}\n" +
                   $"Alagado: {agua.AreaAlagadaPercent:F0}%  ·  pico {agua.PicoAlagamentoPercent:F0}%\n" +
-                  $"Infiltrado: {agua.InfiltradoLitros:F1} L"
+                  $"Infiltrado: {Litros(agua.InfiltradoLitros)}" + NotaDeEstimativa
                 : agua.Ativo && agua.PicoAlagamentoPercent > 0
                     ? $"A água escoou.\nPico de alagamento: {agua.PicoAlagamentoPercent:F0}%\n" +
-                      $"Infiltrado: {agua.InfiltradoLitros:F1} L"
+                      $"Infiltrado: {Litros(agua.InfiltradoLitros)}" + NotaDeEstimativa
                     : "Nenhuma simulação executada.";
     }
+
+    /// <summary>
+    /// Volume em litros, marcado como estimativa enquanto a caixa não for medida.
+    ///
+    /// O valor deriva do tamanho da célula, que deriva da largura que o sensor cobre —
+    /// um número que hoje é suposição. O erro entra ao quadrado, porque a área da célula
+    /// é o lado ao quadrado. As porcentagens não passam por essa conta e continuam
+    /// confiáveis, por isso não levam a marca.
+    /// </summary>
+    private string Litros(double valor)
+        => _config.Caixa.LarguraMedida ? $"{valor:F1} L" : $"≈ {valor:F1} L";
+
+    private string NotaDeEstimativa
+        => _config.Caixa.LarguraMedida
+            ? ""
+            : "\n≈ estimativa: depende da largura da caixa, ainda não medida.";
 
     private void Registrar(string simulacao, string cobertura, string resultado, double valor)
     {

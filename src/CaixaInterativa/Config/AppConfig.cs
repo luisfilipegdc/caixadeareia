@@ -103,6 +103,34 @@ public sealed class SensorSettings
     public int? TiltAngle { get; set; }
 }
 
+/// <summary>
+/// Geometria física da caixa, na medida em que o software depende dela.
+/// </summary>
+public sealed class CaixaSettings
+{
+    /// <summary>
+    /// Largura, em milímetros, da faixa de areia que o eixo horizontal do sensor
+    /// (640 px) enxerga. É daqui que sai o tamanho da célula da simulação — e, portanto,
+    /// todo valor apresentado em litros.
+    ///
+    /// O padrão de 1250 mm é a suposição que já estava embutida no código, e **não foi
+    /// medida em campo**. Enquanto <see cref="LarguraMedida"/> for falso, os volumes
+    /// absolutos são estimativas e a interface os apresenta como tal.
+    ///
+    /// As porcentagens — área alagada, área queimada, saturação — são razões entre
+    /// contagens de células e **não dependem deste valor**. Elas continuam válidas
+    /// independentemente da calibração.
+    /// </summary>
+    public float LarguraCobertaPeloSensorMm { get; set; } = 1250f;
+
+    /// <summary>
+    /// Marque como verdadeiro depois de medir a faixa que o sensor cobre sobre a areia
+    /// — por exemplo, colocando marcadores nas bordas e lendo onde eles aparecem no mapa.
+    /// Só então os litros deixam de ser estimativa.
+    /// </summary>
+    public bool LarguraMedida { get; set; }
+}
+
 public sealed class InterfaceSettings
 {
     /// <summary>
@@ -116,6 +144,7 @@ public sealed class InterfaceSettings
 public sealed class AppConfig
 {
     public SensorSettings Sensor { get; set; } = new();
+    public CaixaSettings Caixa { get; set; } = new();
     public InterfaceSettings Interface { get; set; } = new();
     public ProcessingSettings Processing { get; set; } = new();
     public RenderSettings Render { get; set; } = new();
