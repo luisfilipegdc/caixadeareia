@@ -43,11 +43,14 @@ public class LeitorDeContextoTests : IDisposable
 
     private const string PacoteMinimo = """
         {
-          "schemaVersion": 1,
+          "schemaVersion": 2,
           "proveniencia": {
             "fonte": "INPE — Programa Queimadas",
-            "periodoObservado": "2026-08",
-            "dataDeAcesso": "2026-08-28"
+            "dataDeAcesso": "2026-08-28",
+            "periodos": [
+              { "periodo": "2026-08", "recurso": "focos_mensal_br_202608.csv",
+                "url": "https://exemplo/a.csv", "diasObservados": 28, "focosLidos": 1234 }
+            ]
           },
           "contextos": [
             {
@@ -93,12 +96,12 @@ public class LeitorDeContextoTests : IDisposable
     /// </summary>
     [Theory]
     [InlineData(0)]
-    [InlineData(2)]
+    [InlineData(1)]
     [InlineData(99)]
     public void VersaoDeSchemaDiferenteERecusada(int versao)
     {
         var r = LeitorDeContexto.Carregar(
-            Gravar(PacoteMinimo.Replace("\"schemaVersion\": 1", $"\"schemaVersion\": {versao}")));
+            Gravar(PacoteMinimo.Replace("\"schemaVersion\": 2", $"\"schemaVersion\": {versao}")));
 
         Assert.False(r.Carregou);
         Assert.Contains(versao.ToString(), r.Erro);
@@ -109,7 +112,7 @@ public class LeitorDeContextoTests : IDisposable
     public void PacoteSemProcedenciaERecusado()
     {
         string sem = """
-            { "schemaVersion": 1, "contextos": [] }
+            { "schemaVersion": 2, "contextos": [] }
             """;
 
         var r = LeitorDeContexto.Carregar(Gravar(sem));
@@ -122,7 +125,7 @@ public class LeitorDeContextoTests : IDisposable
     public void PacoteSemContextosCarregaMasVemVazio()
     {
         string vazio = """
-            { "schemaVersion": 1, "proveniencia": { "fonte": "x" }, "contextos": [] }
+            { "schemaVersion": 2, "proveniencia": { "fonte": "x" }, "contextos": [] }
             """;
 
         var r = LeitorDeContexto.Carregar(Gravar(vazio));
@@ -196,11 +199,12 @@ public class LeitorDeContextoTests : IDisposable
         var pacoteDaFerramenta = new Prep.PacoteDeContexto(
             Prep.PacoteDeContexto.VersaoAtual,
             new Prep.Proveniencia(
-                "INPE — Programa Queimadas", "INPE", "Focos de calor",
-                "focos_diario_br_20260827.csv", "https://exemplo/arquivo.csv", "CSV",
-                "2026-08", "2026-08-28", "dotnet run --project tools/...",
+                "INPE — Programa Queimadas", "INPE", "Focos de calor", "CSV",
+                "2026-08-28", "dotnet run --project tools/...",
                 ["sentinela -999 descartada"], "mediana e quartis",
-                "quartis dos próprios recortes", ["contexto, não simulação"]),
+                "quartis dos próprios recortes", ["contexto, não simulação"],
+                [new Prep.PeriodoObservado("2026-08", "focos_diario_br_20260827.csv",
+                                           "https://exemplo/arquivo.csv", 1, 40)]),
             Prep.Agregador.Agregar(focos));
 
         string json = JsonSerializer.Serialize(pacoteDaFerramenta, new JsonSerializerOptions
@@ -227,9 +231,15 @@ public class LeitorDeContextoTests : IDisposable
         // Procedência inteira sobrevive à travessia.
         var p = lido.Pacote.Proveniencia!;
         Assert.Equal("INPE", p.Organizacao);
-        Assert.Equal("focos_diario_br_20260827.csv", p.Recurso);
         Assert.Single(p.Filtros);
         Assert.Contains("quartis", p.MetodoDeClassificacao);
+
+        // A procedência agora é por período, e carrega quantos dias ele representa.
+        var origem = p.Origem("2026-08");
+        Assert.NotNull(origem);
+        Assert.Equal("focos_diario_br_20260827.csv", origem!.Recurso);
+        Assert.Equal(1, origem.DiasObservados);
+        Assert.True(origem.AmostraParcial, "Um dia não descreve um mês.");
     }
 
     /// <summary>
@@ -258,8 +268,17 @@ public class LeitorDeContextoTests : IDisposable
         });
 
         var p = r.Pacote!.Proveniencia!;
-        Assert.False(string.IsNullOrWhiteSpace(p.Url));
         Assert.False(string.IsNullOrWhiteSpace(p.ComandoParaRegenerar));
         Assert.NotEmpty(p.Observacoes);
+        Assert.NotEmpty(p.Periodos);
+
+        // Todo período presente nos contextos precisa declarar sua origem.
+        foreach (string periodo in r.Contextos.Select(c => c.Periodo).Distinct())
+        {
+            var origem = p.Origem(periodo);
+            Assert.True(origem is not null, $"O período {periodo} não declara origem.");
+            Assert.False(string.IsNullOrWhiteSpace(origem!.Url));
+            Assert.True(origem.DiasObservados > 0);
+        }
     }
 }
