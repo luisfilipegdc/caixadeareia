@@ -133,3 +133,54 @@ células e não passam pelo tamanho da célula. Continuam válidas sem calibraç
 **Percalço registrado:** o heredoc do shell colapsou barras invertidas duplas e escreveu
 um `\n` como quebra de linha real dentro de uma string C#, quebrando o build. Corrigido na
 mesma etapa; nenhum commit quebrado foi criado.
+
+---
+
+## Etapa 6 — Comparação A/B com assinatura do relevo
+
+Fiz esta etapa antes da 5 por ordem de risco: é lógica pura, totalmente testável, e
+corrige o achado mais grave da auditoria.
+
+### O problema
+
+`MainWindow.AtualizarComparacao` conclui a aula com frases como *"Área urbana teve 2,4× o
+resultado de Mata, na mesma simulação"*. A chave do histórico era `(Simulação, Cobertura)`
+— **o relevo não entrava**. Se um aluno mexesse na areia entre as duas execuções, o
+software atribuía à cobertura uma diferença que veio do terreno.
+
+Numa plataforma cujo princípio declarado é honestidade científica, essa é uma conclusão
+falsa apresentada com a autoridade de um resultado medido.
+
+### Solução — e por que esta
+
+Nova classe `AssinaturaDoRelevo`: reduz o campo de alturas a uma grade de 16×12 regiões,
+cada uma com a altura média da sua área. Duas assinaturas são compatíveis quando nenhuma
+região difere mais que **10 mm**.
+
+**Descartei o hash.** Um hash responde "é idêntico?" e a resposta seria sempre "não" — o
+Kinect tem 2–4 mm de ruído e nenhum quadro é igual ao anterior. A pergunta certa é "mudou
+o suficiente para importar?", e ela precisa de tolerância.
+
+**Sobre a tolerância de 10 mm.** A média sobre 1.600 pixels por região dilui ruído
+independente para menos de 1 mm — verificado pelo teste `RuidoDoSensorNaoContaComoMudanca`,
+que injeta ±4 mm por pixel e mede a diferença resultante. Um estudante que cava ou empilha
+mexe em vários centímetros. O valor erra deliberadamente para o lado de avisar demais: um
+aviso a mais incomoda, uma comparação falsa ensina errado.
+
+**Não bloqueia nada.** O número comparado continua na tela; o que muda é a ressalva. Sem
+assinatura disponível, o aviso diz que não foi possível verificar — nunca finge que
+verificou.
+
+### Efeito pedagógico colateral
+
+O aviso ensina controle de variáveis sem usar a expressão: *"para comparar só a cobertura,
+repita sem mexer no terreno"*.
+
+**Classificação:** derivação matemática sobre medição. Só média aritmética e subtração,
+nenhum parâmetro inventado.
+
+**Arquivos:** novo `Processing/AssinaturaDoRelevo.cs`, `MainWindow.xaml.cs`, novo
+`AssinaturaDoRelevoTests.cs`.
+
+**Resultado:** build 0/0, **50 testes aprovados**. `DepthProcessor` não foi tocado — a
+classe nova só divide o namespace com ele.

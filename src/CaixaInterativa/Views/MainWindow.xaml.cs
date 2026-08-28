@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using CaixaInterativa.Config;
 using CaixaInterativa.Depth;
+using CaixaInterativa.Processing;
 using CaixaInterativa.Simulation;
 
 namespace CaixaInterativa.Views;
@@ -193,7 +194,21 @@ public partial class MainWindow : Window
     private enum Simulacao { Chuva, Terremoto }
 
     private Simulacao _simulacaoAtual = Simulacao.Chuva;
-    private readonly List<(string Simulacao, string Cobertura, string Resultado, double Valor)> _historico = [];
+    /// <summary>
+    /// Uma execução registrada, com a assinatura do relevo em que ela aconteceu.
+    ///
+    /// A assinatura é o que permite dizer se a comparação entre duas execuções isola de
+    /// fato a variável estudada. Sem ela, o histórico afirmaria que a diferença veio da
+    /// cobertura mesmo quando veio da areia ter sido remodelada no intervalo.
+    /// </summary>
+    private readonly record struct Execucao(
+        string Simulacao,
+        string Cobertura,
+        string Resultado,
+        double Valor,
+        AssinaturaDoRelevo? Relevo);
+
+    private readonly List<Execucao> _historico = [];
     private string _coberturaAtual = "Mata";
     private bool _chovendoAntes, _tremendoAntes;
 
@@ -406,7 +421,14 @@ public partial class MainWindow : Window
     {
         if (valor <= 0) return;
         _historico.RemoveAll(h => h.Simulacao == simulacao && h.Cobertura == cobertura);
-        _historico.Add((simulacao, cobertura, resultado, valor));
+
+        // A assinatura é tirada agora, do relevo em que esta execução aconteceu.
+        // Calcular médias já produz uma cópia, então não guardamos referência ao buffer
+        // vivo do engine.
+        var relevo = AssinaturaDoRelevo.De(
+            _engine.Alturas, _engine.LarguraCampo, _engine.AlturaCampo);
+
+        _historico.Add(new Execucao(simulacao, cobertura, resultado, valor, relevo));
         AtualizarComparacao();
     }
 
@@ -426,16 +448,49 @@ public partial class MainWindow : Window
 
         // A conclusão da aula é a razão entre o melhor e o pior cenário da mesma
         // simulação — o número que responde se a intervenção adiantou.
+        //
+        // Mas essa frase só é honesta se o relevo tiver ficado igual entre as duas
+        // execuções. Se a areia mudou no intervalo, a diferença observada não é
+        // atribuível à cobertura, e dizer que é seria ensinar algo errado.
         foreach (var grupo in _historico.GroupBy(h => h.Simulacao).Where(g => g.Count() >= 2))
         {
             var melhor = grupo.MinBy(h => h.Valor);
             var pior = grupo.MaxBy(h => h.Valor);
-            if (melhor.Valor > 0.01)
-                texto += $"\n\n{pior.Cobertura} teve {pior.Valor / melhor.Valor:F1}× " +
-                         $"o resultado de {melhor.Cobertura}, na mesma simulação.";
+            if (melhor.Valor <= 0.01) continue;
+
+            texto += $"\n\n{pior.Cobertura} teve {pior.Valor / melhor.Valor:F1}× " +
+                     $"o resultado de {melhor.Cobertura}, na mesma simulação.";
+
+            texto += AvisoDeRelevo(melhor.Relevo, pior.Relevo);
         }
 
         TxtComparacao.Text = texto;
+    }
+
+    /// <summary>
+    /// A ressalva que acompanha uma comparação, conforme o relevo tenha ficado igual ou
+    /// não entre as duas execuções.
+    ///
+    /// Nunca bloqueia nada: o número comparado continua na tela. O que muda é o que se
+    /// pode concluir dele — e isso é conteúdo de aula, não obstáculo. Um estudante que
+    /// descobre que precisa manter o terreno fixo para comparar coberturas aprendeu
+    /// controle de variáveis sem ninguém precisar usar a expressão.
+    /// </summary>
+    private static string AvisoDeRelevo(AssinaturaDoRelevo? a, AssinaturaDoRelevo? b)
+    {
+        if (a is null || b is null)
+            return "\n⚠ Não foi possível verificar se o relevo continuou o mesmo entre " +
+                   "as duas execuções.";
+
+        var comparacao = a.Comparar(b);
+
+        return comparacao.MesmoRelevo
+            ? "\n✓ O relevo era o mesmo nas duas execuções, então a diferença vem da " +
+              "cobertura."
+            : $"\n⚠ O relevo mudou entre as duas execuções — até " +
+              $"{comparacao.DiferencaMaximaMm:F0} mm de diferença em alguma região. " +
+              "Parte do que mudou pode vir da areia, não da cobertura. Para comparar " +
+              "só a cobertura, repita sem mexer no terreno.";
     }
 
     private void OnLimparComparacao(object sender, RoutedEventArgs e)
