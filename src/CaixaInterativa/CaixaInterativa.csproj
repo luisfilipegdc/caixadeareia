@@ -41,6 +41,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- NuiNative e' encanamento de P/Invoke e continua internal: nao e' API de ninguem.
+         Mas a tabela de codigos de erro dele precisa ser travada contra o header do SDK
+         por teste, porque ja esteve errada em quatro entradas sem que nada acusasse. -->
+    <InternalsVisibleTo Include="CaixaInterativa.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- UseWindowsForms existe apenas para System.Windows.Forms.Screen (enumeracao de
          monitores, que o WPF nao expoe). O using implicito de System.Windows.Forms
          colide com o WPF em Application, KeyEventArgs, MessageBox e outros; referenciamos
