@@ -324,3 +324,38 @@ na hora de editar código:
 
 Preferi um documento só a espalhar as regras: quem chega ao projeto precisa de um lugar
 para começar, e o README já ficou longo.
+
+---
+
+## Etapa 9 — Testes onde faltava cobertura de verdade
+
+Dois componentes críticos tinham **zero testes**, e ambos podem ser cobertos sem tocar em
+uma linha da implementação.
+
+### `DepthProcessor` — 21 testes de caracterização
+
+É o componente mais delicado depois do interop: as três etapas foram ajustadas contra
+hardware real e são a diferença entre projeção utilizável e uma que "ferve".
+
+Cobre calibração em superfície plana, rejeição de pixel intermitente, altura como
+diferença do plano-base, corte pela faixa configurada, preenchimento de buracos, pixel
+nunca válido, α rápido no salto e α lento no ruído, convergência com areia parada, box
+blur preservando campo constante, raio zero desligando o blur, recusa de quadro com
+dimensão incompatível, e o ciclo exportar/importar.
+
+**Todos passaram na primeira execução.** Isso é o resultado desejado: são testes de
+caracterização, não de correção. Nenhuma linha do `DepthProcessor` foi alterada.
+
+### `CalibrationStore` — 11 testes
+
+Se este arquivo corromper, o professor perde o passo mais demorado do fluxo com a turma
+esperando.
+
+Cobre ciclo completo, ausência de `.tmp` depois da gravação atômica, recusa de resolução
+diferente, arquivo inexistente, assinatura errada, arquivo truncado, arquivo vazio, e o
+empacotamento de bits com contagens que não são múltiplas de 8.
+
+O teste `ArquivoTruncadoDevolveNull` confirma que o carregamento defensivo funciona — o
+cenário de queda de energia no meio da gravação.
+
+**Resultado:** build 0/0, **83 testes aprovados** (eram 18 no início da sessão).
