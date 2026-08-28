@@ -245,3 +245,25 @@ usam caminhos diferentes. Funciona, mas convida ao erro.
 script próprio), ou documentar. Escolhi documentar — está em
 [CALIBRACAO-FISICA.md](CALIBRACAO-FISICA.md) e no guia de desenvolvimento. Unificar é
 decisão sua, porque toca a geração do executável distribuído.
+
+---
+
+## P11 — A barra lateral não cabe no monitor do professor
+
+**Risco:** médio · **Tipo:** decisão de produto · **Encontrado na validação visual**
+
+A 1366×768 — a resolução da máquina onde o sistema roda — os controles de simulação ficam
+**abaixo da dobra**. O botão de executar a simulação e toda a seção de comparação exigem
+rolagem numa barra estreita e fácil de não notar. Mesmo a 1440×900 o botão fica colado na
+borda inferior.
+
+Um professor abrindo o programa pela primeira vez vê calibração e cobertura, e pode não
+encontrar o botão que executa o fenômeno.
+
+**Evidência:** `docs/img/18-painel-queimada.png`, capturado a 1440×900.
+
+**Opções:** dividir a barra em abas; mover a comparação para outro lugar; encolher a
+seção de calibração depois de calibrada; deixar o painel de simulação fixo no rodapé.
+
+**Por que não fiz:** é redesenho de layout, não correção pontual, e a escolha depende de
+como você quer que a aula flua.
