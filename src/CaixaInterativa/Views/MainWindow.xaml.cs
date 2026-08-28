@@ -118,18 +118,33 @@ public partial class MainWindow : Window
             }
         }
 
+        // "Não encontrado" era dito mesmo quando o driver tinha acabado de enumerar o
+        // sensor — o caso real foi duas cópias do aplicativo abertas ao mesmo tempo. O
+        // conselho fixo de conferir cabo e fonte mandava desmontar hardware que estava bom.
+        //
+        // Agora o cabeçalho pergunta ao driver antes de afirmar, e o conselho sobre cabo só
+        // aparece quando nenhum sensor foi enumerado. Quando um foi, quem sabe o que fazer
+        // é a mensagem do erro, que já vem específica de DescribeHResult.
+        bool enumerado = KinectV1Source.TryProbe(out int quantos, out _) && quantos > 0;
+
+        string cabecalho = enumerado
+            ? "O Kinect está conectado, mas não pôde ser iniciado."
+            : "Kinect não encontrado.";
+
+        string conselho = enumerado
+            ? "Depois de resolver, toque em “Ligar a caixa”."
+            : "Verifique a fonte de energia e o cabo USB, e toque em “Ligar a caixa”.";
+
         if (silencioso)
         {
             // Na abertura automática não interrompemos com caixa de diálogo.
-            TxtAjuda.Text =
-                "Kinect não encontrado.\n\n" + motivo +
-                "\n\nVerifique a fonte de energia e o cabo USB, e toque em “Ligar a caixa”.";
-            SetStatus("Kinect indisponível — " + motivo);
+            TxtAjuda.Text = $"{cabecalho}\n\n{motivo}\n\n{conselho}";
+            SetStatus((enumerado ? "Kinect não iniciou — " : "Kinect indisponível — ") + motivo);
             return;
         }
 
         var escolha = MessageBox.Show(
-            $"O Kinect não foi encontrado.\n\n{motivo}\n\n" +
+            $"{cabecalho}\n\n{motivo}\n\n" +
             "Deseja usar o simulador? Ele reproduz o funcionamento sem o sensor, " +
             "para você preparar a aula ou testar a projeção.",
             "Caixa de Areia Interativa",
