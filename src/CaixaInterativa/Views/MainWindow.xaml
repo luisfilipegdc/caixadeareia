@@ -55,6 +55,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0">
@@ -81,8 +82,8 @@
                             <Button x:Name="BtnCalibrar" Click="OnCalibrate"
                                     Style="{StaticResource BotaoGrande}"
                                     Content="Nivelar e calibrar"/>
-                            <TextBlock TextWrapping="Wrap" Opacity="0.55" FontSize="11"
-                                       Margin="0,7,0,0"
+                            <TextBlock x:Name="TxtCalibAjuda" TextWrapping="Wrap"
+                                       Opacity="0.55" FontSize="11" Margin="0,7,0,0"
                                        Text="Alise a areia, tire as mãos da caixa e toque no botão. A calibração fica salva para as próximas aulas."/>
                         </StackPanel>
                     </Border>
@@ -106,12 +107,10 @@
                     <Border Background="#FF15151B" CornerRadius="5" Padding="13"
                             Margin="0,12,0,0">
                         <StackPanel>
-                            <TextBlock Text="SIMULAÇÕES" FontSize="11" FontWeight="Bold"
-                                       Foreground="{StaticResource Accent}" Margin="0,0,0,8"/>
-
-                            <ComboBox x:Name="CmbSimulacao" SelectionChanged="OnSimulacaoChanged"/>
+                            <TextBlock Text="AJUSTES DA SIMULAÇÃO" FontSize="11" FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}" Margin="0,0,0,6"/>
                             <TextBlock x:Name="TxtSimulacaoInfo" TextWrapping="Wrap"
-                                       FontSize="11" Opacity="0.6" Margin="0,6,0,10"/>
+                                       FontSize="11" Opacity="0.6" Margin="0,0,0,10"/>
 
                             <!-- Configurações da chuva -->
                             <StackPanel x:Name="CfgChuva">
@@ -155,16 +154,9 @@
                                            Margin="0,6,0,0"/>
                             </StackPanel>
 
-                            <Button x:Name="BtnExecutar" Click="OnExecutarSimulacao"
-                                    Style="{StaticResource BotaoPrimario}"
-                                    Content="▶  Executar" Margin="0,12,0,0"/>
-
                             <TextBlock x:Name="TxtResultado" TextWrapping="Wrap"
-                                       FontSize="12" Margin="0,10,0,0"
+                                       FontSize="12" Margin="0,12,0,0"
                                        Text="Nenhuma simulação executada."/>
-
-                            <Button x:Name="BtnSecar" Click="OnSecar"
-                                    Content="Limpar simulação" Margin="0,8,0,0"/>
 
                             <Border Background="#FF1B1B22" CornerRadius="4" Padding="10"
                                     Margin="0,10,0,0">
@@ -181,37 +173,6 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="#FF15151B" CornerRadius="5" Padding="13"
-                            Margin="0,12,0,0">
-                        <StackPanel>
-                            <TextBlock Text="APARÊNCIA DO MAPA" FontSize="11" FontWeight="Bold"
-                                       Foreground="{StaticResource Accent}" Margin="0,0,0,9"/>
-
-                            <TextBlock Text="Altura das montanhas" FontSize="12"/>
-                            <DockPanel Margin="0,3,0,9">
-                                <TextBlock x:Name="LblMaxHeight" DockPanel.Dock="Right"
-                                           Width="52" TextAlignment="Right" Opacity="0.7"/>
-                                <Slider x:Name="SldMaxHeight" Minimum="20" Maximum="400" Value="120"
-                                        ValueChanged="OnSettingChanged"/>
-                            </DockPanel>
-
-                            <TextBlock Text="Profundidade dos vales" FontSize="12"/>
-                            <DockPanel Margin="0,3,0,9">
-                                <TextBlock x:Name="LblMinHeight" DockPanel.Dock="Right"
-                                           Width="52" TextAlignment="Right" Opacity="0.7"/>
-                                <Slider x:Name="SldMinHeight" Minimum="-300" Maximum="0" Value="-80"
-                                        ValueChanged="OnSettingChanged"/>
-                            </DockPanel>
-
-                            <TextBlock Text="Linhas de altitude" FontSize="12"/>
-                            <DockPanel Margin="0,3,0,0">
-                                <TextBlock x:Name="LblContour" DockPanel.Dock="Right"
-                                           Width="52" TextAlignment="Right" Opacity="0.7"/>
-                                <Slider x:Name="SldContour" Minimum="0" Maximum="60" Value="15"
-                                        ValueChanged="OnSettingChanged"/>
-                            </DockPanel>
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
 
                 <!-- MODO AVANÇADO -->
@@ -219,6 +180,38 @@
                           Foreground="{StaticResource PanelFg}" Margin="0,14,0,0"
                           Expanded="OnAvancadoToggled" Collapsed="OnAvancadoToggled">
                     <StackPanel Margin="0,10,0,0">
+
+                        <!-- Ajuste fino da leitura do mapa. Saiu do painel principal na
+                             validação de campo: são três deslizadores que o professor
+                             mexe uma vez e esquece, e ocupavam espaço acima do botão de
+                             executar numa tela de 768px. -->
+                        <GroupBox Header="Aparência do mapa">
+                            <StackPanel>
+                                <TextBlock Text="Altura das montanhas" FontSize="12"/>
+                                <DockPanel Margin="0,3,0,9">
+                                    <TextBlock x:Name="LblMaxHeight" DockPanel.Dock="Right"
+                                               Width="52" TextAlignment="Right" Opacity="0.7"/>
+                                    <Slider x:Name="SldMaxHeight" Minimum="20" Maximum="400" Value="120"
+                                            ValueChanged="OnSettingChanged"/>
+                                </DockPanel>
+
+                                <TextBlock Text="Profundidade dos vales" FontSize="12"/>
+                                <DockPanel Margin="0,3,0,9">
+                                    <TextBlock x:Name="LblMinHeight" DockPanel.Dock="Right"
+                                               Width="52" TextAlignment="Right" Opacity="0.7"/>
+                                    <Slider x:Name="SldMinHeight" Minimum="-300" Maximum="0" Value="-80"
+                                            ValueChanged="OnSettingChanged"/>
+                                </DockPanel>
+
+                                <TextBlock Text="Linhas de altitude" FontSize="12"/>
+                                <DockPanel Margin="0,3,0,0">
+                                    <TextBlock x:Name="LblContour" DockPanel.Dock="Right"
+                                               Width="52" TextAlignment="Right" Opacity="0.7"/>
+                                    <Slider x:Name="SldContour" Minimum="0" Maximum="60" Value="15"
+                                            ValueChanged="OnSettingChanged"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </GroupBox>
 
                         <GroupBox Header="Sensor">
                             <StackPanel>
@@ -296,9 +289,28 @@
                 </StackPanel>
             </ScrollViewer>
 
+            <!-- Ação da simulação: fica FORA da área rolável, presa ao rodapé da
+                 barra. Numa tela de 1366x768 este botão caía 94 pixels abaixo da
+                 borda inferior, e a seção "SIMULAÇÕES" nem chegava a aparecer — o
+                 professor não tinha como executar nada sem descobrir a barra de
+                 rolagem. Medido na validação de campo de 28/08/2026. -->
+            <Border Grid.Row="2" BorderBrush="#FF2C2C36" BorderThickness="0,1,0,0"
+                    Padding="0,10,0,0" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock Text="SIMULAÇÃO" FontSize="11" FontWeight="Bold"
+                               Foreground="{StaticResource Accent}" Margin="0,0,0,6"/>
+                    <ComboBox x:Name="CmbSimulacao" SelectionChanged="OnSimulacaoChanged"/>
+                    <Button x:Name="BtnExecutar" Click="OnExecutarSimulacao"
+                            Style="{StaticResource BotaoPrimario}"
+                            Content="▶  Executar" Margin="0,8,0,0"/>
+                    <Button x:Name="BtnSecar" Click="OnSecar"
+                            Content="Limpar simulação" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
             <!-- Suporte e identidade: fixos, para estarem sempre à mão quando
                  algo dá errado numa aula. -->
-            <Border Grid.Row="2" BorderBrush="#FF2C2C36" BorderThickness="0,1,0,0"
+            <Border Grid.Row="3" BorderBrush="#FF2C2C36" BorderThickness="0,1,0,0"
                     Padding="2,12,2,0" Margin="0,12,0,0">
                     <StackPanel>
                         <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,10"

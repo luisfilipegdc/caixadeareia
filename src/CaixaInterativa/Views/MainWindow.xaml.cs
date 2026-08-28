@@ -644,6 +644,12 @@ public partial class MainWindow : Window
     {
         var quando = CalibrationStore.SavedAt();
 
+        // Depois de calibrada, a instrução já cumpriu o papel. Ela some para devolver
+        // duas linhas de altura à barra lateral, que numa tela de 768px fazem diferença.
+        TxtCalibAjuda.Visibility = _engine.IsCalibrated
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
         if (_engine.IsCalibrated)
         {
             string idade = quando is null
