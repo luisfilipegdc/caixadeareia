@@ -271,3 +271,33 @@ Não mexi: mudar isso é decisão de produto.
 
 **Limitação conhecida ao expor:** o defeito descrito em P2 — célula molhada fica imune
 para sempre, mesmo depois de a água secar. Não afeta o uso normal e está documentado.
+
+---
+
+## Etapa 7 — README reescrito
+
+O README antigo abria com *"Sistema nativo Windows que lê o relevo de uma caixa de areia
+com um Kinect e projeta sobre ela um mapa topográfico"* — descrição de um visualizador,
+não de uma plataforma de ensino. As simulações apareciam como detalhe.
+
+### O que mudou
+
+- Abre pela **experiência pedagógica**, não pela tecnologia.
+- Diagrama Mermaid do ciclo aluno → sensor → ambiente → fenômeno → consequência → aluno.
+- **Três seções de estado, separadas de forma inequívoca:** funciona hoje ·
+  implementado com ressalva · roadmap não implementado. Nada de roadmap aparece como
+  recurso existente.
+- Seção própria de honestidade científica, com a tabela das quatro categorias e as três
+  consequências já aplicadas no código.
+- Diagrama Mermaid da arquitetura **real**, incluindo `CamadaVisual`.
+- Seção de contribuição com as regras que protegem a base: não mexer em `Depth/` sem
+  motivo, não reescrever baseline de regressão, não inventar número científico.
+- Lista explícita do material visual que **falta** — GIF do ciclo, foto da caixa montada,
+  vídeo de comparação A/B — em vez de fingir que existe.
+
+**Verificação:** todos os 8 links relativos e as 2 imagens foram conferidos por script;
+nenhum quebrado. Nenhuma captura nova foi inventada — as duas imagens usadas já existiam
+no repositório.
+
+**Ressalva registrada no próprio README:** as imagens atuais vieram do simulador e do
+sensor sobre uma mesa, não da caixa montada.

@@ -1,39 +1,155 @@
 # Caixa de Areia Interativa
 
-Sistema nativo Windows que lê o relevo de uma caixa de areia com um Kinect e projeta
-sobre ela um mapa topográfico colorido com curvas de nível, atualizado em tempo real
-conforme os alunos moldam a areia.
+**Uma plataforma de ensino onde os estudantes constroem o território com as mãos e o
+software mostra o que acontece com ele.**
 
-**Projeto Caixa de Areia** — Brasília, DF · 2026 ·
-Licenciado sob [GPL-2.0-or-later](LICENSE)
+O aluno molda a areia. Um Kinect mede o relevo trinta vezes por segundo. Um projetor
+devolve sobre a mesma areia um mapa topográfico colorido — e, sobre esse mapa, fenômenos
+ambientais que reagem ao terreno que ele acabou de construir. Chove, e a água escorre pelo
+vale que ele cavou. Ele muda a cobertura do solo, chove de novo, e compara.
+
+A pergunta da aula deixa de ser *"o que é uma bacia hidrográfica?"* e passa a ser
+*"o que acontece com o vale que vocês construíram, se chover assim?"*.
+
+**Projeto Caixa de Areia** — Brasília, DF · 2026 · Licenciado sob
+[GPL-2.0-or-later](LICENSE)
 
 `v1.3` · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
 [Suporte](mailto:contato@luisfilipegdc.com.br) ·
 [Repositório](https://github.com/luisfilipegdc/caixadeareia)
 
-- **Sensor:** Kinect v1 / Kinect for Windows (modelo 1517), via API nativa NUI do SDK 1.8
-- **Plataforma:** .NET 8 + WPF, x64
-- **Renderização:** CPU (Parallel.For), ~30 fps a 640×480
-
-### Documentação
-
-| Documento | O que traz |
-|---|---|
-| 🌐 **[Página do projeto](docs/PROJETO.md)** | Visão geral, resultados medidos e arquitetura — para quem chega sem contexto |
-| 📖 **[Manual do usuário](docs/MANUAL.md)** | Da instalação à primeira aula, sem pressupor conhecimento técnico |
-| 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas até a plataforma de simulações ambientais, com status de cada item |
-| 📐 **[Montagem física](docs/MONTAGEM-FISICA.md)** | Cálculo da altura do sensor, cobertura do campo de visão e throw ratio do projetor |
-| 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, justificativas, os seis bugs e as medições |
-| 🔍 **[Auditoria técnica](docs/AUDITORIA-TECNICA.md)** | Leitura integral do código: arquitetura real, gargalos, dívida técnica e rota de evolução |
-| 🖼️ **[Catálogo de imagens](docs/img/README.md)** | Capturas de cada etapa, com legenda e contexto |
+<p align="center">
+  <img src="docs/img/08-relevo-calibrado.png" width="49%" alt="Relevo real lido pelo Kinect, com curvas de nível">
+  <img src="docs/img/11-chuva-em-andamento.png" width="49%" alt="Chuva em andamento sobre o relevo">
+</p>
 
 ---
 
-## Baixar
+## O ciclo da experiência
 
-**[⬇ CaixaInterativa-v1.3-win-x64.exe](https://github.com/luisfilipegdc/caixadeareia/releases/latest/download/CaixaInterativa-v1.3-win-x64.exe)** — 68 MB · Windows 10/11 64 bits
+```mermaid
+flowchart LR
+    A["Aluno molda<br/>a areia"] --> B["Sensor mede<br/>o relevo"]
+    B --> C["Cobertura do solo<br/>é aplicada"]
+    C --> D["Fenômeno<br/>acontece"]
+    D --> E["Consequência é<br/>projetada na areia"]
+    E --> F["Aluno muda<br/>uma variável"]
+    F --> D
+    E --> G["Professor conduz<br/>a investigação"]
+```
 
-Arquivo único, **não precisa instalar nada**. O .NET já vai embutido; só o
+O relevo vem das mãos dos estudantes. O software define **o que cobre** esse relevo —
+mata, pastagem, cidade — e **que evento** acontece sobre ele. Essa separação é o que
+permite a pergunta mais útil da aula: *mesmo terreno, cobertura diferente, o que muda?*
+
+---
+
+## Estado do projeto
+
+Esta seção existe para não confundir o que já funciona com o que está planejado.
+Nada abaixo da linha "roadmap" existe no código.
+
+### ✅ Funciona hoje
+
+| Recurso | Observação |
+|---|---|
+| Captura com Kinect v1 | 20–29 fps a 640×480, near mode ativo |
+| Calibração de plano-base | Por pixel, salva em disco, recarregada sozinha ao abrir |
+| Mapa topográfico projetado | Rampa hipsométrica, curvas de nível, sombreamento |
+| Alinhamento da projeção | Escala, deslocamento, rotação e espelhamento, salvos |
+| Reconexão automática do sensor | Religa sozinho quando o cabo é esbarrado |
+| **Chuva e enchente** | Escoamento por tubos virtuais, infiltração, saturação do solo |
+| **12 coberturas de solo** | Mata, várzea, pastagem, agricultura, cidade drenada, asfalto… |
+| **Queimada** | Propagação por vento, encosta e combustível; água barra o fogo |
+| **Terremoto** | Ondas, amplificação por tipo de solo, risco de deslizamento |
+| **Comparação entre execuções** | Avisa quando o relevo mudou e a comparação deixa de isolar a variável |
+| Simulador sem hardware | Relevo sintético para preparar aula e desenvolver sem Kinect |
+
+### 🧪 Implementado, com ressalva
+
+| Recurso | Ressalva |
+|---|---|
+| Volumes em litros | **Estimativa.** Dependem da largura que o sensor cobre, ainda não medida em campo. A interface marca com "≈". Porcentagens não têm esse problema |
+| Alinhamento projetor↔caixa | Apenas afim. Projetor muito oblíquo deixa distorção de perspectiva que só uma homografia corrige |
+| Erosão | Calculada a cada quadro, ainda **não exibida** na projeção |
+| Cenários pedagógicos prontos | Seis cenários existem no código (Enchente no RS, várzea preservada, cidade drenada…) e ainda **não têm caminho de interface** |
+| Região de interesse (ROI) | Existe na configuração, sem controle na tela — o mapa cobre todo o campo de visão do sensor |
+
+### 🗺️ Roadmap — **não implementado**
+
+Temas ambientais, biomas (Cerrado, Mata Atlântica, Caatinga), lençol freático, degelo de
+calotas, camada pedagógica declarativa e instalador. O plano completo, com o estado real
+de cada fase, está no **[Roadmap](ROADMAP.md)**.
+
+---
+
+## Honestidade científica
+
+O projeto se compromete a distinguir quatro coisas na tela:
+
+| Categoria | Exemplo neste sistema |
+|---|---|
+| **Medição real** | A distância que o Kinect lê; o plano-base capturado na calibração |
+| **Derivação matemática** | Altura = plano-base − distância; curvas de nível; assinatura do relevo |
+| **Modelo didático** | Infiltração por tipo de solo, propagação do fogo, ondas sísmicas |
+| **Efeito visual** | A rampa de cores, o sombreamento, o clarão da onda |
+
+Consequências práticas, já aplicadas no código:
+
+- **Os parâmetros de solo são qualitativos na interface.** O sistema diz *"absorve muita
+  água"*, não *"absorve 3,2 mm/s"*. Os números existem no modelo, mas exibi-los com uma
+  casa decimal comunicaria uma precisão hidrológica que eles não têm.
+- **Valores absolutos não calibrados vêm marcados.** Litros aparecem com "≈" enquanto a
+  geometria da caixa não for medida.
+- **Comparações avisam quando não são válidas.** Se o relevo mudou entre duas execuções, o
+  sistema diz que parte da diferença pode vir da areia, não da cobertura.
+
+Os coeficientes dos modelos são **valores didáticos**, escolhidos para que a diferença
+entre uma bacia preservada e uma impermeabilizada apareça numa aula de meia hora. A ordem
+de grandeza segue a literatura; o objetivo é o estudante enxergar a relação, não prever
+uma cheia real.
+
+---
+
+## Hardware
+
+| Item | Requisito |
+|---|---|
+| Sensor | **Kinect for Windows modelo 1517** (`VID_045E`, `PID_02BE/02BF`) |
+| Projetor | Qualquer um, o mais próximo possível do eixo vertical da caixa |
+| Computador | Windows 10/11 64 bits |
+| Caixa | ~100×125 cm, com 8–15 cm de areia clara e fosca |
+
+O modelo 1517 importa: é o único que suporta **near mode** (0,4–3,0 m em vez de
+0,8–4,0 m). Com o sensor a cerca de 1 m da areia, é a diferença entre leitura limpa e
+bordas cortadas.
+
+### Montagem
+
+```
+            [ Projetor ]        [ Kinect ]
+                  \                 |
+                   \                |   ~1,3 m
+                    \               |
+        ┌────────────────────────────────────┐
+        │            areia                   │
+        └────────────────────────────────────┘
+```
+
+O cálculo da altura, da cobertura do campo de visão e da relação de projeção está em
+**[Montagem física](docs/MONTAGEM-FISICA.md)** — incluindo o achado de que uma viga longa
+demais deixa parte da caixa fora do campo de visão.
+
+---
+
+## Instalação
+
+### Uso em sala — sem compilar nada
+
+**[⬇ CaixaInterativa-v1.3-win-x64.exe](https://github.com/luisfilipegdc/caixadeareia/releases/latest/download/CaixaInterativa-v1.3-win-x64.exe)**
+— 68 MB · Windows 10/11 64 bits
+
+Arquivo único, com o .NET embutido. Só o
 [Kinect SDK 1.8](https://www.microsoft.com/en-us/download/details.aspx?id=40278) é
 necessário à parte, porque traz o driver do sensor.
 
@@ -41,323 +157,167 @@ necessário à parte, porque traz o driver do sensor.
 > executável sem certificado de assinatura comercial. Clique em *Mais informações* →
 > *Executar assim mesmo*.
 
-Todas as versões: [Releases](https://github.com/luisfilipegdc/caixadeareia/releases)
+Todas as versões: [Releases](https://github.com/luisfilipegdc/caixadeareia/releases).
+
+### Driver do sensor
+
+Se o Kinect já foi usado com libfreenect ou OpenNI, a câmera pode estar presa ao driver
+`libusb-win32`, e `NuiGetSensorCount` devolve zero. No Gerenciador de Dispositivos,
+desinstale *Microsoft Kinect Camera* marcando *Excluir o software de driver*, e reconecte
+o sensor — o driver da Microsoft assume.
+
+O Kinect v1 consome quase toda a banda de um controlador USB 2.0. Se aparecer *"Banda USB
+insuficiente"*, use uma porta ligada a outro controlador. **A fonte de energia externa é
+obrigatória.**
 
 ---
 
-## Hardware detectado nesta máquina
+## Desenvolvimento
 
-```
-USB\VID_045E&PID_02BE   Microsoft Kinect Audio
-USB\VID_045E&PID_02BF   Microsoft Kinect Camera   <-- driver atual: libusb-win32
-USB\VID_045E&PID_02AD   Xbox Kinect Audio          (entrada órfã de instalação anterior)
-```
-
-`PID_02BE/02BF` identifica um **Kinect for Windows (1517)** — bom, porque é o único modelo
-que suporta *near mode* (0,4–3,0 m em vez de 0,8–4,0 m). Numa caixa de areia com o sensor
-a cerca de 1 m, near mode é a diferença entre leitura limpa e bordas cortadas.
-
----
-
-## Pré-requisitos
-
-> **Status nesta máquina: tudo já instalado e verificado.**
-> .NET 8 SDK 8.0.424 · Kinect SDK 1.8 (`Kinect10.dll 1.8.0.595`) · câmera migrada do
-> `libusb-win32` para o driver **Kinect for Windows**, status OK · captura real validada
-> a 26 fps. Os passos abaixo ficam registrados para reinstalação em outra máquina.
-
-### 1. .NET 8 SDK
-
-A máquina tem apenas o *runtime*. Para compilar é preciso o SDK:
+### Compilar e executar
 
 ```bash
-winget install --id Microsoft.DotNet.SDK.8 --source winget
-```
-
-### 2. Kinect for Windows SDK 1.8
-
-Baixe de `https://www.microsoft.com/en-us/download/details.aspx?id=40278` e instale.
-Ele coloca a `Kinect10.dll` em `C:\Windows\System32` — é essa DLL que o projeto chama
-por P/Invoke. Não é preciso instalar o Developer Toolkit.
-
-### 3. Devolver a câmera ao driver da Microsoft
-
-**Este passo é obrigatório nesta máquina.** A câmera está vinculada ao `libusb-win32`,
-resíduo de um projeto anterior baseado em libfreenect/OpenNI. Enquanto isso não mudar,
-`NuiGetSensorCount` retorna zero e o app não verá o sensor.
-
-1. Abra o Gerenciador de Dispositivos (`devmgmt.msc`)
-2. Em **libusb-win32 devices**, localize *Microsoft Kinect Camera*
-3. Botão direito → **Desinstalar dispositivo** → marque *Excluir o software de driver*
-4. Desconecte e reconecte o Kinect
-5. O driver da Microsoft (instalado no passo 2) assume; o dispositivo deve reaparecer
-   em **Kinect for Windows → Kinect for Windows Camera**
-
-Se o libusb voltar sozinho, use *Atualizar driver → Procurar no computador → Escolher
-numa lista* e selecione explicitamente o driver Kinect da Microsoft.
-
-> As entradas duplicadas de áudio (`02AD` com status *Unknown*) são inofensivas —
-> resíduo de registro do mesmo aparelho. Podem ser removidas com o Gerenciador de
-> Dispositivos mostrando dispositivos ocultos.
-
-### 4. Porta USB
-
-O Kinect v1 consome quase toda a banda de um controlador USB 2.0. Se aparecer
-*"Banda USB insuficiente"*, mude para uma porta ligada a **outro controlador** — em
-notebooks, normalmente as portas de lados opostos do chassi. A fonte de energia externa
-é obrigatória; só o cabo USB não alimenta o sensor.
-
----
-
-## Compilar e executar
-
-```bash
-dotnet build src/CaixaInterativa/CaixaInterativa.csproj -c Release
+dotnet build CaixaInterativa.sln -c Release
 ```
 
 ```bash
 dotnet run --project src/CaixaInterativa/CaixaInterativa.csproj -c Release
 ```
 
----
+Requer o [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). O projeto é
+`net8.0-windows`, x64, e **não tem nenhuma dependência NuGet** — todo o acesso ao sensor é
+P/Invoke próprio.
 
-## Montagem física
+### Sem Kinect na mesa
 
-```
-            [ Projetor ]        [ Kinect ]
-                  \                 |
-                   \                |   ~0,9 a 1,2 m
-                    \               |
-        ┌────────────────────────────────────┐
-        │            areia                   │
-        └────────────────────────────────────┘
-```
+O `SimulatedDepthSource` gera um relevo sintético com a mesma geometria do sensor real
+(640×480, ruído de ~2 mm, ~0,5% de pixels inválidos). Dá para desenvolver, alinhar o
+projetor e preparar a aula inteira sem hardware.
 
-- Kinect **perpendicular** à caixa, centralizado, entre 0,9 m e 1,2 m acima da areia nivelada
-- Projetor o mais próximo possível do mesmo eixo — quanto mais oblíquo, mais distorção
-  de perspectiva, que o alinhamento afim atual **não** corrige (veja *Limitações*)
-- Camada de areia de 8–15 cm, para que haja o que escavar e o que empilhar
-- Areia clara e fosca lê melhor no infravermelho; evite areia molhada e superfícies brilhantes
-- Sala com pouca luz solar direta — o sol tem infravermelho suficiente para cegar o sensor
+No app: **Ajustes técnicos → Usar simulador**. Marcando *Simulador: areia plana* dá para
+exercitar o fluxo de calibração, que exige uma superfície nivelada.
 
----
+### Testes
 
-## Uso
-
-### No dia a dia
-
-Abra pelo atalho **Caixa Interativa**. O programa liga o sensor sozinho e carrega a
-calibração da última vez — o relevo aparece sem você tocar em nada.
-
-O **semáforo no topo** diz o que está acontecendo e o que fazer:
-
-| Luz | Significado |
-|---|---|
-| 🟢 Pronto | Tudo funcionando |
-| 🟡 Nivele a areia e toque em Calibrar | Lendo o sensor, mas ainda sem referência |
-| 🔵 Calibrando | Não mexa na areia |
-| 🟡 Reconectando | O sensor caiu; religa sozinho |
-| 🔴 Erro | Precisa de atenção |
-
-### Primeira vez, ou depois de mexer no sensor
-
-1. **Ligar a caixa**
-2. **Abrir projeção** e alinhar: tecle **G** para a grade, ajuste com as setas, **S** para salvar
-3. Alise a areia, tire as mãos e toque em **Nivelar e calibrar**
-4. Confira a cobertura — abaixo de 80% o programa avisa o que verificar
-5. Ajuste *Altura das montanhas* até as cores cobrirem o relevo que os alunos conseguem fazer
-
-A calibração fica salva. Nas próximas aulas, basta abrir.
-
-Só é preciso recalibrar se o sensor ou a caixa forem movidos.
-
-### Ensaiar sem hardware
-
-Em **Ajustes técnicos → Usar simulador**. Para reproduzir o fluxo completo de calibração,
-marque *Simulador: areia plana*, calibre, e desmarque — o relevo sintético aparece já
-calibrado. Foi assim que a pipeline foi validada antes de haver sensor.
-
-### Atalhos na janela de projeção
-
-| Tecla | Ação |
-|---|---|
-| Setas | mover (Shift = 10×) |
-| `+` / `-` | escala uniforme |
-| Ctrl + Setas | escala X / Y separadas |
-| `R` / `E` | girar |
-| `H` / `V` | espelhar horizontal / vertical |
-| `G` | grade de alinhamento |
-| `C` | calibrar plano-base |
-| `S` | salvar configuração |
-| `F1` | mostrar/ocultar ajuda |
-| `Esc` | fechar projeção |
-
----
-
-## Como funciona
-
-```
-Kinect ──► KinectV1Source ──► DepthProcessor ──► TopographicRenderer ──► ProjectionWindow
-           (P/Invoke NUI)     (mm → altura)      (cor + curvas)          (WriteableBitmap)
+```bash
+dotnet test CaixaInterativa.sln -c Release
 ```
 
-### Três armadilhas do interop NUI
+Nenhum teste precisa de Kinect. A suíte cobre, entre outras coisas:
 
-Todas custaram depuração e estão documentadas no código para não voltarem:
-
-1. **`NuiImageStreamGetNextFrame` devolve um ponteiro, não a struct.** A assinatura da API
-   flat é `CONST NUI_IMAGE_FRAME **ppcImageFrame` — diferente do método homônimo da
-   interface `INuiSensor`, que preenche a struct por valor. Declarar `out NuiImageFrame`
-   faz o runtime escrever apenas os 8 bytes do ponteiro no início da struct; o resto fica
-   com lixo, o `pFrameTexture` aparente vira endereço inválido e o processo morre com
-   **0xC0000374 (heap corruption)** na primeira leitura. O sintoma não aponta para a causa.
-
-2. **A profundidade vem deslocada 3 bits, mesmo em `NUI_IMAGE_TYPE_DEPTH`.** Os bits
-   reservados ao índice de jogador continuam presentes: os milímetros estão nos bits 15..3.
-   Sem o `>> 3`, todas as distâncias saem 8× maiores — e o sinal de que é isso, e não outra
-   coisa, é que *todos* os valores lidos são múltiplos de 8 e o máximo é exatamente
-   `0x1FFF << 3 = 65528`.
-
-3. **`NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE` é `0x00020000`.** `0x00040000` é
-   `TOO_FAR_IS_NONZERO`. Trocar os dois não gera erro — `NuiImageStreamSetImageFrameFlags`
-   retorna `S_OK` de qualquer forma — e o sintoma engana: o alcance mínimo permanece em
-   800 mm e tudo mais perto lê zero, exatamente como se a superfície não devolvesse
-   infravermelho. Medido na mesa: com a flag errada, 6,9% de cobertura e mínimo de 801 mm;
-   com a correta, **66,4% e mínimo de 455 mm**.
-
-O retorno de `SetImageFrameFlags` não prova que o near mode foi aplicado. A verificação
-confiável é empírica: com near mode ativo aparecem leituras abaixo de 800 mm.
-
-Se algo parecido reaparecer, o caminho que funcionou foi: preencher o buffer com `0xCD`
-antes da chamada nativa e conferir quantos bytes foram de fato escritos, e validar a vtable
-com `BufferLen()`/`Pitch()` — que retornam inteiros conhecidos (614400 e 1280) sem escrever
-memória, portanto não travam o processo se os slots estiverem errados.
-
-**`DepthProcessor`** é onde mora a diferença entre uma projeção utilizável e uma que
-"ferve". O Kinect v1 tem ~2–4 mm de ruído nessa distância e produz pixels inválidos nas
-bordas dos objetos. Três etapas, nesta ordem:
-
-1. **Buracos** — pixel inválido mantém o último valor bom, em vez de virar zero.
-   Zerar criaria crateras piscando nas bordas das mãos.
-2. **Tempo** — filtro exponencial com α adaptativo. Areia parada usa α lento (estável);
-   uma mão entrando produz salto acima do limiar e usa α rápido (responsivo). Um α único
-   obrigaria a escolher entre tremor e arrasto.
-3. **Espaço** — box blur separável, custo O(1) por pixel independente do raio.
-
-O **plano-base é armazenado por pixel**, não como um número único. Assim uma caixa
-levemente torta ou um sensor não perfeitamente perpendicular não vira um gradiente falso
-atravessando o mapa inteiro.
+- **Regressão visual byte a byte** do renderizador, em oito combinações de fenômenos
+- Conservação de massa e comportamento do solver de água
+- Imunidade da assinatura do relevo ao ruído do sensor
+- Que os coeficientes dos modelos didáticos não mudaram sem querer
 
 ---
 
-## Limitações conhecidas
+## Arquitetura
 
-- **Alinhamento apenas afim.** Escala, deslocamento, rotação e espelhamento. Se o projetor
-  estiver bem oblíquo em relação à caixa, sobra distorção de perspectiva que só uma
-  homografia de 4 cantos corrige. É o próximo passo natural.
-- **Sem simulação de água.** O MVP é topografia. Água/chuva é iterativa e pede GPU —
-  provavelmente um shader HLSL ou migração da renderização para um pipeline D3D.
-- **Sem correção da distorção da lente** do Kinect. Nas bordas do campo de visão há erro
-  de alguns milímetros; irrelevante para uso pedagógico, relevante para medição.
-- **Faixa de leitura útil.** Com `MaxValidDepthMm = 2000`, qualquer coisa além de 2 m é
-  descartada. Se o sensor for montado mais alto que isso, ajuste o valor em `config.json`.
+```mermaid
+flowchart TD
+    K["Kinect v1<br/><i>P/Invoke NUI</i>"] --> S
+    SIM["SimulatedDepthSource<br/><i>relevo sintético</i>"] --> S
+    S["IDepthSource"] -->|"RawDepthFrame"| D["DepthProcessor<br/><i>buracos · suavização · plano-base</i>"]
+    D -->|"float[] alturas em mm"| E["SandboxEngine"]
+    E --> M["ISimulationModule[]<br/><i>água · fogo · terremoto</i>"]
+    M -->|"CamadaVisual[]"| R["TopographicRenderer"]
+    D --> R
+    R -->|"byte[] BGRA"| W["WriteableBitmap"]
+    W --> P["ProjectionWindow"]
+    W --> U["MainWindow<br/><i>painel do professor</i>"]
+    P --> PR(["Projetor"])
+```
 
----
+**A ideia que sustenta a extensibilidade:** cada simulação declara `CamadaVisual` — um
+campo escalar com dimensões, ordem de composição, modo de cor e limiar. O renderizador
+sabe **como** desenhar cada modo; não sabe **qual** módulo produziu o campo. Acrescentar
+um fenômeno não exige tocar no renderizador.
 
-## Estrutura
+### Estrutura
 
 ```
 src/CaixaInterativa/
-├── Depth/
-│   ├── IDepthSource.cs          contrato de fonte de profundidade
-│   ├── NuiNative.cs             P/Invoke para Kinect10.dll
-│   ├── KinectV1Source.cs        captura real
-│   └── SimulatedDepthSource.cs  relevo sintético, sem hardware
+├── Depth/            captura e abstração de hardware
+│   ├── IDepthSource.cs           contrato de fonte de profundidade
+│   ├── NuiNative.cs              P/Invoke para Kinect10.dll
+│   ├── KinectV1Source.cs         captura real
+│   └── SimulatedDepthSource.cs   relevo sintético
 ├── Processing/
-│   └── DepthProcessor.cs        calibração, buracos, suavização
+│   ├── DepthProcessor.cs         calibração, buracos, suavização
+│   └── AssinaturaDoRelevo.cs     "a areia é a mesma de antes?"
+├── Simulation/
+│   ├── ISimulationModule.cs      contrato de fenômeno
+│   ├── SoilMap.cs                12 coberturas e suas propriedades
+│   ├── WaterSimulation.cs        tubos virtuais, infiltração, erosão
+│   ├── FireSimulation.cs         autômato celular de propagação
+│   ├── EarthquakeSimulation.cs   ondas e amplificação por solo
+│   └── Cenarios.cs               cenários pedagógicos (sem UI ainda)
 ├── Rendering/
-│   └── TopographicRenderer.cs   rampa hipsométrica, curvas, sombreamento
-├── Config/
-│   └── AppConfig.cs             persistência em config.json
-├── Views/
-│   ├── MainWindow.xaml          painel de controle
-│   └── ProjectionWindow.xaml    tela cheia no projetor
-└── SandboxEngine.cs             orquestração
+│   ├── CamadaVisual.cs           contrato de camada
+│   └── TopographicRenderer.cs    rampa, curvas, sombreamento, composição
+├── Config/                       persistência e calibração em disco
+├── Views/                        painel do professor e janela de projeção
+└── SandboxEngine.cs              orquestração
+tests/CaixaInterativa.Tests/      regressão visual e comportamento
 ```
 
 ---
 
-## Suporte
+## Princípios
 
-| | |
-|---|---|
-| **Página do projeto** | https://luisfilipegdc.com.br/caixa-de-areia |
-| **Suporte** | [Enviar e-mail](mailto:contato@luisfilipegdc.com.br) |
-| **Repositório** | https://github.com/luisfilipegdc/caixadeareia |
-| **Versão atual** | 1.0.1 |
-| **Licença** | [GPL-2.0-or-later](LICENSE) |
-
-Esses mesmos endereços estão dentro do programa, no bloco **Ajuda e suporte** do painel —
-para que o professor os encontre durante a aula, sem precisar procurar aqui.
-
-Ao relatar um problema, ajuda muito informar:
-
-- a **versão** (aparece no título da janela e no rodapé do painel)
-- o que o **semáforo de estado** mostrava no momento
-- a **cobertura da calibração**, se o problema for no mapa
-- o modelo do Kinect e se o *near mode* estava ligado
-
-O link "Falar com o suporte" dentro do programa já preenche o assunto do e-mail com a
-versão, para poupar essa primeira pergunta.
+1. **Não destruir uma base funcional em nome de arquitetura mais bonita.** O interop com o
+   Kinect foi depurado com hardware real e três bugs caros; mexer nele exige motivo forte.
+2. **Um módulo completo por vez** — simulação, interface e material pedagógico — antes de
+   começar o próximo.
+3. **Comentar o porquê, com o número medido junto.** O padrão da base é registrar a
+   alternativa descartada e o motivo.
+4. **Nunca apresentar modelo didático como medição.**
+5. **A aula nasce da comparação**, não da animação bonita.
 
 ---
 
-## Autoria e licença
+## Documentação
 
-**Caixa de Areia Interativa**
-Copyright © 2026 Projeto Caixa de Areia — Brasília, DF
-
-Este é um **projeto autoral**, inspirado em iniciativas acadêmicas anteriores. A autoria
-não depende de negar as referências: ela está nas decisões de arquitetura, na
-implementação, nos testes com hardware real, na adaptação ao contexto escolar brasileiro
-e no planejamento pedagógico.
-
-O que foi construído especificamente para este projeto:
-
-- Aplicação nativa em C# / .NET 8 com WPF
-- Captura do Kinect implementada diretamente pela API NUI, por P/Invoke
-- Pipeline próprio de calibração por pixel, suavização em três etapas e renderização
-- Interface, diagnóstico e fluxo de operação desenhados para uso em sala de aula
-- Cálculo da geometria de montagem a partir da estrutura física real
-- Documentação técnica e roteiro pedagógico
-
-### Referências reconhecidas
-
-| Referência | Contribuição histórica |
+| Documento | O que traz |
 |---|---|
-| [Augmented Reality Sandbox](https://arsandbox.ucdavis.edu/) — UC Davis / KeckCAVES | Conceito de medir o relevo com sensor de profundidade e projetar topografia e água |
-| Caixa e-Água — Universidade Regional de Blumenau (FURB), 2017 | Aplicação universitária brasileira baseada em Vrui, Kinect e SARndbox |
-| Magic-Sand | Porte parcial do SARndbox para openFrameworks/Windows |
+| 📖 **[Manual do usuário](docs/MANUAL.md)** | Da instalação à primeira aula, sem pressupor conhecimento técnico |
+| 🌐 **[Página do projeto](docs/PROJETO.md)** | Visão geral, resultados medidos e arquitetura |
+| 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas, com o estado real de cada uma |
+| 📐 **[Montagem física](docs/MONTAGEM-FISICA.md)** | Altura do sensor, campo de visão, relação de projeção |
+| 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, bugs e medições |
+| 🔍 **[Auditoria técnica](docs/AUDITORIA-TECNICA.md)** | Leitura integral do código: arquitetura real, gargalos, dívida |
+| 🖼️ **[Catálogo de imagens](docs/img/README.md)** | Capturas de cada etapa, com contexto |
 
-Estas iniciativas estabeleceram o conceito. A implementação aqui é independente — não
-deriva do código-fonte de nenhuma delas.
+---
 
-### Licença
+## Contribuir
 
-Distribuído sob a **Licença Pública Geral GNU, versão 2 ou posterior**
-(GPL-2.0-or-later). O texto completo está em [LICENSE](LICENSE).
+O projeto aceita contribuições. Antes de abrir um PR:
 
-Em termos práticos, você pode usar, estudar, modificar e redistribuir este software,
-inclusive em escolas e projetos próprios. Em contrapartida, **trabalhos derivados devem
-permanecer sob a mesma licença e preservar os avisos de autoria** — foi essa a escolha:
-manter o projeto aberto e garantir que continue aberto.
+- **Rode os testes.** `dotnet test` precisa passar, incluindo a regressão visual byte a
+  byte. Se a imagem mudar, isso é um resultado a explicar, não um baseline a reescrever.
+- **Não altere `Depth/` nem `DepthProcessor` sem necessidade demonstrada.** É código
+  validado com hardware que nem todo colaborador tem na mesa.
+- **Não invente números científicos.** Parâmetro didático novo precisa declarar que é
+  didático e por que aquela ordem de grandeza.
+- **Comente o porquê.** Um comentário que explica a alternativa descartada vale mais que
+  três que descrevem o que a linha faz.
+- **Commits pequenos**, com mensagem que diz a intenção.
 
-Se usar este trabalho em pesquisa, material didático ou apresentação, a citação sugerida é:
+Para entender o código antes de mexer, os pontos de entrada mais úteis são
+`SandboxEngine.cs`, `ISimulationModule.cs` e `TopographicRenderer.cs`.
 
-> **Caixa de Areia Interativa**: plataforma de projeção topográfica para ensino de
-> geografia e ciências ambientais. Versão 1.0.1. Projeto Caixa de Areia, Brasília, 2026.
-> Disponível em: https://luisfilipegdc.com.br/caixa-de-areia
+---
 
-Este programa é distribuído na esperança de que seja útil, mas **sem qualquer garantia**;
-sem sequer a garantia implícita de comercialização ou adequação a uma finalidade
-específica. Consulte a Licença Pública Geral GNU para mais detalhes.
+## Material visual que ainda falta
+
+Registrado aqui para quem puder produzir:
+
+- Um GIF curto do ciclo completo: mão modelando a areia e a projeção acompanhando
+- Foto da caixa montada com o pórtico, o sensor e o projetor
+- Vídeo de uma comparação A/B: mesmo relevo, mata × área urbana, mesma chuva
+- Captura da queimada em andamento sobre relevo real
+
+As imagens atuais em `docs/img/` foram feitas com o simulador e com o sensor sobre uma
+mesa — não sobre a caixa montada.
