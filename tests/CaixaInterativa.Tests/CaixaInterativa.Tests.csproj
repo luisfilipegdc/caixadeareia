@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CaixaInterativa\CaixaInterativa.csproj" />
+    <ProjectReference Include="..\..\tools\CaixaInterativa.DataPrep\CaixaInterativa.DataPrep.csproj" />
   </ItemGroup>
 
 </Project>
