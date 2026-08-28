@@ -25,7 +25,8 @@ do levantamento de hardware até o app rodando com o sensor real.
 14. [Placar final](#placar-final)
 15. [Lições](#lições)
 16. [Estado atual e próximos passos](#estado-atual-e-próximos-passos)
-17. [Apêndices](#apêndices)
+17. [Sessão 2 — A auditoria](#sessão-2--a-auditoria-27-de-agosto-de-2026)
+18. [Apêndices](#apêndices)
 
 ---
 
@@ -770,6 +771,246 @@ sensor real, uma cena real e sombras de infravermelho reais.
    espalha infravermelho de forma diferente de uma superfície lisa
 3. **Homografia de 4 cantos**, se a montagem do projetor exigir
 4. **Simulação de água** — o módulo que transforma o mapa em aula de bacia hidrográfica
+
+---
+
+## Sessão 2 — A auditoria (27 de agosto de 2026)
+
+Seis dias depois da sessão de construção, o projeto estava em outro lugar: versão 1.3, com
+módulos de água, solo, terremoto e queimada, manual do usuário, página de projeto e
+executável publicado. E a caixa física finalmente montada — a Fase 2 do roadmap, que tinha
+sido pulada, foi concluída em campo.
+
+Antes de abrir novas frentes (temas de bioma, queimada interativa, degelo das calotas),
+valia parar e responder uma pergunta que ninguém tinha feito ainda:
+
+> **Esta base de código consegue virar uma plataforma com dezenas de experiências, ou vai
+> virar um monólito de modos hardcoded?**
+
+Esta seção registra o que a leitura integral do código respondeu. O relatório completo está
+em **[AUDITORIA-TECNICA.md](AUDITORIA-TECNICA.md)**; aqui fica a narrativa e o que ela
+mudou de decisão.
+
+### O achado que mudou o plano: capacidade construída e desconectada
+
+A primeira surpresa não foi arquitetural. Foi de integração.
+
+`FireSimulation` tem 350 linhas funcionais — propagação por autômato celular, vento,
+efeito de encosta, barreira de água, e a gravação da cicatriz no mapa de solo para que a
+chuva seguinte encontre um território diferente. Está instanciada no `SandboxEngine`,
+atualizada no tick, desenhada pelo renderizador e com painel próprio na projeção.
+
+**E nada no projeto chama `Atear()`.** O combo de simulações oferece "Chuva" e "Terremoto".
+A queimada roda no motor e não tem interruptor.
+
+Puxando esse fio, apareceram mais:
+
+| O que existe | Chamadas de fora |
+|---|---|
+| `FireSimulation.Atear` | 0 |
+| `Cenario.Todos` — os seis cenários pedagógicos | 0 |
+| `WaterSimulation.DespejarEm` | 0 |
+| `WaterSimulation.PreSaturar` | 0 |
+| `SoilMap.Pintar` / `Composicao` | 0 |
+| `WaterSimulation.Erosao` / `ErosaoTotal` | calculados todo quadro, nunca exibidos |
+| `WaterSimulation.EscoadoLitros` | **nunca calculado — é sempre 0** |
+
+Os seis cenários são o caso mais caro. "Enchente no Rio Grande do Sul", "A mesma enchente
+com a várzea preservada", "Cidade que planejou a drenagem" — cada um com contexto real,
+pergunta investigativa, composição de solo por altitude e saturação inicial. É exatamente
+a camada pedagógica que o roadmap descreve como o diferencial do projeto, e ela está
+inalcançável.
+
+**A lição:** o gargalo não era falta de capacidade. Era falta de costura. Conectar o que já
+existe é a maior razão custo/benefício do projeto inteiro, e é trabalho de interface, não
+de arquitetura.
+
+### O gargalo arquitetural real
+
+`ISimulationModule` foi escrita para ser o ponto de extensão. Três classes a implementam.
+
+**Zero as usam polimorficamente.** Nenhuma `List<ISimulationModule>`, nenhum parâmetro
+desse tipo, em todo o repositório. O `SandboxEngine` guarda campos concretos: `Agua`,
+`Terremoto`, `Fogo`. A interface é documentação com sintaxe de C#.
+
+O motivo dela não poder ser usada ficou claro ao ler o renderizador: **a interface não diz
+nada sobre saída visual**. Um módulo produz `Profundidade`, outro `Calor`, outro
+`Intensidade` — e quem sabe compor isso é o `TopographicRenderer`, por código escrito à
+mão. A assinatura de `Render()` tem **16 parâmetros, 11 deles específicos de módulos**, e o
+corpo tem três blocos `if` nomeados: água, terremoto, fogo.
+
+Resultado prático: **adicionar um fenômeno hoje custa seis arquivos**, com cadeias de
+`switch` em quatro deles. E o padrão já começou:
+
+```csharp
+// Views/MainWindow.xaml.cs
+private enum Simulacao { Chuva, Terremoto }
+```
+
+Esse enum é a semente da explosão de modos. Com dois itens ainda é inofensivo; com doze,
+é o monólito que a pergunta da auditoria queria evitar.
+
+**A boa notícia:** o acoplamento não está espalhado por 6.000 linhas. Está em três pontos —
+a assinatura do `Render`, o laço de pixels e o enum da UI. As simulações em si são classes
+autocontidas que não conhecem a UI, nem o renderizador, nem o Kinect. A cirurgia é pequena.
+
+### O problema de honestidade científica que ninguém tinha visto
+
+O projeto declara, no roadmap, que o software deve distinguir medição de modelo. Auditando
+cada etapa contra esse critério, o código passa bem: `EarthquakeSimulation` declara no
+próprio `<summary>` que é modelo didático, `PropriedadesDoSolo` declara que os números não
+são medições de campo, `VelocidadeOndaMmPorSegundo` explica por que é deliberadamente
+irreal.
+
+**O problema é que essa ressalva nunca sai do código-fonte.**
+
+Duas violações concretas:
+
+**1. Falsa precisão na tela.** `PropriedadesDoSolo.Resumo` monta a string que o professor
+lê ao escolher uma cobertura:
+
+> *"Mata — Absorve 3,2 mm/s · guarda até 160 mm · resiste 95% à erosão"*
+
+Uma casa decimal em mm/s comunica precisão hidrológica. O comentário que diz que são
+valores didáticos está doze linhas acima, no código. É exatamente o risco de *"Cerrado =
+infiltração 0,65"* — e já está em produção.
+
+**2. Litros calculados com uma constante que ninguém configurou.**
+
+```csharp
+public WaterSimulation(int larguraSensor, int alturaSensor, float larguraCaixaMm = 1250f)
+```
+
+O `SandboxEngine` sempre usa o padrão. Esse 1250 mm vira o tamanho de célula, que vira a
+área, que vira `VolumeLitros` — projetado na parede em fonte 34, como se fosse medição. Mas
+a caixa tem 101 cm de largura, e o eixo de 640 px do sensor cobre `1,0859 × distância` —
+a 1,28 m, cerca de 139 cm. **A área de célula tem erro sistemático de ordem de 25%.**
+
+E não existe nenhuma relação estabelecida entre o campo de visão do sensor e as bordas
+físicas da caixa: a ROI existe em `ProjectionSettings`, tem padrão de quadro inteiro, e
+**não tem interface** — só é editável à mão no `config.json`.
+
+**A decisão que isso força:** enquanto a geometria real da caixa não for medida e
+configurada, nenhum valor absoluto deveria ser exibido. Grandezas relativas (% alagado,
+razão entre cenários) continuam válidas e são, aliás, as que respondem à pergunta da aula.
+
+### A comparação de cenários — a melhor ideia, com o pior bug
+
+`MainWindow.Registrar` e `AtualizarComparacao` implementam a comparação controlada que o
+projeto sempre quis, e produzem a frase certa:
+
+> *"Área urbana teve 2,4× o resultado de Mata, na mesma simulação."*
+
+Pedagogicamente é o melhor do projeto. Mas a chave do histórico é `(Simulação, Cobertura)`
+— **o relevo não entra**. Se os alunos mexerem na areia entre as duas execuções, o sistema
+compara terrenos diferentes e apresenta a razão como se fosse causada pela cobertura.
+
+**É uma conclusão cientificamente falsa apresentada como resultado da aula.** Num software
+cujo princípio declarado é honestidade científica, esse é o bug mais grave encontrado — e
+é de lógica, não de física.
+
+A correção é também uma oportunidade: quando o relevo mudar entre execuções, o software
+deveria dizer *"a comparação não isola o efeito da cobertura"*. Isso ensina controle de
+variáveis de graça, como efeito colateral de funcionar direito.
+
+### O que a auditoria confirmou que está certo
+
+Nem tudo foi problema. Vale registrar o que passou no escrutínio, porque isso define o que
+**não** mexer:
+
+- **O timer a 60 Hz sobre um sensor de 30 fps está correto.** Há um guard por
+  `FrameNumber` que impede reprocessar o mesmo quadro; o timer rápido só reduz a espera
+  média de ~16 ms para ~8 ms. É otimização de latência real, não desperdício.
+- **A abstração de hardware cumpre o que promete.** As simulações não têm nenhuma
+  dependência de Kinect. Trocar de sensor ou adicionar replay de aula exigiria mexer só na
+  `MainWindow`.
+- **O solver de água é sólido.** O limitador que impede uma célula de entregar mais água do
+  que tem é a diferença entre conservar massa e "criar água do nada". Os substeps por CFL
+  preservam o fenômeno em vez de deformá-lo para caber no orçamento.
+- **`CalibrationStore` grava em `.tmp` e move por cima** — atômico, protegido contra queda
+  de energia no meio da gravação.
+- **`AppConfig.Load` engole exceção e volta aos padrões** — porque config corrompida não
+  pode impedir o app de abrir numa sala de aula.
+
+E o interop do NUI, que custou os três bugs desta mesma sessão, está correto e — mais
+valioso — documentado **com o sintoma**, não só com a solução. Foi a única parte do código
+que a auditoria recomendou explicitamente não tocar.
+
+### Dois riscos novos, encontrados na leitura
+
+**O sensor que para de falar sem desconectar.** O laço de captura trata `WAIT_TIMEOUT` com
+`continue`, indefinidamente. Desconexão dura dispara exceção e aciona a reconexão
+automática; mas um sensor que simplesmente emudece produz **tela congelada, sem mensagem e
+sem reconexão**. É o modo de falha mais provável numa sala de aula, e é o único não
+tratado.
+
+**A barreira de água do fogo é um trinco permanente.** Quando `TentarAcender` encontra
+água, marca a célula como `NaoQueima` — estado terminal. A decisão é tomada uma vez. Isso
+significa que **um canal cavado durante o incêndio não barra o fogo** — justamente a
+interação que se queria construir.
+
+### O que mudou de decisão
+
+| Antes da auditoria | Depois |
+|---|---|
+| "Construir a simulação de queimada" | Ela existe. **Ligar** na UI e corrigir o trinco da água |
+| "Adicionar temas de bioma (cor)" | Temas trocam cor **e** cobertura padrão **e** faixas de parâmetro — senão é enfeite |
+| "Começar pelos biomas" | Antes: camadas visuais no renderizador. Sem isso, cada fenômeno novo custa 6 arquivos |
+| "Otimizar / considerar GPU" | Sem evidência de que a CPU seja o limite. O gargalo é arquitetural. GPU acrescenta dependência de driver numa máquina de escola |
+| "A comparação de cenários funciona" | Funciona e pode mentir. Precisa da assinatura do relevo na chave |
+| "Os números da interface estão ok" | Falsa precisão e litros com erro de ~25%. Corrigir antes de novas aulas |
+
+### Placar da auditoria
+
+| Categoria | Achados |
+|---|---|
+| Abstrações mortas | 1 (`ISimulationModule`) |
+| Capacidade construída e inalcançável | 7 membros públicos + 6 cenários + 1 módulo inteiro |
+| Bugs de severidade alta ou crítica | 5 |
+| Gargalos de performance comprovados | 6 (o maior: 18 MB/s de alocação em LOH) |
+| Violações do princípio de honestidade | 3 |
+| Testes automatizados existentes | **0** |
+| Linhas de log em arquivo | **0** |
+| Código estimado como preservável | **~75%** |
+
+### Veredito
+
+A fundação está certa: captura, processamento, calibração e persistência estão em nível de
+produção. As duas fronteiras difíceis — hardware e física — já estão desacopladas. A
+fronteira que falta, a de saída visual, é a mais fácil de construir.
+
+Curiosamente, o desenho correto já estava escrito: o `<summary>` de `ISimulationModule`
+descreve **exatamente** a arquitetura-alvo que a auditoria recomenda. Quem escreveu tinha o
+plano certo e parou antes de terminar de aplicá-lo.
+
+**Evolução incremental, sem reescrita.** Uma reescrita jogaria fora meses de depuração de
+interop que não se recupera lendo documentação — as três armadilhas do NUI, a calibração
+dos filtros, os limiares descobertos por tentativa. As mudanças necessárias são duas
+assinaturas de método, um enum e um catálogo.
+
+### Próximos passos revistos
+
+1. **Log em arquivo** — a caixa física está pronta e as aulas começam; sem log, problema em
+   sala vira relato sem evidência
+2. **Timeout do sensor → `Faulted`** — o modo de falha mais provável, hoje não tratado
+3. **Projeto de testes** com os quatro invariantes de física — rede antes de mexer no que
+   importa
+4. **Camadas visuais no renderizador** — destrava todo o resto
+5. **Catálogo de módulos**, matando o `enum Simulacao` — e, na sequência, conectar a
+   queimada e os seis cenários
+
+### Pendência de registro
+
+A montagem física foi concluída, mas as medidas de campo ainda não entraram nos
+documentos. Falta registrar: comprimento final da viga, altura do sensor até a areia,
+cobertura medida em %, modelo e posição do projetor, e o que de fato aconteceu com os
+riscos previstos — sombra de infravermelho das mãos, ruído da areia real, escala do
+relevo. Até que isso seja feito, `ROADMAP.md` e `MONTAGEM-FISICA.md` continuam afirmando
+que nada rodou sobre areia de verdade.
+
+E há uma medição que virou pré-requisito de honestidade, não de performance: **as
+dimensões reais cobertas pelo sensor**. Sem elas, todo valor em litros projetado na parede
+é decorativo.
 
 ---
 

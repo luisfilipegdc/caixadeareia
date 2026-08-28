@@ -50,11 +50,59 @@ public readonly record struct PropriedadesDoSolo(
     string Descricao = "",
     float ArmazenamentoMm = 80f)
 {
-    /// <summary>Resumo em linguagem de aula, para exibir ao escolher a cobertura.</summary>
+    /// <summary>
+    /// Resumo em linguagem de aula, para exibir ao escolher a cobertura.
+    ///
+    /// **Qualitativo de propósito.** A versão anterior exibia "Absorve 3,2 mm/s · guarda
+    /// até 160 mm · resiste 95% à erosão" — números com aparência de medição hidrológica,
+    /// quando o comentário logo acima desta classe declara que são valores didáticos.
+    /// Uma casa decimal em mm/s comunica uma precisão que não existe.
+    ///
+    /// Os coeficientes numéricos não mudaram: a simulação continua usando exatamente os
+    /// mesmos valores. O que mudou é o que se afirma ao professor. As faixas abaixo
+    /// apenas classificam os valores que já existiam — nenhum número novo foi inventado.
+    /// </summary>
     public string Resumo =>
-        $"Absorve {InfiltracaoMmPorSegundo:F1} mm/s · " +
-        $"guarda até {ArmazenamentoMm:F0} mm · " +
-        $"resiste {(ResistenciaAErosao * 100):F0}% à erosão";
+        $"{NivelDeInfiltracao(InfiltracaoMmPorSegundo)} · " +
+        $"{NivelDeRetencao(ArmazenamentoMm)} · " +
+        $"{NivelDeResistencia(ResistenciaAErosao)}";
+
+    /// <summary>
+    /// Aviso que acompanha qualquer exibição destes parâmetros. Existe como constante
+    /// para que a ressalva não fique só no código-fonte, onde nenhum professor a lê.
+    /// </summary>
+    public const string AvisoDidatico =
+        "Comparação didática entre coberturas, não medição de campo.";
+
+    // As faixas separam os doze valores existentes em degraus legíveis. Foram escolhidas
+    // olhando a distribuição real da tabela — não há fonte científica por trás delas, e
+    // não deveria haver: elas descrevem o modelo, não o mundo.
+
+    private static string NivelDeInfiltracao(float mmPorSegundo) => mmPorSegundo switch
+    {
+        < 0.15f => "Praticamente não absorve água",
+        < 0.60f => "Absorve pouca água",
+        < 1.40f => "Absorve água moderadamente",
+        < 2.40f => "Absorve bem a água",
+        _ => "Absorve muita água",
+    };
+
+    private static string NivelDeRetencao(float armazenamentoMm) => armazenamentoMm switch
+    {
+        < 20f => "quase não retém",
+        < 50f => "retém pouco",
+        < 100f => "retém moderadamente",
+        < 180f => "retém bastante",
+        _ => "retém muito",
+    };
+
+    private static string NivelDeResistencia(float resistencia) => resistencia switch
+    {
+        < 0.30f => "erode com facilidade",
+        < 0.55f => "erode com alguma facilidade",
+        < 0.80f => "resiste razoavelmente à erosão",
+        _ => "resiste bem à erosão",
+    };
 
     private static PropriedadesDoSolo Calcular(TipoDeSolo tipo) => tipo switch
     {

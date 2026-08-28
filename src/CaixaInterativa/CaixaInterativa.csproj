@@ -18,7 +18,7 @@
     <!-- Identidade: aparece nas propriedades do executável no Windows e é lida
          em tempo de execução por AppInfo, para que a tela nunca mostre uma versão
          diferente da que foi compilada. -->
-    <Version>1.4</Version>
+    <Version>1.4.0</Version>
     <Product>Caixa de Areia Interativa</Product>
     <Authors>Projeto Caixa de Areia</Authors>
     <Company>Luis Filipe GDC</Company>
@@ -30,6 +30,22 @@
          justamente do manifesto. O aviso nao se aplica. -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pacote de contexto educacional: gerado ANTES da aula pela ferramenta em
+         tools/CaixaInterativa.DataPrep e versionado junto com o codigo. O aplicativo
+         so le este arquivo; nunca busca dado na rede. -->
+    <Content Include="Dados\contexto-queimadas.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NuiNative e' encanamento de P/Invoke e continua internal: nao e' API de ninguem.
+         Mas a tabela de codigos de erro dele precisa ser travada contra o header do SDK
+         por teste, porque ja esteve errada em quatro entradas sem que nada acusasse. -->
+    <InternalsVisibleTo Include="CaixaInterativa.Tests" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- UseWindowsForms existe apenas para System.Windows.Forms.Screen (enumeracao de

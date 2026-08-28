@@ -11,6 +11,8 @@
 // UMA FINALIDADE ESPECÍFICA. Consulte a Licença Pública Geral GNU para mais
 // detalhes. Uma cópia acompanha este programa no arquivo LICENSE.
 
+using CaixaInterativa.Rendering;
+
 namespace CaixaInterativa.Simulation;
 
 /// <summary>
@@ -107,6 +109,30 @@ public sealed class WaterSimulation : ISimulationModule
 
     /// <summary>Velocidade do fluxo por célula, em mm/s.</summary>
     public float[] Velocidade => _velocidade;
+
+    private readonly CamadaVisual[] _camadas = new CamadaVisual[1];
+
+    /// <summary>
+    /// Uma camada: a lâmina d'água, com a velocidade como campo auxiliar para clarear
+    /// a correnteza.
+    ///
+    /// Remontada a cada acesso, e não guardada no construtor como nos outros módulos,
+    /// porque <c>MoverAgua</c> troca <c>_agua</c> por <c>_aguaNova</c> a cada substep:
+    /// uma camada montada uma vez só apontaria para o buffer errado. Escrever a struct
+    /// no array já existente não aloca.
+    /// </summary>
+    public IReadOnlyList<CamadaVisual> Camadas
+    {
+        get
+        {
+            _camadas[0] = new CamadaVisual(
+                _agua, _w, _h,
+                CamadaVisual.OrdemAgua, ModoDeCor.Agua,
+                Limiar: 0.25f,
+                CampoAuxiliar: _velocidade);
+            return _camadas;
+        }
+    }
 
     /// <summary>Volume total, em litros. Serve para o aluno comparar cenários.</summary>
     public double VolumeLitros { get; private set; }
@@ -395,14 +421,6 @@ public sealed class WaterSimulation : ISimulationModule
     }
 
     /// <summary>
-    /// Acumula onde a água passa com força sobre solo frágil.
-    ///
-    /// Não movemos areia: o relevo vem do sensor, e mexer nele faria o mapa divergir do
-    /// que está fisicamente na caixa. O que o sistema entrega é a previsão — "aqui o
-    /// solo seria levado" — e o estudante decide se protege a encosta ou se cava para
-    /// ver o que acontece.
-    /// </summary>
-    /// <summary>
     /// O solo devolve água ao subsolo e recupera capacidade de absorver, devagar.
     /// Sem isso a caixa saturaria na primeira chuva e nunca mais absorveria nada.
     /// </summary>
@@ -423,6 +441,14 @@ public sealed class WaterSimulation : ISimulationModule
         });
     }
 
+    /// <summary>
+    /// Acumula onde a água passa com força sobre solo frágil.
+    ///
+    /// Não movemos areia: o relevo vem do sensor, e mexer nele faria o mapa divergir do
+    /// que está fisicamente na caixa. O que o sistema entrega é a previsão — "aqui o
+    /// solo seria levado" — e o estudante decide se protege a encosta ou se cava para
+    /// ver o que acontece.
+    /// </summary>
     private void AcumularErosao(float dt)
     {
         var solo = Solo.Celulas;

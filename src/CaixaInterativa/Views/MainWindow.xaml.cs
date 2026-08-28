@@ -15,8 +15,10 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CaixaInterativa.Config;
+using CaixaInterativa.Contexto;
 using CaixaInterativa.Diagnostico;
 using CaixaInterativa.Depth;
+using CaixaInterativa.Processing;
 using CaixaInterativa.Simulation;
 
 namespace CaixaInterativa.Views;
@@ -40,6 +42,12 @@ public partial class MainWindow : Window
         _engine.StatusChanged += SetStatus;
         _engine.CalibrationCompleted += OnCalibrationCompleted;
         _engine.StateChanged += OnStateChanged;
+
+        // Toda fonte que inicia recebe a cobertura que o combo está exibindo — inclusive as
+        // que o motor inicia sozinho, na reconexão do sensor. As chamadas espalhadas pelos
+        // caminhos da interface não alcançavam essa, e depois de o sensor cair e voltar a
+        // tela passava a mentir sobre o que cobre o solo.
+        _engine.SourceStarted += AplicarCoberturaSelecionada;
 
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarSimulacao(); };
@@ -68,6 +76,14 @@ public partial class MainWindow : Window
 
         DetectSensor();
         AtualizarResumoCalibracao();
+        CarregarContexto();
+
+        // OnStateChanged só dispara quando o estado MUDA. Ao abrir, o estado já é Parado
+        // desde o construtor, então nenhum evento acontece e os botões ficam como o XAML
+        // os deixou — todos habilitados, inclusive “Nivelar e calibrar”, que com a caixa
+        // desligada só consegue responder “Inicie uma fonte antes de calibrar”.
+        // Aplicar o estado uma vez aqui alinha a tela com a realidade.
+        OnStateChanged(_engine.State, _engine.StateMessage);
 
         // Numa aula, abrir o programa deve bastar. Se há uma fonte configurada e ela
         // está disponível, subimos sozinhos — inclusive restaurando a calibração.
@@ -100,6 +116,7 @@ public partial class MainWindow : Window
                 bool near = ChkNearMode.IsChecked == true;
                 int tilt = _config.Sensor.TiltAngle ?? int.MinValue;
                 _engine.StartSource(() => new KinectV1Source(near, tilt));
+                AplicarCoberturaSelecionada();
                 return;
             }
             catch (Exception ex)
@@ -108,18 +125,33 @@ public partial class MainWindow : Window
             }
         }
 
+        // "Não encontrado" era dito mesmo quando o driver tinha acabado de enumerar o
+        // sensor — o caso real foi duas cópias do aplicativo abertas ao mesmo tempo. O
+        // conselho fixo de conferir cabo e fonte mandava desmontar hardware que estava bom.
+        //
+        // Agora o cabeçalho pergunta ao driver antes de afirmar, e o conselho sobre cabo só
+        // aparece quando nenhum sensor foi enumerado. Quando um foi, quem sabe o que fazer
+        // é a mensagem do erro, que já vem específica de DescribeHResult.
+        bool enumerado = KinectV1Source.TryProbe(out int quantos, out _) && quantos > 0;
+
+        string cabecalho = enumerado
+            ? "O Kinect está conectado, mas não pôde ser iniciado."
+            : "Kinect não encontrado.";
+
+        string conselho = enumerado
+            ? "Depois de resolver, toque em “Ligar a caixa”."
+            : "Verifique a fonte de energia e o cabo USB, e toque em “Ligar a caixa”.";
+
         if (silencioso)
         {
             // Na abertura automática não interrompemos com caixa de diálogo.
-            TxtAjuda.Text =
-                "Kinect não encontrado.\n\n" + motivo +
-                "\n\nVerifique a fonte de energia e o cabo USB, e toque em “Ligar a caixa”.";
-            SetStatus("Kinect indisponível — " + motivo);
+            TxtAjuda.Text = $"{cabecalho}\n\n{motivo}\n\n{conselho}";
+            SetStatus((enumerado ? "Kinect não iniciou — " : "Kinect indisponível — ") + motivo);
             return;
         }
 
         var escolha = MessageBox.Show(
-            $"O Kinect não foi encontrado.\n\n{motivo}\n\n" +
+            $"{cabecalho}\n\n{motivo}\n\n" +
             "Deseja usar o simulador? Ele reproduz o funcionamento sem o sensor, " +
             "para você preparar a aula ou testar a projeção.",
             "Caixa de Areia Interativa",
@@ -155,6 +187,7 @@ public partial class MainWindow : Window
             bool near = _config.Sensor.NearMode;
             int tilt = _config.Sensor.TiltAngle ?? int.MinValue;
             _engine.StartSource(() => new KinectV1Source(near, tilt));
+            AplicarCoberturaSelecionada();
         }
         catch (Exception ex)
         {
@@ -176,6 +209,7 @@ public partial class MainWindow : Window
             };
             return _simulator;
         });
+        AplicarCoberturaSelecionada();
     }
 
     private void OnFlatSimChanged(object sender, RoutedEventArgs e)
@@ -191,18 +225,33 @@ public partial class MainWindow : Window
     /// alagamento e deslizamento são resultados que eles produzem, não itens do menu —
     /// tratá-los como opções separadas confundiria causa com efeito.
     /// </summary>
-    private enum Simulacao { Chuva, Terremoto }
+    private enum Simulacao { Chuva, Terremoto, Queimada }
 
     private Simulacao _simulacaoAtual = Simulacao.Chuva;
-    private readonly List<(string Simulacao, string Cobertura, string Resultado, double Valor)> _historico = [];
+    /// <summary>
+    /// Uma execução registrada, com a assinatura do relevo em que ela aconteceu.
+    ///
+    /// A assinatura é o que permite dizer se a comparação entre duas execuções isola de
+    /// fato a variável estudada. Sem ela, o histórico afirmaria que a diferença veio da
+    /// cobertura mesmo quando veio da areia ter sido remodelada no intervalo.
+    /// </summary>
+    private readonly record struct Execucao(
+        string Simulacao,
+        string Cobertura,
+        string Resultado,
+        double Valor,
+        AssinaturaDoRelevo? Relevo);
+
+    private readonly List<Execucao> _historico = [];
     private string _coberturaAtual = "Mata";
-    private bool _chovendoAntes, _tremendoAntes;
+    private bool _chovendoAntes, _tremendoAntes, _queimandoAntes;
 
     private void PreencherCombos()
     {
         CmbSimulacao.Items.Clear();
         CmbSimulacao.Items.Add("Chuva e enchente");
         CmbSimulacao.Items.Add("Terremoto");
+        CmbSimulacao.Items.Add("Queimada");
         CmbSimulacao.SelectedIndex = 0;
 
         CmbIntensidade.Items.Clear();
@@ -221,15 +270,24 @@ public partial class MainWindow : Window
     private void OnSimulacaoChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (!_loaded) return;
-        _simulacaoAtual = CmbSimulacao.SelectedIndex == 1 ? Simulacao.Terremoto : Simulacao.Chuva;
+        _simulacaoAtual = CmbSimulacao.SelectedIndex switch
+        {
+            1 => Simulacao.Terremoto,
+            2 => Simulacao.Queimada,
+            _ => Simulacao.Chuva,
+        };
 
         CfgChuva.Visibility = _simulacaoAtual == Simulacao.Chuva ? Visibility.Visible : Visibility.Collapsed;
         CfgTremor.Visibility = _simulacaoAtual == Simulacao.Terremoto ? Visibility.Visible : Visibility.Collapsed;
+        CfgFogo.Visibility = _simulacaoAtual == Simulacao.Queimada ? Visibility.Visible : Visibility.Collapsed;
 
         TxtSimulacaoInfo.Text = _simulacaoAtual switch
         {
             Simulacao.Terremoto =>
                 "Ondas sísmicas a partir do centro da caixa. O dano depende do solo e da encosta.",
+            Simulacao.Queimada =>
+                "O fogo começa onde há vegetação e se espalha conforme o vento, a encosta e " +
+                "o que existe para queimar. Água no caminho segura a frente de chama.",
             _ => "Chuva sobre todo o território. A água escorre, acumula e alaga.",
         };
 
@@ -240,11 +298,33 @@ public partial class MainWindow : Window
     {
         if (LblDuracao is not null) LblDuracao.Text = $"{SldDuracao.Value:F0}s";
         if (LblMagnitude is not null) LblMagnitude.Text = $"{SldMagnitude.Value:F1}";
+        if (LblVento is not null) LblVento.Text = $"{SldVento.Value:F2}";
     }
 
     private void OnCoberturaChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (!_loaded || _engine.Agua is null) return;
+
+        AplicarCoberturaSelecionada();
+        SetStatus($"Cobertura: {_coberturaAtual}. Execute a simulação para ver o efeito.");
+    }
+
+    /// <summary>
+    /// Escreve no mapa de cobertura o que o combo está mostrando.
+    ///
+    /// Precisa ser chamado sempre que uma fonte inicia, porque cada <c>StartSource</c> cria
+    /// uma <c>WaterSimulation</c> nova, e o construtor dela preenche o solo com areia. O
+    /// combo, enquanto isso, continua exibindo o primeiro item da lista — "Mata".
+    ///
+    /// Sem esta sincronização o programa abre mentindo: a primeira chuva cai sobre areia
+    /// enquanto o professor lê "Mata" na tela, e o histórico de comparação registra o
+    /// resultado como se fosse de mata. Na queimada o sintoma é mais visível — atear fogo
+    /// responde "não há vegetação que possa queimar" com "Mata" escrito logo acima.
+    /// Reproduzido na validação visual de 28/08/2026, antes de existir esta chamada.
+    /// </summary>
+    private void AplicarCoberturaSelecionada()
+    {
+        if (_engine.Agua is null) return;
 
         int i = Math.Clamp(CmbCobertura.SelectedIndex, 0, PropriedadesDoSolo.Todos.Length - 1);
         var tipo = PropriedadesDoSolo.Todos[i];
@@ -254,8 +334,10 @@ public partial class MainWindow : Window
         _engine.Agua.Solo.Preencher(tipo);
         Registro.Info($"Cobertura do terreno: {prop.Nome}");
 
-        TxtCoberturaInfo.Text = prop.Descricao + "\n" + prop.Resumo;
-        SetStatus($"Cobertura: {prop.Nome}. Execute a simulação para ver o efeito.");
+        // A ressalva vai junto do parâmetro, e não só no código-fonte: sem ela o professor
+        // lê uma comparação didática como se fosse dado hidrológico medido.
+        TxtCoberturaInfo.Text = prop.Descricao + "\n" + prop.Resumo
+                              + "\n" + PropriedadesDoSolo.AvisoDidatico;
     }
 
     private static (float MmPorSegundo, string Nome) IntensidadeChuva(int indice) => indice switch
@@ -283,8 +365,12 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_simulacaoAtual == Simulacao.Chuva) ExecutarChuva();
-        else ExecutarTerremoto();
+        switch (_simulacaoAtual)
+        {
+            case Simulacao.Chuva: ExecutarChuva(); break;
+            case Simulacao.Queimada: ExecutarQueimada(); break;
+            default: ExecutarTerremoto(); break;
+        }
     }
 
     private void ExecutarChuva()
@@ -316,26 +402,113 @@ public partial class MainWindow : Window
         SetStatus($"Terremoto de magnitude {SldMagnitude.Value:F1} sobre {_coberturaAtual}.");
     }
 
+    /// <summary>
+    /// Ateia fogo. O foco cai num ponto sorteado entre os que têm o que queimar — a
+    /// própria simulação escolhe, para o incêndio não começar no asfalto e não pegar.
+    /// </summary>
+    private void ExecutarQueimada(float? u = null, float? v = null)
+    {
+        var fogo = _engine.Fogo;
+        if (fogo is null || fogo.EmAndamento) return;
+
+        fogo.VentoForca = (float)SldVento.Value;
+
+        if (!fogo.Atear(u, v))
+        {
+            // Duas causas, dois conselhos opostos: tocar no mar pede outro lugar, e
+            // cobertura sem combustível pede trocar a cobertura. Um "não pegou" genérico
+            // mandaria mexer na coisa errada em metade das vezes.
+            string aviso = fogo.PontoRecusado switch
+            {
+                FireSimulation.MotivoDaRecusa.NoMar =>
+                    "Ali é mar.\n\nO fogo não atravessa água — escolha um ponto na parte " +
+                    "seca do relevo, acima da linha d’água.",
+
+                // O caso que a caixa de verdade encontrou: a cobertura queima, mas não
+                // sobrou terra seca. Mandar trocar a cobertura aqui seria mandar consertar
+                // o que não está quebrado.
+                FireSimulation.MotivoDaRecusa.TudoNoMar =>
+                    $"A cobertura ({_coberturaAtual}) queima, mas o relevo está todo abaixo " +
+                    "da linha d’água.\n\nLevante areia para formar terra seca — ou aumente " +
+                    "“Profundidade dos vales”, em Ajustes técnicos, para baixar o nível do mar.",
+
+                _ =>
+                    $"A cobertura atual ({_coberturaAtual}) não tem vegetação que queime.\n\n" +
+                    "Escolha Mata, Pastagem ou Agricultura e ateie o fogo de novo.",
+            };
+
+            MessageBox.Show(aviso, AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        string onde = u is null ? "num ponto sorteado" : "no ponto que você escolheu";
+        SetStatus($"Fogo ateado {onde}, sobre {_coberturaAtual}. " +
+                  $"Vento de {fogo.VentoPorExtenso()}. Observe por onde a frente avança.");
+    }
+
+    /// <summary>
+    /// Clique na prévia: ateia fogo naquele ponto do relevo.
+    ///
+    /// A conversão precisa desfazer duas coisas antes de chegar ao ponto do território.
+    /// A primeira é o <c>Stretch="Uniform"</c>: a imagem cabe dentro do controle com
+    /// tarjas, e um clique na tarja não é um clique no mapa. A segunda é a ROI — o que
+    /// aparece é um recorte do campo do sensor, e a simulação trabalha no campo inteiro.
+    /// </summary>
+    private void OnPreviewClique(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_simulacaoAtual != Simulacao.Queimada) return;
+        if (Preview.Source is not System.Windows.Media.Imaging.BitmapSource bmp) return;
+
+        var p = e.GetPosition(Preview);
+
+        // Desfaz o encaixe uniforme.
+        double escala = Math.Min(Preview.ActualWidth / bmp.PixelWidth,
+                                 Preview.ActualHeight / bmp.PixelHeight);
+        if (escala <= 0) return;
+
+        double larguraVisivel = bmp.PixelWidth * escala;
+        double alturaVisivel = bmp.PixelHeight * escala;
+        double margemX = (Preview.ActualWidth - larguraVisivel) / 2;
+        double margemY = (Preview.ActualHeight - alturaVisivel) / 2;
+
+        double px = (p.X - margemX) / escala;
+        double py = (p.Y - margemY) / escala;
+
+        // Clique na tarja não é clique no mapa.
+        if (px < 0 || py < 0 || px >= bmp.PixelWidth || py >= bmp.PixelHeight) return;
+
+        // Da ROI de volta para o campo inteiro do sensor.
+        var proj = _engine.Config.Projection;
+        int larguraCampo = _engine.LarguraCampo;
+        int alturaCampo = _engine.AlturaCampo;
+        if (larguraCampo <= 0 || alturaCampo <= 0) return;
+
+        double campoX = proj.RoiLeft + px;
+        double campoY = proj.RoiTop + py;
+
+        ExecutarQueimada((float)(campoX / larguraCampo), (float)(campoY / alturaCampo));
+    }
+
     private void OnSecar(object sender, RoutedEventArgs e)
     {
-        _engine.Agua?.PararChuva();
-        _engine.Agua?.Limpar();
-        if (_engine.Agua is not null) _engine.Agua.Ativo = false;
-        _engine.Terremoto?.Limpar();
-        if (_engine.Terremoto is not null) _engine.Terremoto.Ativo = false;
+        // Genérico: limpa todos os módulos registrados. Antes eram duas linhas por
+        // fenômeno aqui, e o fogo tinha ficado de fora da limpeza.
+        _engine.LimparSimulacoes();
         SetStatus("Simulação limpa. O terreno continua como está.");
         AtualizarSimulacao();
     }
 
     private void AtualizarBotaoExecutar()
     {
-        bool ocupado = _engine.Terremoto?.EmAndamento == true;
+        bool ocupado = _engine.Terremoto?.EmAndamento == true
+                       || _engine.Fogo?.EmAndamento == true;
         BtnExecutar.IsEnabled = !ocupado;
 
         BtnExecutar.Content = _simulacaoAtual switch
         {
             Simulacao.Chuva when _engine.Agua?.Chovendo == true => "⏸  Parar a chuva",
             Simulacao.Chuva => "🌧  Fazer chover",
+            Simulacao.Queimada => "🔥  Atear fogo",
             _ => "⚡  Provocar terremoto",
         };
     }
@@ -363,6 +536,28 @@ public partial class MainWindow : Window
             _tremendoAntes = sismo.EmAndamento;
         }
 
+        var fogo = _engine.Fogo;
+        if (fogo is not null)
+        {
+            if (_queimandoAntes && !fogo.EmAndamento)
+                Registrar("Queimada", _coberturaAtual,
+                          $"{fogo.AreaQueimadaPercent:F0}% queimado", fogo.AreaQueimadaPercent);
+            _queimandoAntes = fogo.EmAndamento;
+        }
+
+        if (_simulacaoAtual == Simulacao.Queimada && fogo is not null)
+        {
+            TxtResultado.Text = fogo.EmAndamento
+                ? $"Queimando… {fogo.TempoDecorrido:F0}s\n" +
+                  $"Área queimada: {fogo.AreaQueimadaPercent:F0}%\n" +
+                  $"Vento de {fogo.VentoPorExtenso()}"
+                : fogo.Ativo && fogo.AreaQueimadaPercent > 0
+                    ? $"O fogo apagou.\nÁrea queimada: {fogo.AreaQueimadaPercent:F0}%\n" +
+                      "O solo queimado repele a água — faça chover para ver a diferença."
+                    : "Nenhuma simulação executada.";
+            return;
+        }
+
         if (_simulacaoAtual == Simulacao.Terremoto && sismo is not null)
         {
             TxtResultado.Text = sismo.EmAndamento
@@ -380,20 +575,44 @@ public partial class MainWindow : Window
         TxtResultado.Text = agua.Chovendo
             ? $"Chovendo… {agua.ChuvaRestanteSegundos:F0}s\nÁrea alagada: {agua.AreaAlagadaPercent:F0}%"
             : agua.Ativo && agua.VolumeLitros > 0.01
-                ? $"Escoando · {agua.VolumeLitros:F1} L\n" +
+                ? $"Escoando · {Litros(agua.VolumeLitros)}\n" +
                   $"Alagado: {agua.AreaAlagadaPercent:F0}%  ·  pico {agua.PicoAlagamentoPercent:F0}%\n" +
-                  $"Infiltrado: {agua.InfiltradoLitros:F1} L"
+                  $"Infiltrado: {Litros(agua.InfiltradoLitros)}" + NotaDeEstimativa
                 : agua.Ativo && agua.PicoAlagamentoPercent > 0
                     ? $"A água escoou.\nPico de alagamento: {agua.PicoAlagamentoPercent:F0}%\n" +
-                      $"Infiltrado: {agua.InfiltradoLitros:F1} L"
+                      $"Infiltrado: {Litros(agua.InfiltradoLitros)}" + NotaDeEstimativa
                     : "Nenhuma simulação executada.";
     }
+
+    /// <summary>
+    /// Volume em litros, marcado como estimativa enquanto a caixa não for medida.
+    ///
+    /// O valor deriva do tamanho da célula, que deriva da largura que o sensor cobre —
+    /// um número que hoje é suposição. O erro entra ao quadrado, porque a área da célula
+    /// é o lado ao quadrado. As porcentagens não passam por essa conta e continuam
+    /// confiáveis, por isso não levam a marca.
+    /// </summary>
+    private string Litros(double valor)
+        => _config.Caixa.LarguraMedida ? $"{valor:F1} L" : $"≈ {valor:F1} L";
+
+    private string NotaDeEstimativa
+        => _config.Caixa.LarguraMedida
+            ? ""
+            : "\n≈ estimativa: depende da largura da caixa, ainda não medida.";
 
     private void Registrar(string simulacao, string cobertura, string resultado, double valor)
     {
         if (valor <= 0) return;
         _historico.RemoveAll(h => h.Simulacao == simulacao && h.Cobertura == cobertura);
-        _historico.Add((simulacao, cobertura, resultado, valor));
+
+        // A assinatura é tirada agora, do relevo em que esta execução aconteceu.
+        // Calcular médias já produz uma cópia, então não guardamos referência ao buffer
+        // vivo do engine.
+        var relevo = AssinaturaDoRelevo.De(
+            _engine.Alturas, _engine.LarguraCampo, _engine.AlturaCampo);
+
+        _historico.Add(new Execucao(simulacao, cobertura, resultado, valor, relevo));
+
         // O resultado de cada episódio fica registrado: é o que permite reconstruir uma
         // aula depois, e comparar o que aconteceu em turmas diferentes.
         Registro.Info($"Resultado — {simulacao} sobre {cobertura}: {resultado}");
@@ -416,16 +635,49 @@ public partial class MainWindow : Window
 
         // A conclusão da aula é a razão entre o melhor e o pior cenário da mesma
         // simulação — o número que responde se a intervenção adiantou.
+        //
+        // Mas essa frase só é honesta se o relevo tiver ficado igual entre as duas
+        // execuções. Se a areia mudou no intervalo, a diferença observada não é
+        // atribuível à cobertura, e dizer que é seria ensinar algo errado.
         foreach (var grupo in _historico.GroupBy(h => h.Simulacao).Where(g => g.Count() >= 2))
         {
             var melhor = grupo.MinBy(h => h.Valor);
             var pior = grupo.MaxBy(h => h.Valor);
-            if (melhor.Valor > 0.01)
-                texto += $"\n\n{pior.Cobertura} teve {pior.Valor / melhor.Valor:F1}× " +
-                         $"o resultado de {melhor.Cobertura}, na mesma simulação.";
+            if (melhor.Valor <= 0.01) continue;
+
+            texto += $"\n\n{pior.Cobertura} teve {pior.Valor / melhor.Valor:F1}× " +
+                     $"o resultado de {melhor.Cobertura}, na mesma simulação.";
+
+            texto += AvisoDeRelevo(melhor.Relevo, pior.Relevo);
         }
 
         TxtComparacao.Text = texto;
+    }
+
+    /// <summary>
+    /// A ressalva que acompanha uma comparação, conforme o relevo tenha ficado igual ou
+    /// não entre as duas execuções.
+    ///
+    /// Nunca bloqueia nada: o número comparado continua na tela. O que muda é o que se
+    /// pode concluir dele — e isso é conteúdo de aula, não obstáculo. Um estudante que
+    /// descobre que precisa manter o terreno fixo para comparar coberturas aprendeu
+    /// controle de variáveis sem ninguém precisar usar a expressão.
+    /// </summary>
+    private static string AvisoDeRelevo(AssinaturaDoRelevo? a, AssinaturaDoRelevo? b)
+    {
+        if (a is null || b is null)
+            return "\n⚠ Não foi possível verificar se o relevo continuou o mesmo entre " +
+                   "as duas execuções.";
+
+        var comparacao = a.Comparar(b);
+
+        return comparacao.MesmoRelevo
+            ? "\n✓ O relevo era o mesmo nas duas execuções, então a diferença vem da " +
+              "cobertura."
+            : $"\n⚠ O relevo mudou entre as duas execuções — até " +
+              $"{comparacao.DiferencaMaximaMm:F0} mm de diferença em alguma região. " +
+              "Parte do que mudou pode vir da areia, não da cobertura. Para comparar " +
+              "só a cobertura, repita sem mexer no terreno.";
     }
 
     private void OnLimparComparacao(object sender, RoutedEventArgs e)
@@ -481,6 +733,12 @@ public partial class MainWindow : Window
     private void AtualizarResumoCalibracao()
     {
         var quando = CalibrationStore.SavedAt();
+
+        // Depois de calibrada, a instrução já cumpriu o papel. Ela some para devolver
+        // duas linhas de altura à barra lateral, que numa tela de 768px fazem diferença.
+        TxtCalibAjuda.Visibility = _engine.IsCalibrated
+            ? Visibility.Collapsed
+            : Visibility.Visible;
 
         if (_engine.IsCalibrated)
         {
@@ -672,6 +930,213 @@ public partial class MainWindow : Window
         LblContour.Text = SldContour.Value < 0.5 ? "sem" : $"{SldContour.Value:F0} mm";
         LblBlur.Text = $"{SldBlur.Value:F0}";
         LblAlpha.Text = $"{SldAlpha.Value:F2}";
+    }
+
+    // ================= Contexto real (experimental) =================
+
+    private ResultadoDoCarregamento? _contexto;
+
+    /// <summary>
+    /// Carrega o pacote de contexto do arquivo local, uma vez, ao abrir.
+    ///
+    /// Se não houver pacote, ou se ele estiver corrompido ou numa versão que este programa
+    /// não entende, a seção informa e some de cena. Contexto externo é enfeite pedagógico:
+    /// nada aqui pode impedir a caixa de funcionar.
+    /// </summary>
+    private void CarregarContexto()
+    {
+        _contexto = LeitorDeContexto.Carregar();
+
+        CmbContexto.Items.Clear();
+        foreach (var c in _contexto.Contextos) CmbContexto.Items.Add(c.Rotulo);
+
+        bool temContexto = _contexto.Contextos.Count > 0;
+        CmbContexto.IsEnabled = temContexto;
+
+        TxtContextoErro.Text = temContexto
+            ? ""
+            : _contexto.Erro ?? "Nenhum contexto disponível neste pacote.";
+    }
+
+    private void OnContextoChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loaded || _contexto is null) return;
+
+        int i = CmbContexto.SelectedIndex;
+        if (i < 0 || i >= _contexto.Contextos.Count)
+        {
+            BoxContexto.Visibility = Visibility.Collapsed;
+            BoxAtividade.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var c = _contexto.Contextos[i];
+        var obs = c.Observado;
+        var classes = c.ClassesDidaticas;
+
+        // Número observado e classe lado a lado. O número fica porque é auditável; a
+        // classe fica porque é o que a aula usa. Nenhum dos dois vira parâmetro.
+        //
+        // A auditoria pedagógica mexeu só no vocabulário. "(mediana)" virou "valor
+        // típico" — mesma conta, e a procedência continua dizendo qual é. "Potência
+        // radiativa" virou "calor liberado". O risco de fogo passou a mostrar a classe
+        // primeiro e o índice depois, com a escala à vista: sozinho, "1,00" é lido como
+        // "100% de chance de incêndio", que não é o que o índice do INPE afirma.
+        var linhas = new List<string>
+        {
+            c.RotuloPorExtenso,
+            "",
+            $"Focos de calor vistos por satélite: {obs?.Focos:N0}",
+        };
+
+        if (obs?.DiasSemChuvaMediano is double dias)
+            linhas.Add($"Dias sem chuva (valor típico): {dias:F0}  →  {classes?.Secura}");
+
+        if (obs?.RiscoFogoMediano is double risco)
+            linhas.Add($"Risco de fogo: {classes?.Risco}  (índice {risco:F2}, numa escala de 0 a 1)");
+
+        if (obs?.FrpMedianoMw is double frp)
+            linhas.Add($"Calor liberado pelos focos (valor típico): {frp:F1} MW");
+
+        // "relativa_ao_recorte" era o identificador do campo aparecendo cru na tela.
+        // Aqui vai o que ele significa, que é o que muda a leitura: as classes comparam
+        // este território com os outros do pacote, e não com um padrão do INPE.
+        if (classes is not null)
+        {
+            linhas.Add("");
+            linhas.Add($"“{classes.Secura}” e “{classes.Risco}” comparam este território " +
+                       "com os outros deste pacote — não são categorias oficiais do INPE.");
+        }
+
+        TxtContextoObservado.Text = string.Join("\n", linhas);
+        TxtRelevoNaoEOTerritorio.Text = AtividadeConceitual.RelevoNaoRepresentaOTerritorio;
+
+        var p = _contexto.Pacote?.Proveniencia;
+        var origem = p?.Origem(c.Periodo);
+
+        TxtContextoProcedencia.Text = p is null
+            ? ""
+            : string.Join("\n",
+                [
+                    p.Resumo,
+                    origem is null
+                        ? $"Origem do período {c.Periodo}: não declarada no pacote."
+                        : $"Arquivo: {origem.Recurso} — {origem.DiasObservados} dias observados" +
+                          (origem.AmostraParcial ? " (mês incompleto)" : ""),
+                    // Sem ponto antes de "Onde": o método já vem pontuado do pacote.
+                    $"Agregação: {p.MetodoDeAgregacao} Onde a tela diz “valor típico”, " +
+                    "o número é a mediana do recorte.",
+                    $"Classificação: {p.MetodoDeClassificacao}",
+                    .. p.Observacoes,
+                ]);
+
+        BoxContexto.Visibility = Visibility.Visible;
+        PrepararComparacao(c);
+        MostrarAtividade(_comparaveis.Count > 0
+            ? AtividadeConceitual.MesmoTerritorioPeriodosDiferentes
+            : AtividadeConceitual.QueimadasNoCerrado);
+    }
+
+    /// <summary>Os contextos do mesmo território em outros períodos.</summary>
+    private List<ContextoTerritorial> _comparaveis = [];
+
+    /// <summary>
+    /// Oferece os outros períodos do mesmo território, se houver.
+    ///
+    /// Só aparece quando existe com o que comparar — um combo vazio na tela sugere que
+    /// falta alguma coisa, quando na verdade o pacote é de um período só.
+    /// </summary>
+    private void PrepararComparacao(ContextoTerritorial a)
+    {
+        _comparaveis = (_contexto?.Contextos ?? [])
+            .Where(outro => ComparadorDeContextos.SaoCompativeis(a, outro))
+            .OrderBy(outro => outro.Periodo, StringComparer.Ordinal)
+            .ToList();
+
+        CmbContextoB.SelectionChanged -= OnContextoBChanged;
+        CmbContextoB.Items.Clear();
+        foreach (var outro in _comparaveis) CmbContextoB.Items.Add(outro.Periodo);
+        CmbContextoB.SelectionChanged += OnContextoBChanged;
+
+        var visivel = _comparaveis.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        LblComparar.Visibility = visivel;
+        CmbContextoB.Visibility = visivel;
+        BoxComparacao.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnContextoBChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loaded || _contexto is null) return;
+
+        int ia = CmbContexto.SelectedIndex;
+        int ib = CmbContextoB.SelectedIndex;
+        if (ia < 0 || ia >= _contexto.Contextos.Count || ib < 0 || ib >= _comparaveis.Count)
+        {
+            BoxComparacao.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var comparacao = ComparadorDeContextos.Comparar(_contexto.Contextos[ia], _comparaveis[ib]);
+        if (comparacao is null)
+        {
+            BoxComparacao.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        // O título dizia o território e os dois períodos, e deixava o leitor deduzir o que
+        // a caixa verde era. Agora ele diz o que a caixa é; o território virou subtítulo.
+        TxtComparacaoTitulo.Text = "O QUE MUDOU ENTRE OS DOIS PERÍODOS";
+
+        string a = ContextoTerritorial.PeriodoPorExtenso(comparacao.PeriodoA);
+        string b = ContextoTerritorial.PeriodoPorExtenso(comparacao.PeriodoB);
+
+        TxtComparacaoCampos.Text = string.Join("\n",
+        [
+            $"{comparacao.Bioma} · {comparacao.Uf}",
+            $"{a}  →  {b}",
+            "",
+            .. comparacao.Campos.Select(campo => campo.Descrever()),
+        ]);
+
+        // A ressalva de não causalidade acompanha toda comparação. Junto vai a origem de
+        // cada período: quantos dias cada um representa muda o que a contagem significa.
+        var avisos = new List<string> { ComparacaoDeContextos.AvisoDeNaoCausalidade };
+
+        foreach (string periodo in new[] { comparacao.PeriodoA, comparacao.PeriodoB })
+        {
+            var origem = _contexto.Pacote?.Proveniencia?.Origem(periodo);
+            if (origem is null) continue;
+
+            avisos.Add($"{ContextoTerritorial.PeriodoPorExtenso(periodo)}: " +
+                       $"{origem.DiasObservados} dias observados ({origem.Recurso})" +
+                       (origem.AmostraParcial ? " — mês incompleto" : ""));
+        }
+
+        TxtComparacaoAviso.Text = string.Join("\n", avisos);
+        BoxComparacao.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Mostra a atividade conceitual. Ela apenas <b>descreve</b> de onde vem cada parte —
+    /// não configura cobertura, vento nem chuva. Ligar contexto observado a parâmetro de
+    /// simulação é decisão pedagógica que precisa ser tomada de propósito.
+    /// </summary>
+    private void MostrarAtividade(AtividadeConceitual a)
+    {
+        TxtAtividadeTitulo.Text = a.Titulo;
+        TxtAtividadePergunta.Text = a.Pergunta;
+        TxtAtividadeObservacao.Text = a.Observacao;
+        TxtAtividadeHipotese.Text = a.Hipotese;
+        TxtAtividadeExperimento.Text = a.Experimento;
+
+        // Os rótulos de natureza vão no texto, não só na cor: quem imprime a tela, quem
+        // lê por cima do ombro e quem usa leitor de tela precisa da mesma separação.
+        TxtAtividadeOrigens.Text = string.Join("\n\n",
+            "DADO EXTERNO OBSERVADO — " + a.DeOndeVemOContexto,
+            "MEDIÇÃO DA CAIXA — " + a.DeOndeVemORelevo,
+            "MODELO DIDÁTICO — " + a.DeOndeVemAPropagacao);
+
+        BoxAtividade.Visibility = Visibility.Visible;
     }
 
     private void OnSave(object sender, RoutedEventArgs e) => SaveConfig();

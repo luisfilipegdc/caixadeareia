@@ -59,7 +59,25 @@ public sealed class SandboxEngine : IDisposable
     /// <summary>Simulação de queimada, que altera o mapa de solo ao terminar.</summary>
     public FireSimulation? Fogo { get; private set; }
 
-    /// <summary>Campo de alturas atual, para módulos que precisam consultar o relevo.</summary>
+    private readonly List<ISimulationModule> _modulos = new(3);
+
+    /// <summary>
+    /// Os módulos de simulação, na ordem em que são atualizados e desenhados.
+    ///
+    /// O ciclo de quadro (atualizar, coletar camadas, limpar) percorre esta lista e não
+    /// conhece nenhum módulo pelo nome. As propriedades concretas acima continuam
+    /// existindo porque a interface precisa de controles próprios de cada fenômeno —
+    /// intensidade de chuva, magnitude — e generalizar isso exigiria um sistema de
+    /// parâmetros que não cabe neste passo.
+    ///
+    /// **Invariante:** a ordem desta lista precisa produzir <see cref="CamadaVisual.Ordem"/>
+    /// crescente na concatenação. Hoje água (100) · terremoto (200, 210) · fogo (300).
+    /// Um módulo novo respeita a ordem ou o engine passa a ordenar — nunca o renderizador,
+    /// que ordenaria dentro do laço de pixels.
+    /// </summary>
+    public IReadOnlyList<ISimulationModule> Modulos => _modulos;
+
+    /// <summary>Campo de alturas atual, para quem precisa consultar o relevo.</summary>
     public float[] Alturas => _heights;
     public int LarguraCampo => _source?.Width ?? 0;
     public int AlturaCampo => _source?.Height ?? 0;
@@ -78,6 +96,18 @@ public sealed class SandboxEngine : IDisposable
 
     /// <summary>Estado geral para a interface pintar de verde, amarelo ou vermelho.</summary>
     public event Action<EngineState, string>? StateChanged;
+
+    /// <summary>
+    /// Uma fonte nova comecou. Quem observa precisa reaplicar o que so' a interface sabe.
+    ///
+    /// Existe por causa de um defeito encontrado com o sensor ligado: cada StartSource cria
+    /// uma WaterSimulation nova, e o construtor dela preenche o solo com areia. As chamadas
+    /// manuais a AplicarCoberturaSelecionada cobriam os caminhos da interface, mas nao o do
+    /// timer de reconexao, que chama StartSource de dentro do motor. Depois de o sensor cair
+    /// e voltar, o combo continuava exibindo "Pastagem" enquanto o solo era areia — e atear
+    /// fogo respondia "nao ha' vegetacao que possa queimar" com Pastagem escrito acima.
+    /// </summary>
+    public event Action? SourceStarted;
 
     private EngineState _state = EngineState.Parado;
     public EngineState State
@@ -152,17 +182,33 @@ public sealed class SandboxEngine : IDisposable
         };
 
         _heights = new float[source.Width * source.Height];
-        Agua = new WaterSimulation(source.Width, source.Height);
+        // A largura vem da configuração em vez de um literal escondido no construtor.
+        // O padrão é o mesmo 1250 mm de antes, então nada muda até alguém medir.
+        float larguraMm = Config.Caixa.LarguraCobertaPeloSensorMm;
+        Agua = new WaterSimulation(source.Width, source.Height, larguraMm);
         // Os dois módulos leem o mesmo mapa de cobertura: mudar de mata para solo solto
         // deve afetar a enchente e o terremoto ao mesmo tempo, como no território real.
-        Terremoto = new EarthquakeSimulation(source.Width, source.Height) { Solo = Agua.Solo };
+        Terremoto = new EarthquakeSimulation(source.Width, source.Height, larguraMm) { Solo = Agua.Solo };
         // O fogo lê a água para saber onde não pode passar, e escreve no solo a cicatriz
         // que a chuva seguinte vai encontrar.
         Fogo = new FireSimulation(source.Width, source.Height)
         {
             Solo = Agua.Solo,
             Agua = Agua.Profundidade,
+            // A mesma faixa de alturas que o renderizador usa para pintar o mapa. E' assim
+            // que o fogo sabe onde comeca o azul: sem ela, o incendio atravessaria o mar.
+            AlturaMinimaMm = Config.Processing.MinHeightMm,
+            AlturaMaximaMm = Config.Processing.MaxHeightMm,
         };
+
+        _nearMode.Reiniciar();
+        _avisouNearMode = false;
+
+        // A ordem de registro é a ordem de atualização e de composição visual.
+        _modulos.Clear();
+        _modulos.Add(Agua);
+        _modulos.Add(Terremoto);
+        _modulos.Add(Fogo);
         _latestFrame = null;
         _lastRenderedFrameNumber = -1;
 
@@ -184,6 +230,9 @@ public sealed class SandboxEngine : IDisposable
                  restaurada
                      ? $"Pronto — calibração de {CalibrationAge()} carregada"
                      : "Nivele a areia e toque em Calibrar");
+
+        // Por ultimo: quem escuta reaplica a cobertura escolhida sobre o solo recem-criado.
+        SourceStarted?.Invoke();
     }
 
     /// <summary>Restaura a calibração gravada em disco, se houver e se servir.</summary>
@@ -314,37 +363,43 @@ public sealed class SandboxEngine : IDisposable
         _processor.Settings = Config.Processing;
         _processor.ProcessFrame(frame, _heights);
 
+        ObservarNearMode(frame);
+
         // dt real, limitado a 100ms. Um travamento momentâneo não pode virar um salto
         // que despeja meio segundo de chuva de uma vez e estoura a simulação.
         float dt = (float)Math.Min(0.1, _simClock.Elapsed.TotalSeconds);
         _simClock.Restart();
 
-        if (Agua is { Ativo: true })
-            Agua.Atualizar(_heights, frame.Width, frame.Height, dt);
+        // O fogo lê a água para saber onde não pode passar, e `WaterSimulation` troca o
+        // buffer de profundidade a cada substep (`MoverAgua` faz o swap com `_aguaNova`).
+        // A referência entregue uma única vez em `StartSource` ficava defasada: medido,
+        // em 7 de 20 quadros ela apontava para o buffer anterior. Reapontar aqui custa
+        // uma atribuição e mantém a barreira de água lendo o estado corrente.
+        if (Fogo is not null && Agua is not null) Fogo.Agua = Agua.Profundidade;
 
-        if (Terremoto is { Ativo: true })
-            Terremoto.Atualizar(_heights, frame.Width, frame.Height, dt);
+        // Genérico: o laço não sabe quantos módulos existem nem quais são. Acrescentar
+        // um fenômeno deixa de exigir uma linha aqui.
+        for (int i = 0; i < _modulos.Count; i++)
+        {
+            var modulo = _modulos[i];
+            if (modulo.Ativo) modulo.Atualizar(_heights, frame.Width, frame.Height, dt);
+        }
 
-        if (Fogo is { Ativo: true })
-            Fogo.Atualizar(_heights, frame.Width, frame.Height, dt);
+        // Os deslizadores de altura mexem nesta faixa durante a aula, e e' ela que define
+        // onde o mapa vira mar. Copiar so' na construcao deixaria o fogo parando numa cota
+        // que nao corresponde mais ao azul que esta' na tela.
+        if (Fogo is not null)
+        {
+            Fogo.AlturaMinimaMm = Config.Processing.MinHeightMm;
+            Fogo.AlturaMaximaMm = Config.Processing.MaxHeightMm;
+        }
 
-        bool mostrarAgua = Agua is { Ativo: true };
-        bool mostrarSismo = Terremoto is { Ativo: true };
+        ColetarCamadas();
 
         var pixels = _renderer.Render(
             _heights, frame.Width, frame.Height,
             Config.Projection, Config.Processing, Config.Render,
-            mostrarAgua ? Agua!.Profundidade : null,
-            mostrarAgua ? Agua!.Width : 0,
-            mostrarAgua ? Agua!.Height : 0,
-            mostrarAgua ? Agua!.Velocidade : null,
-            mostrarSismo ? Terremoto!.Intensidade : null,
-            mostrarSismo ? Terremoto!.Dano : null,
-            mostrarSismo ? Terremoto!.Width : 0,
-            mostrarSismo ? Terremoto!.Height : 0,
-            Fogo is { Ativo: true } ? Fogo.Calor : null,
-            Fogo is { Ativo: true } ? Fogo.Width : 0,
-            Fogo is { Ativo: true } ? Fogo.Height : 0);
+            _camadasDoQuadro);
 
         EnsureBitmap(_renderer.Width, _renderer.Height);
 
@@ -359,6 +414,91 @@ public sealed class SandboxEngine : IDisposable
             _framesSinceTick = 0;
             _fpsClock.Restart();
         }
+    }
+
+    /// <summary>
+    /// Camadas visuais do quadro. Lista reaproveitada entre quadros: <c>Clear</c> zera a
+    /// contagem sem devolver o array, então o caminho de renderização não aloca depois do
+    /// primeiro quadro.
+    /// </summary>
+    private readonly List<CamadaVisual> _camadasDoQuadro = new(4);
+
+    /// <summary>
+    /// Junta as camadas dos módulos ativos, na ordem em que precisam ser desenhadas.
+    ///
+    /// A ordem sai daqui já correta e o renderizador não ordena nada: os módulos são
+    /// percorridos na sequência água → terremoto → fogo, e as camadas de cada um já vêm
+    /// em ordem crescente, o que dá 100 · 200, 210 · 300. Acrescentar um módulo exige
+    /// respeitar essa invariante — ou passar a ordenar aqui, nunca por quadro no laço
+    /// de pixels.
+    /// </summary>
+    private void ColetarCamadas()
+    {
+        _camadasDoQuadro.Clear();
+
+        for (int i = 0; i < _modulos.Count; i++)
+        {
+            var modulo = _modulos[i];
+            if (modulo.Ativo) Acrescentar(modulo.Camadas);
+        }
+    }
+
+    /// <summary>
+    /// Encerra todas as simulações e devolve a caixa ao mapa topográfico puro. O relevo
+    /// não é tocado: continua sendo o que está fisicamente na areia.
+    /// </summary>
+    public void LimparSimulacoes()
+    {
+        for (int i = 0; i < _modulos.Count; i++)
+        {
+            _modulos[i].Limpar();
+            _modulos[i].Ativo = false;
+        }
+    }
+
+    /// <summary>
+    /// Por índice, e não com <c>foreach</c>: percorrer um <see cref="IReadOnlyList{T}"/>
+    /// com foreach aloca um enumerador por chamada, e isto roda a cada quadro.
+    /// </summary>
+    private void Acrescentar(IReadOnlyList<CamadaVisual> camadas)
+    {
+        for (int i = 0; i < camadas.Count; i++) _camadasDoQuadro.Add(camadas[i]);
+    }
+
+    /// <summary>
+    /// Diagnóstico do near mode. Vazio até uma fonte iniciar.
+    /// </summary>
+    private readonly DiagnosticoDeNearMode _nearMode = new();
+
+    /// <summary>Menor profundidade válida observada desde que a fonte iniciou, em mm.</summary>
+    public ushort MenorProfundidadeMm => _nearMode.MinimaObservadaMm;
+
+    private bool _avisouNearMode;
+
+    /// <summary>
+    /// Observa os primeiros quadros para saber se apareceu alguma leitura abaixo dos
+    /// 800 mm que o sensor entrega sem near mode.
+    ///
+    /// É indício, não prova: se a areia estiver toda a mais de 80 cm, a mínima fica acima
+    /// de 800 mm com o near mode funcionando. Por isso o resultado sai como aviso no
+    /// status, uma única vez, e não interrompe nada.
+    /// </summary>
+    private void ObservarNearMode(RawDepthFrame frame)
+    {
+        if (_avisouNearMode) return;
+
+        _nearMode.Observar(frame.Data,
+                           Config.Processing.MinValidDepthMm,
+                           Config.Processing.MaxValidDepthMm);
+
+        if (!_nearMode.Concluido) return;
+
+        // Só faz sentido perguntar isso do sensor real; o simulador não tem near mode.
+        bool sensorReal = _source is KinectV1Source;
+        string? aviso = _nearMode.Aviso(sensorReal && Config.Sensor.NearMode);
+
+        _avisouNearMode = true;
+        if (aviso is not null) StatusChanged?.Invoke(aviso);
     }
 
     private void EnsureBitmap(int width, int height)

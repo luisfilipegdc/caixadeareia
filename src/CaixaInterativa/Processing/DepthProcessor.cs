@@ -43,8 +43,10 @@ public sealed class DepthProcessor
     private int[]? _calibCounts;
     private int _calibFramesRemaining;
 
-    /// <summary>Fracao minima dos quadros de calibracao em que um pixel precisa ter lido
-    /// para ganhar um plano-base. Abaixo disso a leitura e' intermitente demais.</summary>
+    /// <summary>Numero minimo de quadros de calibracao em que um pixel precisa ter lido
+    /// para ganhar um plano-base. E' uma contagem absoluta, nao uma fracao do total: com
+    /// os 60 quadros padrao equivale a 8%, mas uma calibracao mais curta exige os mesmos
+    /// 5. Abaixo disso a leitura e' intermitente demais para virar referencia.</summary>
     private const int MinCalibrationSamples = 5;
 
     public int Width => _width;

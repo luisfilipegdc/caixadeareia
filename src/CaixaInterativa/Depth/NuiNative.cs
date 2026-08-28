@@ -72,11 +72,52 @@ internal static class NuiNative
 
     public const uint NUI_IMAGE_STREAM_FLAG_DISTINCT_OVERFLOW_DEPTH_VALUES = 0x00080000;
 
-    public const int E_NUI_DEVICE_NOT_CONNECTED = unchecked((int)0x83010001);
-    public const int E_NUI_DEVICE_NOT_READY     = unchecked((int)0x83010002);
-    public const int E_NUI_NOTGENUINE           = unchecked((int)0x83010004);
-    public const int E_NUI_INSUFFICIENTBANDWIDTH= unchecked((int)0x83010007);
-    public const int E_NUI_NOTPOWERED           = unchecked((int)0x83010006);
+    // Codigos de erro do NUI, conferidos linha a linha contra
+    // "C:\Program Files\Microsoft SDKs\Kinect\v1.8\inc\NuiApi.h".
+    //
+    // A tabela anterior estava errada em quatro das cinco entradas: chutava que os codigos
+    // eram sequenciais a partir de 0x83010001, e nao sao. O preco apareceu na primeira vez
+    // que o sensor foi ligado de verdade — 0x83010009 caiu no ramo generico e a tela mandou
+    // conferir cabo e fonte de um Kinect que estava perfeito. Numa sala de aula alguem teria
+    // desconectado um sensor que funcionava.
+    //
+    // Duas familias, e e' dai que vem a confusao:
+    //
+    //   FACILITY_NUI (0x8301xxxx)  — erros proprios do NUI, MAKE_HRESULT(ERRO, 0x301, n)
+    //   FACILITY_WIN32 (0x8007xxxx) — quatro deles sao __HRESULT_FROM_WIN32 de erros do Windows
+    //
+    // Os valores win32 foram confirmados em execucao com Win32Exception: 21 "dispositivo nao
+    // esta pronto", 259 "nao ha mais dados", 1167 "dispositivo nao esta conectado",
+    // 1247 "inicializacao ja havia sido concluida".
+
+    // --- FACILITY_NUI ---
+    public const int E_NUI_FRAME_NO_DATA         = unchecked((int)0x83010001);
+    public const int E_NUI_STREAM_NOT_ENABLED    = unchecked((int)0x83010002);
+    public const int E_NUI_IMAGE_STREAM_IN_USE   = unchecked((int)0x83010003);
+    public const int E_NUI_FRAME_LIMIT_EXCEEDED  = unchecked((int)0x83010004);
+    public const int E_NUI_FEATURE_NOT_INITIALIZED = unchecked((int)0x83010005);
+    public const int E_NUI_NOTGENUINE            = unchecked((int)0x83010006);
+    public const int E_NUI_INSUFFICIENTBANDWIDTH = unchecked((int)0x83010007);
+    public const int E_NUI_NOTSUPPORTED          = unchecked((int)0x83010008);
+
+    /// <summary>Outro processo ja abriu este sensor. Nao e' defeito de hardware.</summary>
+    public const int E_NUI_DEVICE_IN_USE         = unchecked((int)0x83010009);
+
+    public const int E_NUI_HARDWARE_FEATURE_UNAVAILABLE = unchecked((int)0x8301000F);
+    public const int E_NUI_NOTCONNECTED          = unchecked((int)0x83010014);
+    public const int E_NUI_NOTREADY              = unchecked((int)0x83010015);
+
+    /// <summary>Hub e motor conectados, camera nao — tipicamente a fonte externa.</summary>
+    public const int E_NUI_NOTPOWERED            = unchecked((int)0x8301027F);
+
+    public const int E_NUI_BADINDEX              = unchecked((int)0x83010585);
+
+    // --- FACILITY_WIN32 ---
+    public const int E_NUI_DEVICE_NOT_CONNECTED  = unchecked((int)0x8007048F);
+    public const int E_NUI_DEVICE_NOT_READY      = unchecked((int)0x80070015);
+    public const int E_NUI_ALREADY_INITIALIZED   = unchecked((int)0x800704DF);
+    public const int E_NUI_NO_MORE_ITEMS         = unchecked((int)0x80070103);
+
     public const int S_OK = 0;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -194,13 +235,43 @@ internal static class NuiNative
     public static uint TextureRelease(IntPtr texture)
         => VTableCall<ReleaseDelegate>(texture, 2)(texture);
 
+    /// <summary>
+    /// Traduz o HRESULT para uma instrucao que da' para seguir com a caixa na frente.
+    ///
+    /// A regra de escrita: dizer o que fazer, e nunca mandar mexer no hardware quando o
+    /// problema nao esta' no hardware. Um "verifique o cabo" errado custa mais caro que um
+    /// codigo hexadecimal — o codigo faz procurar, o conselho errado faz desmontar.
+    /// </summary>
     public static string DescribeHResult(int hr) => hr switch
     {
-        E_NUI_DEVICE_NOT_CONNECTED  => "Sensor nao encontrado. Verifique o cabo USB e a fonte de energia.",
-        E_NUI_DEVICE_NOT_READY      => "Sensor encontrado mas nao pronto. Aguarde a inicializacao ou reconecte.",
-        E_NUI_NOTPOWERED            => "Sensor sem alimentacao. O adaptador de energia externo e' obrigatorio.",
-        E_NUI_INSUFFICIENTBANDWIDTH => "Banda USB insuficiente. Use uma porta USB em outro controlador (nao compartilhada).",
-        E_NUI_NOTGENUINE            => "Sensor nao reconhecido como original.",
+        // O caso que aparece na pratica: duas copias do aplicativo abertas ao mesmo tempo.
+        E_NUI_DEVICE_IN_USE         => "O sensor já está sendo usado por outro programa. "
+                                     + "Feche a outra janela da Caixa (ou o Kinect Studio) e tente de novo. "
+                                     + "O cabo e a fonte estão bem.",
+        E_NUI_IMAGE_STREAM_IN_USE   => "Este fluxo de imagem já está aberto. "
+                                     + "Feche a outra janela da Caixa e tente de novo.",
+        E_NUI_ALREADY_INITIALIZED   => "O sensor já foi inicializado nesta sessão. "
+                                     + "Toque em Parar e depois em Ligar a caixa.",
+
+        E_NUI_DEVICE_NOT_CONNECTED  => "Sensor não encontrado. Verifique o cabo USB e a fonte de energia.",
+        E_NUI_NOTCONNECTED          => "O hub do Kinect se desconectou. Verifique o cabo USB.",
+        E_NUI_DEVICE_NOT_READY or E_NUI_NOTREADY
+                                    => "Sensor encontrado mas não está pronto. Aguarde a inicialização ou reconecte.",
+        E_NUI_NOTPOWERED            => "Sensor sem alimentação. O adaptador de energia externo é obrigatório.",
+        E_NUI_INSUFFICIENTBANDWIDTH => "Banda USB insuficiente. Use uma porta USB em outro controlador (não compartilhada).",
+        E_NUI_NOTGENUINE            => "Sensor não reconhecido como original.",
+        E_NUI_NOTSUPPORTED          => "Este modelo de sensor não é suportado pelo driver instalado.",
+
+        // Near mode so' existe no Kinect for Windows (1517). No 1414/1473 do Xbox, nao.
+        E_NUI_HARDWARE_FEATURE_UNAVAILABLE
+                                    => "Este sensor não tem o recurso pedido. "
+                                     + "O near mode exige o Kinect for Windows (modelo 1517).",
+        E_NUI_FEATURE_NOT_INITIALIZED
+                                    => "Recurso pedido antes de o sensor estar inicializado. "
+                                     + "Toque em Parar e depois em Ligar a caixa.",
+        E_NUI_STREAM_NOT_ENABLED    => "O fluxo de profundidade não foi habilitado na inicialização.",
+        E_NUI_BADINDEX              => "Índice de sensor inválido. Toque em Procurar Kinect.",
+
         _                           => $"Erro nativo NUI 0x{hr:X8}."
     };
 }

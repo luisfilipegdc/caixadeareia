@@ -1,0 +1,57 @@
+{
+  "_leia": "Configuração de partida, segura para qualquer montagem. Copie ao lado do executável como config.json e ajuste. Se o arquivo não existir, o programa usa exatamente estes valores. NÃO distribua a sua config.json: ela guarda a calibração e o alinhamento da SUA caixa, que não servem para outra.",
+
+  "sensor": {
+    "source": "kinect",
+    "nearMode": true,
+    "autoStart": true,
+    "autoLoadCalibration": true,
+    "autoReconnect": true,
+    "tiltAngle": null
+  },
+
+  "caixa": {
+    "_leia": "Meça a largura que o sensor realmente enxerga na sua caixa e coloque aqui. Sem medir, os valores em litros e milímetros continuam proporcionais, mas não calibrados.",
+    "larguraCobertaPeloSensorMm": 1250
+  },
+
+  "processing": {
+    "_leia": "minHeightMm e maxHeightMm definem a escala de cores do mapa. Não são calibração: a calibração fica em calibracao.dat, gerada pelo botão Nivelar e calibrar.",
+    "minValidDepthMm": 400,
+    "maxValidDepthMm": 2000,
+    "minHeightMm": -80,
+    "maxHeightMm": 120,
+    "smoothingAlpha": 0.15,
+    "fastAlpha": 0.65,
+    "jumpThresholdMm": 25,
+    "spatialBlurRadius": 3
+  },
+
+  "render": {
+    "contourIntervalMm": 15,
+    "contourOpacity": 0.55,
+    "majorContourEvery": 5,
+    "hillshadeEnabled": true,
+    "hillshadeStrength": 0.35
+  },
+
+  "projection": {
+    "_leia": "Alinhe na própria janela de projeção: setas movem, G mostra a grade, S salva. Os valores abaixo são o ponto de partida, não o alinhamento de ninguém.",
+    "screenIndex": 1,
+    "offsetX": 0,
+    "offsetY": 0,
+    "scaleX": 1,
+    "scaleY": 1,
+    "rotationDegrees": 0,
+    "flipHorizontal": false,
+    "flipVertical": false,
+    "roiLeft": 0,
+    "roiTop": 0,
+    "roiRight": 640,
+    "roiBottom": 480
+  },
+
+  "interface": {
+    "simpleMode": true
+  }
+}
