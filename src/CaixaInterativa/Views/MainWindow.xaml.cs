@@ -69,6 +69,13 @@ public partial class MainWindow : Window
         DetectSensor();
         AtualizarResumoCalibracao();
 
+        // OnStateChanged só dispara quando o estado MUDA. Ao abrir, o estado já é Parado
+        // desde o construtor, então nenhum evento acontece e os botões ficam como o XAML
+        // os deixou — todos habilitados, inclusive “Nivelar e calibrar”, que com a caixa
+        // desligada só consegue responder “Inicie uma fonte antes de calibrar”.
+        // Aplicar o estado uma vez aqui alinha a tela com a realidade.
+        OnStateChanged(_engine.State, _engine.StateMessage);
+
         // Numa aula, abrir o programa deve bastar. Se há uma fonte configurada e ela
         // está disponível, subimos sozinhos — inclusive restaurando a calibração.
         if (_config.Sensor.AutoStart) Ligar(silencioso: true);
@@ -100,6 +107,7 @@ public partial class MainWindow : Window
                 bool near = ChkNearMode.IsChecked == true;
                 int tilt = _config.Sensor.TiltAngle ?? int.MinValue;
                 _engine.StartSource(() => new KinectV1Source(near, tilt));
+                AplicarCoberturaSelecionada();
                 return;
             }
             catch (Exception ex)
@@ -155,6 +163,7 @@ public partial class MainWindow : Window
             bool near = _config.Sensor.NearMode;
             int tilt = _config.Sensor.TiltAngle ?? int.MinValue;
             _engine.StartSource(() => new KinectV1Source(near, tilt));
+            AplicarCoberturaSelecionada();
         }
         catch (Exception ex)
         {
@@ -176,6 +185,7 @@ public partial class MainWindow : Window
             };
             return _simulator;
         });
+        AplicarCoberturaSelecionada();
     }
 
     private void OnFlatSimChanged(object sender, RoutedEventArgs e)
@@ -271,6 +281,27 @@ public partial class MainWindow : Window
     {
         if (!_loaded || _engine.Agua is null) return;
 
+        AplicarCoberturaSelecionada();
+        SetStatus($"Cobertura: {_coberturaAtual}. Execute a simulação para ver o efeito.");
+    }
+
+    /// <summary>
+    /// Escreve no mapa de cobertura o que o combo está mostrando.
+    ///
+    /// Precisa ser chamado sempre que uma fonte inicia, porque cada <c>StartSource</c> cria
+    /// uma <c>WaterSimulation</c> nova, e o construtor dela preenche o solo com areia. O
+    /// combo, enquanto isso, continua exibindo o primeiro item da lista — "Mata".
+    ///
+    /// Sem esta sincronização o programa abre mentindo: a primeira chuva cai sobre areia
+    /// enquanto o professor lê "Mata" na tela, e o histórico de comparação registra o
+    /// resultado como se fosse de mata. Na queimada o sintoma é mais visível — atear fogo
+    /// responde "não há vegetação que possa queimar" com "Mata" escrito logo acima.
+    /// Reproduzido na validação visual de 28/08/2026, antes de existir esta chamada.
+    /// </summary>
+    private void AplicarCoberturaSelecionada()
+    {
+        if (_engine.Agua is null) return;
+
         int i = Math.Clamp(CmbCobertura.SelectedIndex, 0, PropriedadesDoSolo.Todos.Length - 1);
         var tipo = PropriedadesDoSolo.Todos[i];
         var prop = PropriedadesDoSolo.De(tipo);
@@ -282,7 +313,6 @@ public partial class MainWindow : Window
         // lê uma comparação didática como se fosse dado hidrológico medido.
         TxtCoberturaInfo.Text = prop.Descricao + "\n" + prop.Resumo
                               + "\n" + PropriedadesDoSolo.AvisoDidatico;
-        SetStatus($"Cobertura: {prop.Nome}. Execute a simulação para ver o efeito.");
     }
 
     private static (float MmPorSegundo, string Nome) IntensidadeChuva(int indice) => indice switch

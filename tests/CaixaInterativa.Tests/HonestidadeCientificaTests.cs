@@ -147,6 +147,46 @@ public class HonestidadeCientificaTests
         Assert.Equal(AlagadoCom(1250f), AlagadoCom(2500f), precision: 6);
     }
 
+    /// <summary>
+    /// A cobertura que o combo mostra ao abrir NÃO é a que o modelo contém.
+    ///
+    /// O combo começa no primeiro item de <see cref="PropriedadesDoSolo.Todos"/>, que é
+    /// Mata; o construtor de <see cref="WaterSimulation"/> preenche o solo com areia.
+    /// Enquanto essas duas coisas divergirem, a interface precisa sincronizar
+    /// explicitamente ao iniciar uma fonte — foi a origem de um bug reproduzido na
+    /// validação visual de 28/08/2026, em que atear fogo respondia "não há vegetação que
+    /// possa queimar" com "Mata" escrito na tela.
+    ///
+    /// Se um dia os dois passarem a coincidir, este teste falha e avisa que a
+    /// sincronização virou redundante — não que está errada.
+    /// </summary>
+    [Fact]
+    public void PadraoDoModeloDifereDoPrimeiroItemDaLista()
+    {
+        var primeiroDaLista = PropriedadesDoSolo.Todos[0];
+        var padraoDoModelo = new WaterSimulation(W, H).Solo.Em(0, 0);
+
+        Assert.Equal(TipoDeSolo.Mata, primeiroDaLista);
+        Assert.Equal(TipoDeSolo.SoloArenoso, padraoDoModelo);
+        Assert.NotEqual(primeiroDaLista, padraoDoModelo);
+    }
+
+    /// <summary>
+    /// Areia não tem combustível suficiente para pegar fogo; mata tem. É o par que
+    /// tornava o sintoma do bug visível.
+    /// </summary>
+    [Fact]
+    public void AreiaNaoQueimaMasMataQueima()
+    {
+        var comAreia = new WaterSimulation(W, H);
+        comAreia.Solo.Preencher(TipoDeSolo.SoloArenoso);
+        Assert.False(new FireSimulation(W, H, semente: 5) { Solo = comAreia.Solo }.Atear());
+
+        var comMata = new WaterSimulation(W, H);
+        comMata.Solo.Preencher(TipoDeSolo.Mata);
+        Assert.True(new FireSimulation(W, H, semente: 5) { Solo = comMata.Solo }.Atear());
+    }
+
     public static TheoryData<TipoDeSolo> TodasAsCoberturas()
     {
         var dados = new TheoryData<TipoDeSolo>();
