@@ -888,25 +888,40 @@ public partial class MainWindow : Window
 
         // Número observado e classe lado a lado. O número fica porque é auditável; a
         // classe fica porque é o que a aula usa. Nenhum dos dois vira parâmetro.
+        //
+        // A auditoria pedagógica mexeu só no vocabulário. "(mediana)" virou "valor
+        // típico" — mesma conta, e a procedência continua dizendo qual é. "Potência
+        // radiativa" virou "calor liberado". O risco de fogo passou a mostrar a classe
+        // primeiro e o índice depois, com a escala à vista: sozinho, "1,00" é lido como
+        // "100% de chance de incêndio", que não é o que o índice do INPE afirma.
         var linhas = new List<string>
         {
-            $"Bioma: {c.Bioma}    UF: {c.Uf}    Período: {c.Periodo}",
-            $"Focos detectados: {obs?.Focos:N0}",
+            c.RotuloPorExtenso,
+            "",
+            $"Focos de calor vistos por satélite: {obs?.Focos:N0}",
         };
 
         if (obs?.DiasSemChuvaMediano is double dias)
-            linhas.Add($"Dias sem chuva (mediana): {dias:F0}  →  {classes?.Secura}");
+            linhas.Add($"Dias sem chuva (valor típico): {dias:F0}  →  {classes?.Secura}");
 
         if (obs?.RiscoFogoMediano is double risco)
-            linhas.Add($"Risco de fogo (mediana): {risco:F2}  →  {classes?.Risco}");
+            linhas.Add($"Risco de fogo: {classes?.Risco}  (índice {risco:F2}, numa escala de 0 a 1)");
 
         if (obs?.FrpMedianoMw is double frp)
-            linhas.Add($"Potência radiativa (mediana): {frp:F1} MW");
+            linhas.Add($"Calor liberado pelos focos (valor típico): {frp:F1} MW");
 
+        // "relativa_ao_recorte" era o identificador do campo aparecendo cru na tela.
+        // Aqui vai o que ele significa, que é o que muda a leitura: as classes comparam
+        // este território com os outros do pacote, e não com um padrão do INPE.
         if (classes is not null)
-            linhas.Add($"Classificação: {classes.Classificacao}");
+        {
+            linhas.Add("");
+            linhas.Add($"“{classes.Secura}” e “{classes.Risco}” comparam este território " +
+                       "com os outros deste pacote — não são categorias oficiais do INPE.");
+        }
 
         TxtContextoObservado.Text = string.Join("\n", linhas);
+        TxtRelevoNaoEOTerritorio.Text = AtividadeConceitual.RelevoNaoRepresentaOTerritorio;
 
         var p = _contexto.Pacote?.Proveniencia;
         var origem = p?.Origem(c.Periodo);
@@ -918,8 +933,11 @@ public partial class MainWindow : Window
                     p.Resumo,
                     origem is null
                         ? $"Origem do período {c.Periodo}: não declarada no pacote."
-                        : $"Recurso: {origem.Recurso} ({origem.DiasObservados} dia(s) observados)" +
-                          (origem.AmostraParcial ? " — amostra parcial do mês" : ""),
+                        : $"Arquivo: {origem.Recurso} — {origem.DiasObservados} dias observados" +
+                          (origem.AmostraParcial ? " (mês incompleto)" : ""),
+                    // Sem ponto antes de "Onde": o método já vem pontuado do pacote.
+                    $"Agregação: {p.MetodoDeAgregacao} Onde a tela diz “valor típico”, " +
+                    "o número é a mediana do recorte.",
                     $"Classificação: {p.MetodoDeClassificacao}",
                     .. p.Observacoes,
                 ]);
@@ -977,12 +995,20 @@ public partial class MainWindow : Window
             return;
         }
 
-        TxtComparacaoTitulo.Text =
-            $"{comparacao.Bioma} · {comparacao.Uf}    " +
-            $"{comparacao.PeriodoA}  vs  {comparacao.PeriodoB}".ToUpperInvariant();
+        // O título dizia o território e os dois períodos, e deixava o leitor deduzir o que
+        // a caixa verde era. Agora ele diz o que a caixa é; o território virou subtítulo.
+        TxtComparacaoTitulo.Text = "O QUE MUDOU ENTRE OS DOIS PERÍODOS";
 
-        TxtComparacaoCampos.Text =
-            string.Join("\n", comparacao.Campos.Select(campo => campo.Descrever()));
+        string a = ContextoTerritorial.PeriodoPorExtenso(comparacao.PeriodoA);
+        string b = ContextoTerritorial.PeriodoPorExtenso(comparacao.PeriodoB);
+
+        TxtComparacaoCampos.Text = string.Join("\n",
+        [
+            $"{comparacao.Bioma} · {comparacao.Uf}",
+            $"{a}  →  {b}",
+            "",
+            .. comparacao.Campos.Select(campo => campo.Descrever()),
+        ]);
 
         // A ressalva de não causalidade acompanha toda comparação. Junto vai a origem de
         // cada período: quantos dias cada um representa muda o que a contagem significa.
@@ -993,8 +1019,9 @@ public partial class MainWindow : Window
             var origem = _contexto.Pacote?.Proveniencia?.Origem(periodo);
             if (origem is null) continue;
 
-            avisos.Add($"{periodo}: {origem.Recurso}, {origem.DiasObservados} dia(s) observados" +
-                       (origem.AmostraParcial ? " — amostra parcial do mês" : ""));
+            avisos.Add($"{ContextoTerritorial.PeriodoPorExtenso(periodo)}: " +
+                       $"{origem.DiasObservados} dias observados ({origem.Recurso})" +
+                       (origem.AmostraParcial ? " — mês incompleto" : ""));
         }
 
         TxtComparacaoAviso.Text = string.Join("\n", avisos);
@@ -1009,9 +1036,17 @@ public partial class MainWindow : Window
     private void MostrarAtividade(AtividadeConceitual a)
     {
         TxtAtividadeTitulo.Text = a.Titulo;
-        TxtAtividadePergunta.Text = a.PerguntaInvestigativa;
+        TxtAtividadePergunta.Text = a.Pergunta;
+        TxtAtividadeObservacao.Text = a.Observacao;
+        TxtAtividadeHipotese.Text = a.Hipotese;
+        TxtAtividadeExperimento.Text = a.Experimento;
+
+        // Os rótulos de natureza vão no texto, não só na cor: quem imprime a tela, quem
+        // lê por cima do ombro e quem usa leitor de tela precisa da mesma separação.
         TxtAtividadeOrigens.Text = string.Join("\n\n",
-            a.DeOndeVemOContexto, a.DeOndeVemORelevo, a.DeOndeVemAPropagacao);
+            "DADO EXTERNO OBSERVADO — " + a.DeOndeVemOContexto,
+            "MEDIÇÃO DA CAIXA — " + a.DeOndeVemORelevo,
+            "MODELO DIDÁTICO — " + a.DeOndeVemAPropagacao);
 
         BoxAtividade.Visibility = Visibility.Visible;
     }

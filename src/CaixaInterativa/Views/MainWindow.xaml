@@ -161,7 +161,7 @@
                             <Border Background="#FF1B1B22" CornerRadius="4" Padding="10"
                                     Margin="0,10,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="COMPARAÇÃO" FontSize="10" FontWeight="Bold"
+                                    <TextBlock Text="COMPARAR SIMULAÇÕES" FontSize="10" FontWeight="Bold"
                                                Foreground="{StaticResource Accent}" Margin="0,0,0,6"/>
                                     <TextBlock x:Name="TxtComparacao" TextWrapping="Wrap"
                                                FontSize="11" Opacity="0.85"
@@ -176,7 +176,7 @@
                 </StackPanel>
 
                 <!-- MODO AVANÇADO -->
-                <Expander x:Name="ExpAvancado" Header="Ajustes técnicos"
+                <Expander x:Name="ExpAvancado" Header="Ajustes técnicos e dados públicos"
                           Foreground="{StaticResource PanelFg}" Margin="0,14,0,0"
                           Expanded="OnAvancadoToggled" Collapsed="OnAvancadoToggled">
                     <StackPanel Margin="0,10,0,0">
@@ -186,28 +186,41 @@
                              principal, porque é experimento: não alimenta nenhum
                              parâmetro de simulação e não deve competir com os controles
                              que o professor usa em sala. -->
-                        <GroupBox Header="Contexto real (experimental)">
+                        <!-- "Contexto real" dizia real em oposição a quê? A auditoria
+                             pedagógica trocou por quem publica o dado, que é a informação
+                             que o professor procura. -->
+                        <GroupBox Header="Dados públicos do INPE (experimental)">
                             <StackPanel>
                                 <TextBlock TextWrapping="Wrap" FontSize="11" Opacity="0.6"
                                            Margin="0,0,0,8"
-                                           Text="Dado público observado, carregado de arquivo local. Nunca consultado pela internet."/>
+                                           Text="Focos de calor detectados por satélite, publicados pelo INPE. Lidos de um arquivo preparado antes da aula — a caixa nunca acessa a internet."/>
 
                                 <ComboBox x:Name="CmbContexto" SelectionChanged="OnContextoChanged"/>
 
                                 <Border x:Name="BoxContexto" Background="#FF10202A" CornerRadius="4"
                                         Padding="10" Margin="0,8,0,0" Visibility="Collapsed">
                                     <StackPanel>
-                                        <TextBlock Text="DADOS EXTERNOS OBSERVADOS" FontSize="10"
+                                        <TextBlock Text="DADO EXTERNO OBSERVADO" FontSize="10"
                                                    FontWeight="Bold" Foreground="#FF6FC3E8"
                                                    Margin="0,0,0,6"/>
                                         <TextBlock x:Name="TxtContextoObservado" TextWrapping="Wrap"
                                                    FontSize="12"/>
+
+                                        <!-- O mal-entendido mais provável da tela: um painel
+                                             que diz "Cerrado · Goiás" ao lado de uma caixa de
+                                             areia projetada convida a ler a areia como Goiás.
+                                             Fica visível, não escondido na procedência. -->
+                                        <TextBlock x:Name="TxtRelevoNaoEOTerritorio"
+                                                   TextWrapping="Wrap" FontSize="11"
+                                                   Foreground="#FFE8C77F" Margin="0,10,0,0"/>
+
                                         <TextBlock x:Name="TxtContextoProcedencia" TextWrapping="Wrap"
                                                    FontSize="10" Opacity="0.6" Margin="0,8,0,0"/>
                                     </StackPanel>
                                 </Border>
 
-                                <TextBlock x:Name="LblComparar" Text="Comparar com outro período"
+                                <TextBlock x:Name="LblComparar" Text="Comparar com outro período do mesmo território"
+                                           TextWrapping="Wrap"
                                            FontSize="12" Margin="0,10,0,3"
                                            Visibility="Collapsed"/>
                                 <ComboBox x:Name="CmbContextoB" SelectionChanged="OnContextoBChanged"
@@ -226,6 +239,12 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Quatro blocos rotulados, em vez de um parágrafo só.
+                                     A auditoria pedagógica encontrou o salto silencioso:
+                                     a pergunta sobre o dado e a pergunta hipotética sobre
+                                     o modelo vinham na mesma frase, e a travessia entre
+                                     "medido lá fora" e "o que a caixa faz" passava
+                                     despercebida. HIPÓTESE ganha cor própria por isso. -->
                                 <Border x:Name="BoxAtividade" Background="#FF1B1B22" CornerRadius="4"
                                         Padding="10" Margin="0,8,0,0" Visibility="Collapsed">
                                     <StackPanel>
@@ -233,11 +252,36 @@
                                              não cabe na largura do painel em 1366x768. -->
                                         <TextBlock x:Name="TxtAtividadeTitulo" FontSize="12"
                                                    TextWrapping="Wrap"
-                                                   FontWeight="Bold" Margin="0,0,0,4"/>
+                                                   FontWeight="Bold" Margin="0,0,0,8"/>
+
+                                        <TextBlock Text="PERGUNTA" FontSize="10" FontWeight="Bold"
+                                                   Foreground="#FF9AA6B2"/>
                                         <TextBlock x:Name="TxtAtividadePergunta" TextWrapping="Wrap"
-                                                   FontSize="11" Opacity="0.85" Margin="0,0,0,8"/>
+                                                   FontSize="11" Opacity="0.9" Margin="0,2,0,8"/>
+
+                                        <TextBlock Text="OBSERVAÇÃO" FontSize="10" FontWeight="Bold"
+                                                   Foreground="#FF9AA6B2"/>
+                                        <TextBlock x:Name="TxtAtividadeObservacao" TextWrapping="Wrap"
+                                                   FontSize="11" Opacity="0.9" Margin="0,2,0,8"/>
+
+                                        <TextBlock Text="HIPÓTESE — sobre a caixa, não sobre o território"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="10" FontWeight="Bold"
+                                                   Foreground="#FFE8C77F"/>
+                                        <TextBlock x:Name="TxtAtividadeHipotese" TextWrapping="Wrap"
+                                                   FontSize="11" Opacity="0.9" Margin="0,2,0,8"/>
+
+                                        <TextBlock Text="EXPERIMENTO — quem escolhe é você"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="10" FontWeight="Bold"
+                                                   Foreground="#FF9AA6B2"/>
+                                        <TextBlock x:Name="TxtAtividadeExperimento" TextWrapping="Wrap"
+                                                   FontSize="11" Opacity="0.9" Margin="0,2,0,10"/>
+
+                                        <TextBlock Text="DE ONDE VEM CADA COISA" FontSize="10"
+                                                   FontWeight="Bold" Foreground="#FF9AA6B2"/>
                                         <TextBlock x:Name="TxtAtividadeOrigens" TextWrapping="Wrap"
-                                                   FontSize="10" Opacity="0.7"/>
+                                                   FontSize="10" Opacity="0.7" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
 
