@@ -32,6 +32,16 @@ public sealed class TopographicRenderer
     /// verde nas planicies, marrom nas encostas, branco nos picos. E' a convencao dos atlas
     /// escolares justamente porque o aluno ja chega sabendo ler.
     /// </summary>
+    /// <summary>
+    /// Onde o mapa deixa de ser agua, na altura normalizada de 0 a 1.
+    ///
+    /// E' a posicao do tom "linha d'agua" na rampa abaixo, e existe como constante publica
+    /// porque a simulacao de fogo precisa parar exatamente onde o aluno ve azul. Se as duas
+    /// pontas escolhessem o limite por conta propria, o fogo atravessaria o mar por alguns
+    /// milimetros de altura — e ninguem entenderia por que.
+    /// </summary>
+    public const float FracaoDaLinhaDagua = 0.27f;
+
     private static readonly Stop[] Palette =
     [
         new(0.00f,   4,  20,  70),   // fundo de oceano
@@ -231,6 +241,20 @@ public sealed class TopographicRenderer
                                 r += (255f - r) * brilho * 0.75f;
                                 g += (250f - g) * brilho * 0.70f;
                                 b += (235f - b) * brilho * 0.60f;
+                                break;
+                            }
+
+                            case ModoDeCor.Cicatriz:
+                            {
+                                // Carvao. Escurece sem chapar: as curvas de nivel continuam
+                                // legiveis por baixo, e' justamente na area queimada que a
+                                // topografia passa a importar mais — e' por ela que a agua
+                                // da proxima chuva vai descer.
+                                float tc = Math.Clamp(valor, 0f, 1f);
+                                float alfa = 0.32f + 0.40f * tc;
+                                r = r * (1f - alfa) + 74f * alfa;
+                                g = g * (1f - alfa) + 62f * alfa;
+                                b = b * (1f - alfa) + 58f * alfa;
                                 break;
                             }
 

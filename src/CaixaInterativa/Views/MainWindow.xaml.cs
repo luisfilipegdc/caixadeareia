@@ -42,6 +42,12 @@ public partial class MainWindow : Window
         _engine.CalibrationCompleted += OnCalibrationCompleted;
         _engine.StateChanged += OnStateChanged;
 
+        // Toda fonte que inicia recebe a cobertura que o combo está exibindo — inclusive as
+        // que o motor inicia sozinho, na reconexão do sensor. As chamadas espalhadas pelos
+        // caminhos da interface não alcançavam essa, e depois de o sensor cair e voltar a
+        // tela passava a mentir sobre o que cobre o solo.
+        _engine.SourceStarted += AplicarCoberturaSelecionada;
+
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarSimulacao(); };
         _uiTimer.Start();
@@ -396,28 +402,87 @@ public partial class MainWindow : Window
     /// Ateia fogo. O foco cai num ponto sorteado entre os que têm o que queimar — a
     /// própria simulação escolhe, para o incêndio não começar no asfalto e não pegar.
     /// </summary>
-    private void ExecutarQueimada()
+    private void ExecutarQueimada(float? u = null, float? v = null)
     {
         var fogo = _engine.Fogo;
         if (fogo is null || fogo.EmAndamento) return;
 
         fogo.VentoForca = (float)SldVento.Value;
 
-        if (!fogo.Atear())
+        if (!fogo.Atear(u, v))
         {
-            // Atear devolve falso quando nenhuma célula tem combustível suficiente. É o
-            // caso da cobertura padrão, que é solo arenoso — dizer o que fazer vale mais
-            // que um botão que não responde.
-            MessageBox.Show(
-                "Não há vegetação que possa queimar nesta cobertura.\n\n" +
-                "Escolha uma cobertura com material combustível — Mata, Pastagem ou " +
-                "Agricultura — e ateie o fogo de novo.",
-                AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
+            // Duas causas, dois conselhos opostos: tocar no mar pede outro lugar, e
+            // cobertura sem combustível pede trocar a cobertura. Um "não pegou" genérico
+            // mandaria mexer na coisa errada em metade das vezes.
+            string aviso = fogo.PontoRecusado switch
+            {
+                FireSimulation.MotivoDaRecusa.NoMar =>
+                    "Ali é mar.\n\nO fogo não atravessa água — escolha um ponto na parte " +
+                    "seca do relevo, acima da linha d’água.",
+
+                // O caso que a caixa de verdade encontrou: a cobertura queima, mas não
+                // sobrou terra seca. Mandar trocar a cobertura aqui seria mandar consertar
+                // o que não está quebrado.
+                FireSimulation.MotivoDaRecusa.TudoNoMar =>
+                    $"A cobertura ({_coberturaAtual}) queima, mas o relevo está todo abaixo " +
+                    "da linha d’água.\n\nLevante areia para formar terra seca — ou aumente " +
+                    "“Profundidade dos vales”, em Ajustes técnicos, para baixar o nível do mar.",
+
+                _ =>
+                    $"A cobertura atual ({_coberturaAtual}) não tem vegetação que queime.\n\n" +
+                    "Escolha Mata, Pastagem ou Agricultura e ateie o fogo de novo.",
+            };
+
+            MessageBox.Show(aviso, AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        SetStatus($"Fogo ateado sobre {_coberturaAtual}. " +
+        string onde = u is null ? "num ponto sorteado" : "no ponto que você escolheu";
+        SetStatus($"Fogo ateado {onde}, sobre {_coberturaAtual}. " +
                   $"Vento de {fogo.VentoPorExtenso()}. Observe por onde a frente avança.");
+    }
+
+    /// <summary>
+    /// Clique na prévia: ateia fogo naquele ponto do relevo.
+    ///
+    /// A conversão precisa desfazer duas coisas antes de chegar ao ponto do território.
+    /// A primeira é o <c>Stretch="Uniform"</c>: a imagem cabe dentro do controle com
+    /// tarjas, e um clique na tarja não é um clique no mapa. A segunda é a ROI — o que
+    /// aparece é um recorte do campo do sensor, e a simulação trabalha no campo inteiro.
+    /// </summary>
+    private void OnPreviewClique(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_simulacaoAtual != Simulacao.Queimada) return;
+        if (Preview.Source is not System.Windows.Media.Imaging.BitmapSource bmp) return;
+
+        var p = e.GetPosition(Preview);
+
+        // Desfaz o encaixe uniforme.
+        double escala = Math.Min(Preview.ActualWidth / bmp.PixelWidth,
+                                 Preview.ActualHeight / bmp.PixelHeight);
+        if (escala <= 0) return;
+
+        double larguraVisivel = bmp.PixelWidth * escala;
+        double alturaVisivel = bmp.PixelHeight * escala;
+        double margemX = (Preview.ActualWidth - larguraVisivel) / 2;
+        double margemY = (Preview.ActualHeight - alturaVisivel) / 2;
+
+        double px = (p.X - margemX) / escala;
+        double py = (p.Y - margemY) / escala;
+
+        // Clique na tarja não é clique no mapa.
+        if (px < 0 || py < 0 || px >= bmp.PixelWidth || py >= bmp.PixelHeight) return;
+
+        // Da ROI de volta para o campo inteiro do sensor.
+        var proj = _engine.Config.Projection;
+        int larguraCampo = _engine.LarguraCampo;
+        int alturaCampo = _engine.AlturaCampo;
+        if (larguraCampo <= 0 || alturaCampo <= 0) return;
+
+        double campoX = proj.RoiLeft + px;
+        double campoY = proj.RoiTop + py;
+
+        ExecutarQueimada((float)(campoX / larguraCampo), (float)(campoY / alturaCampo));
     }
 
     private void OnSecar(object sender, RoutedEventArgs e)

@@ -96,6 +96,18 @@ public sealed class SandboxEngine : IDisposable
     /// <summary>Estado geral para a interface pintar de verde, amarelo ou vermelho.</summary>
     public event Action<EngineState, string>? StateChanged;
 
+    /// <summary>
+    /// Uma fonte nova comecou. Quem observa precisa reaplicar o que so' a interface sabe.
+    ///
+    /// Existe por causa de um defeito encontrado com o sensor ligado: cada StartSource cria
+    /// uma WaterSimulation nova, e o construtor dela preenche o solo com areia. As chamadas
+    /// manuais a AplicarCoberturaSelecionada cobriam os caminhos da interface, mas nao o do
+    /// timer de reconexao, que chama StartSource de dentro do motor. Depois de o sensor cair
+    /// e voltar, o combo continuava exibindo "Pastagem" enquanto o solo era areia — e atear
+    /// fogo respondia "nao ha' vegetacao que possa queimar" com Pastagem escrito acima.
+    /// </summary>
+    public event Action? SourceStarted;
+
     private EngineState _state = EngineState.Parado;
     public EngineState State
     {
@@ -182,6 +194,10 @@ public sealed class SandboxEngine : IDisposable
         {
             Solo = Agua.Solo,
             Agua = Agua.Profundidade,
+            // A mesma faixa de alturas que o renderizador usa para pintar o mapa. E' assim
+            // que o fogo sabe onde comeca o azul: sem ela, o incendio atravessaria o mar.
+            AlturaMinimaMm = Config.Processing.MinHeightMm,
+            AlturaMaximaMm = Config.Processing.MaxHeightMm,
         };
 
         _nearMode.Reiniciar();
@@ -212,6 +228,9 @@ public sealed class SandboxEngine : IDisposable
                  restaurada
                      ? $"Pronto — calibração de {CalibrationAge()} carregada"
                      : "Nivele a areia e toque em Calibrar");
+
+        // Por ultimo: quem escuta reaplica a cobertura escolhida sobre o solo recem-criado.
+        SourceStarted?.Invoke();
     }
 
     /// <summary>Restaura a calibração gravada em disco, se houver e se servir.</summary>
@@ -354,6 +373,15 @@ public sealed class SandboxEngine : IDisposable
         {
             var modulo = _modulos[i];
             if (modulo.Ativo) modulo.Atualizar(_heights, frame.Width, frame.Height, dt);
+        }
+
+        // Os deslizadores de altura mexem nesta faixa durante a aula, e e' ela que define
+        // onde o mapa vira mar. Copiar so' na construcao deixaria o fogo parando numa cota
+        // que nao corresponde mais ao azul que esta' na tela.
+        if (Fogo is not null)
+        {
+            Fogo.AlturaMinimaMm = Config.Processing.MinHeightMm;
+            Fogo.AlturaMaximaMm = Config.Processing.MaxHeightMm;
         }
 
         ColetarCamadas();

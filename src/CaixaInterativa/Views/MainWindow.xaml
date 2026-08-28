@@ -452,7 +452,12 @@
         <!-- Prévia -->
         <Border Grid.Column="1" Grid.Row="1" Background="#FF0E0E11" CornerRadius="6">
             <Grid>
+                <!-- Clicar na prévia ateia fogo naquele ponto. O foco sorteado continua
+                     existindo no botão; o clique é para quando a pergunta da aula é "e se
+                     começasse aqui?" — que é a pergunta que muda a resposta. -->
                 <Image x:Name="Preview" Stretch="Uniform"
+                       Cursor="Cross"
+                       MouseLeftButtonDown="OnPreviewClique"
                        RenderOptions.BitmapScalingMode="HighQuality"/>
 
                 <!-- Orientação quando não há nada para mostrar -->

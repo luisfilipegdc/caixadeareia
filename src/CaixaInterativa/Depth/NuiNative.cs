@@ -245,32 +245,32 @@ internal static class NuiNative
     public static string DescribeHResult(int hr) => hr switch
     {
         // O caso que aparece na pratica: duas copias do aplicativo abertas ao mesmo tempo.
-        E_NUI_DEVICE_IN_USE         => "O sensor ja esta sendo usado por outro programa. "
+        E_NUI_DEVICE_IN_USE         => "O sensor já está sendo usado por outro programa. "
                                      + "Feche a outra janela da Caixa (ou o Kinect Studio) e tente de novo. "
-                                     + "O cabo e a fonte estao bem.",
-        E_NUI_IMAGE_STREAM_IN_USE   => "Este fluxo de imagem ja esta aberto. "
+                                     + "O cabo e a fonte estão bem.",
+        E_NUI_IMAGE_STREAM_IN_USE   => "Este fluxo de imagem já está aberto. "
                                      + "Feche a outra janela da Caixa e tente de novo.",
-        E_NUI_ALREADY_INITIALIZED   => "O sensor ja foi inicializado nesta sessao. "
+        E_NUI_ALREADY_INITIALIZED   => "O sensor já foi inicializado nesta sessão. "
                                      + "Toque em Parar e depois em Ligar a caixa.",
 
-        E_NUI_DEVICE_NOT_CONNECTED  => "Sensor nao encontrado. Verifique o cabo USB e a fonte de energia.",
+        E_NUI_DEVICE_NOT_CONNECTED  => "Sensor não encontrado. Verifique o cabo USB e a fonte de energia.",
         E_NUI_NOTCONNECTED          => "O hub do Kinect se desconectou. Verifique o cabo USB.",
         E_NUI_DEVICE_NOT_READY or E_NUI_NOTREADY
-                                    => "Sensor encontrado mas nao pronto. Aguarde a inicializacao ou reconecte.",
-        E_NUI_NOTPOWERED            => "Sensor sem alimentacao. O adaptador de energia externo e' obrigatorio.",
-        E_NUI_INSUFFICIENTBANDWIDTH => "Banda USB insuficiente. Use uma porta USB em outro controlador (nao compartilhada).",
-        E_NUI_NOTGENUINE            => "Sensor nao reconhecido como original.",
-        E_NUI_NOTSUPPORTED          => "Este modelo de sensor nao e' suportado pelo driver instalado.",
+                                    => "Sensor encontrado mas não está pronto. Aguarde a inicialização ou reconecte.",
+        E_NUI_NOTPOWERED            => "Sensor sem alimentação. O adaptador de energia externo é obrigatório.",
+        E_NUI_INSUFFICIENTBANDWIDTH => "Banda USB insuficiente. Use uma porta USB em outro controlador (não compartilhada).",
+        E_NUI_NOTGENUINE            => "Sensor não reconhecido como original.",
+        E_NUI_NOTSUPPORTED          => "Este modelo de sensor não é suportado pelo driver instalado.",
 
         // Near mode so' existe no Kinect for Windows (1517). No 1414/1473 do Xbox, nao.
         E_NUI_HARDWARE_FEATURE_UNAVAILABLE
-                                    => "Este sensor nao tem o recurso pedido. "
+                                    => "Este sensor não tem o recurso pedido. "
                                      + "O near mode exige o Kinect for Windows (modelo 1517).",
         E_NUI_FEATURE_NOT_INITIALIZED
                                     => "Recurso pedido antes de o sensor estar inicializado. "
                                      + "Toque em Parar e depois em Ligar a caixa.",
-        E_NUI_STREAM_NOT_ENABLED    => "O fluxo de profundidade nao foi habilitado na inicializacao.",
-        E_NUI_BADINDEX              => "Indice de sensor invalido. Toque em Procurar Kinect.",
+        E_NUI_STREAM_NOT_ENABLED    => "O fluxo de profundidade não foi habilitado na inicialização.",
+        E_NUI_BADINDEX              => "Índice de sensor inválido. Toque em Procurar Kinect.",
 
         _                           => $"Erro nativo NUI 0x{hr:X8}."
     };

@@ -95,13 +95,21 @@ public class MapeamentoDeCamadasTests
         var fogo = new FireSimulation(W, H, semente: 42);
         var camadas = fogo.Camadas;
 
-        Assert.Single(camadas);
-        Assert.Equal(ModoDeCor.Calor, camadas[0].Modo);
-        Assert.Equal(CamadaVisual.OrdemCalor, camadas[0].Ordem);
-        Assert.Equal(0.03f, camadas[0].Limiar);
-        Assert.Same(fogo.Calor, camadas[0].Campo);
+        // Duas: a cicatriz, que fica, e a chama, que passa. Eram uma só, e por isso o
+        // mapa voltava ao que era quando o último foco apagava.
+        Assert.Equal(2, camadas.Count);
 
-        Assert.True(CamadaVisual.OrdemCalor > CamadaVisual.OrdemClarao);
+        var cicatriz = camadas.Single(c => c.Modo == ModoDeCor.Cicatriz);
+        Assert.Equal(CamadaVisual.OrdemCicatriz, cicatriz.Ordem);
+
+        var chama = camadas.Single(c => c.Modo == ModoDeCor.Calor);
+        Assert.Equal(CamadaVisual.OrdemCalor, chama.Ordem);
+        Assert.Equal(0.03f, chama.Limiar);
+        Assert.Same(fogo.Calor, chama.Campo);
+
+        // Onde ainda há fogo, é o fogo que se vê: a chama desenha por cima da cicatriz.
+        Assert.True(CamadaVisual.OrdemCalor > CamadaVisual.OrdemCicatriz);
+        Assert.True(CamadaVisual.OrdemCicatriz > CamadaVisual.OrdemClarao);
         Assert.True(CamadaVisual.OrdemClarao > CamadaVisual.OrdemRisco);
         Assert.True(CamadaVisual.OrdemRisco > CamadaVisual.OrdemAgua);
     }
@@ -123,7 +131,8 @@ public class MapeamentoDeCamadasTests
         todas.AddRange(sismo.Camadas);
         todas.AddRange(fogo.Camadas);
 
-        Assert.Equal(4, todas.Count);
+        // Água, dano sísmico, frente de onda, cicatriz do fogo e chama.
+        Assert.Equal(5, todas.Count);
         for (int i = 1; i < todas.Count; i++)
             Assert.True(todas[i - 1].Ordem < todas[i].Ordem,
                         $"Camada {i} tem ordem {todas[i].Ordem}, que não vem depois de {todas[i - 1].Ordem}.");

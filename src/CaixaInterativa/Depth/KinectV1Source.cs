@@ -68,7 +68,7 @@ public sealed class KinectV1Source : IDepthSource
         }
         catch (DllNotFoundException)
         {
-            message = "Kinect10.dll nao encontrada. Instale o Kinect for Windows SDK 1.8.";
+            message = "Kinect10.dll não encontrada. Instale o Kinect for Windows SDK 1.8.";
             return false;
         }
         catch (Exception ex)

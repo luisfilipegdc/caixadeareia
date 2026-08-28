@@ -105,6 +105,7 @@ public sealed class FireSimulation : ISimulationModule
         _combustivel = new float[n];
         _calor = new float[n];
         _terreno = new float[n];
+        _cicatriz = new float[n];
 
         // Semente fixa deixa a aula reproduzível quando o professor quiser repetir o
         // mesmo cenário; semente zero sorteia, para o foco cair em lugar diferente.
@@ -112,10 +113,48 @@ public sealed class FireSimulation : ISimulationModule
 
         _camadas =
         [
+            // A cicatriz fica; a chama passa. Por isso são duas camadas e não uma: o calor
+            // zera quando o combustível acaba, e antes disso o mapa voltava exatamente ao
+            // que era — o incêndio não deixava marca nenhuma na tela.
+            new CamadaVisual(_cicatriz, _w, _h,
+                             CamadaVisual.OrdemCicatriz, ModoDeCor.Cicatriz, Limiar: 0.02f),
             new CamadaVisual(_calor, _w, _h,
                              CamadaVisual.OrdemCalor, ModoDeCor.Calor, Limiar: 0.03f),
         ];
     }
+
+    /// <summary>Quanto cada célula foi degradada pelo fogo, de 0 a 1. Não volta sozinho.</summary>
+    private readonly float[] _cicatriz;
+
+    /// <summary>A cicatriz por célula, para desenhar e para conferir.</summary>
+    public float[] Cicatriz => _cicatriz;
+
+    /// <summary>Altura mínima do relevo em milímetros, como o renderizador a enxerga.</summary>
+    public float AlturaMinimaMm { get; set; }
+
+    /// <summary>Altura máxima do relevo em milímetros, como o renderizador a enxerga.</summary>
+    public float AlturaMaximaMm { get; set; }
+
+    /// <summary>
+    /// A cota em que o mapa deixa de ser mar, em milímetros.
+    ///
+    /// Vem da mesma fração que o renderizador usa para pintar a linha d'água, e não de um
+    /// número escolhido aqui: o fogo tem de parar exatamente onde o aluno vê o azul começar.
+    /// </summary>
+    public float CotaDaLinhaDaguaMm =>
+        AlturaMinimaMm + (AlturaMaximaMm - AlturaMinimaMm) * TopographicRenderer.FracaoDaLinhaDagua;
+
+    /// <summary>
+    /// Se a faixa de alturas não foi informada, a regra do mar fica desligada.
+    ///
+    /// Com mínima e máxima ambas em zero, "abaixo da linha d'água" significaria "abaixo de
+    /// zero", e metade de um relevo qualquer viraria oceano sem que ninguém tivesse pedido.
+    /// Preferimos não aplicar a regra a aplicá-la sobre uma escala inventada.
+    /// </summary>
+    private bool TemEscalaDeAltura => AlturaMaximaMm - AlturaMinimaMm > 1f;
+
+    /// <summary>A célula está abaixo da linha d'água — é mar, e o fogo não atravessa mar.</summary>
+    private bool NoMar(int i) => TemEscalaDeAltura && _terreno[i] < CotaDaLinhaDaguaMm;
 
     /// <summary>
     /// Quanto cada cobertura alimenta o fogo. Mata tem muita biomassa e queima por
@@ -139,6 +178,27 @@ public sealed class FireSimulation : ISimulationModule
     };
 
     /// <summary>
+    /// Por que o fogo não pegou.
+    ///
+    /// São três, e não duas, por causa de um erro que apareceu na caixa de verdade: com o
+    /// relevo quase todo abaixo da linha d'água, o sorteio não achava candidato e a tela
+    /// culpava a cobertura — mandando escolher Pastagem quando Pastagem já estava
+    /// escolhida. "Não há o que queimar" e "há o que queimar, mas está tudo submerso" são
+    /// diagnósticos diferentes e pedem coisas opostas: um manda trocar a cobertura, o
+    /// outro manda levantar areia.
+    /// </summary>
+    public enum MotivoDaRecusa { Nenhum, NoMar, SemCombustivel, TudoNoMar }
+
+    /// <summary>
+    /// O motivo da última recusa de <see cref="Atear"/>.
+    ///
+    /// Existe porque "não pegou" tem duas causas diferentes e conselhos opostos: tocar no
+    /// mar pede escolher outro lugar, e cobertura sem combustível pede trocar a cobertura.
+    /// Um <c>false</c> sozinho não distingue as duas.
+    /// </summary>
+    public MotivoDaRecusa PontoRecusado { get; private set; }
+
+    /// <summary>
     /// Ateia fogo num ponto sorteado entre os que têm o que queimar.
     ///
     /// Sortear qualquer ponto faria o incêndio começar no asfalto metade das vezes e não
@@ -158,19 +218,43 @@ public sealed class FireSimulation : ISimulationModule
             int x = Math.Clamp((int)(u.Value * _w), 0, _w - 1);
             int y = Math.Clamp((int)(v.Value * _h), 0, _h - 1);
             int i = y * _w + x;
-            if (_combustivel[i] > 0.05f) foco = i;
+
+            // Ponto escolhido a dedo não cai para o sorteio quando não serve. Se alguém
+            // tocou no mar, o certo é dizer que ali não pega — e não acender um incêndio
+            // do outro lado do mapa, que pareceria um defeito.
+            if (NoMar(i)) { PontoRecusado = MotivoDaRecusa.NoMar; return false; }
+            if (_combustivel[i] <= 0.05f) { PontoRecusado = MotivoDaRecusa.SemCombustivel; return false; }
+
+            foco = i;
         }
 
         if (foco < 0)
         {
-            // Junta os candidatos e sorteia entre eles.
+            // Junta os candidatos e sorteia entre eles. `comCombustivel` conta separado
+            // para saber, quando não sobrar candidato, se o problema é a cobertura ou o
+            // fato de o relevo estar submerso — são conselhos opostos.
             var candidatos = new List<int>();
-            for (int i = 0; i < _combustivel.Length; i++)
-                if (_combustivel[i] > 0.3f && _estado[i] == Estado.Intacto) candidatos.Add(i);
+            int comCombustivel = 0;
 
-            if (candidatos.Count == 0) return false;
+            for (int i = 0; i < _combustivel.Length; i++)
+            {
+                if (_combustivel[i] <= 0.3f || _estado[i] != Estado.Intacto) continue;
+                comCombustivel++;
+                if (!NoMar(i)) candidatos.Add(i);
+            }
+
+            if (candidatos.Count == 0)
+            {
+                PontoRecusado = comCombustivel > 0
+                    ? MotivoDaRecusa.TudoNoMar
+                    : MotivoDaRecusa.SemCombustivel;
+                return false;
+            }
+
             foco = candidatos[_sorteio.Next(candidatos.Count)];
         }
+
+        PontoRecusado = MotivoDaRecusa.Nenhum;
 
         _estado[foco] = Estado.Queimando;
         _calor[foco] = 1f;
@@ -198,6 +282,9 @@ public sealed class FireSimulation : ISimulationModule
             _estado[i] = _combustivel[i] <= 0.02f ? Estado.NaoQueima : Estado.Intacto;
             _calor[i] = 0f;
         }
+
+        // `_cicatriz` nao e' zerada aqui de proposito: um segundo incendio nao apaga o
+        // rastro do primeiro. Quem limpa e' Limpar(), que e' o botao de recomecar a aula.
     }
 
     public void Atualizar(float[] terrenoMm, int larguraTerreno, int alturaTerreno, float dt)
@@ -264,6 +351,10 @@ public sealed class FireSimulation : ISimulationModule
                 {
                     _estado[i] = Estado.Queimado;
                     _calor[i] = 0f;
+                    // A marca fica. E' o unico registro na tela de que o fogo passou por
+                    // aqui — sem ela, quando a ultima chama apaga o mapa volta a ser o que
+                    // era, e o incendio nao tera' custado nada a ninguem.
+                    _cicatriz[i] = 1f;
                     continue;
                 }
 
@@ -298,6 +389,13 @@ public sealed class FireSimulation : ISimulationModule
         // pelo resto do incêndio mesmo depois de a água infiltrar ou escoar. Uma poça que
         // seca deve devolver a passagem, e é a água do instante que decide.
         if (Agua is not null && Agua[i] > 2f) return;
+
+        // O mar também barra, e barra pelo mesmo motivo — só que este não precisa de
+        // chuva para existir. Tudo que o mapa pinta de azul está abaixo da linha d'água,
+        // e fogo não atravessa água. A verificação é a cada tentativa, com o relevo do
+        // instante: cavar um canal até o mar durante o incêndio abre a barreira na hora,
+        // que é exatamente a descoberta que vale a aula.
+        if (NoMar(i)) return;
 
         float chance = _combustivel[i] * 0.30f;
 
@@ -361,6 +459,8 @@ public sealed class FireSimulation : ISimulationModule
         Array.Clear(_estado);
         Array.Clear(_combustivel);
         Array.Clear(_calor);
+        Array.Clear(_cicatriz);
+        PontoRecusado = MotivoDaRecusa.Nenhum;
         EmAndamento = false;
         TempoDecorrido = 0f;
         _acumulador = 0f;

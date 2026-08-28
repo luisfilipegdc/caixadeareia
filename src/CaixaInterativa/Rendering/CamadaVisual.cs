@@ -38,6 +38,15 @@ public enum ModoDeCor
 
     /// <summary>Chama: vermelho na borda da frente de fogo, amarelo no núcleo.</summary>
     Calor,
+
+    /// <summary>
+    /// Cicatriz de queimada: escurece o terreno sem apagar o relevo.
+    ///
+    /// Não é <see cref="Risco"/>. Dano sísmico é amarelo-vermelho porque ainda pede
+    /// resposta; área queimada já aconteceu, e a leitura dela é a de uma foto de
+    /// satélite depois do fogo — carvão.
+    /// </summary>
+    Cicatriz,
 }
 
 /// <summary>
@@ -94,6 +103,10 @@ public readonly record struct CamadaVisual(
 
     /// <summary>Frente de onda, por cima do dano que ela mesma vai deixar.</summary>
     public const int OrdemClarao = 210;
+
+    /// <summary>A cicatriz fica no mapa depois que a chama passa, e por isso vem antes
+    /// dela: onde ainda ha' fogo, e' o fogo que se ve.</summary>
+    public const int OrdemCicatriz = 250;
 
     /// <summary>Fogo, acima de tudo.</summary>
     public const int OrdemCalor = 300;
