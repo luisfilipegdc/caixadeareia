@@ -26,14 +26,44 @@ namespace CaixaInterativa.Contexto;
 /// reproduz. O professor lê o contexto, decide o que configurar, e a responsabilidade
 /// pedagógica continua sendo dele. Automatizar isso é uma decisão que precisa ser tomada
 /// de propósito, não como efeito colateral de uma integração de dados.
+///
+/// <b>Os quatro blocos.</b> A auditoria pedagógica trocou o parágrafo único por
+/// PERGUNTA → OBSERVAÇÃO → HIPÓTESE → EXPERIMENTO. Antes, a pergunta hipotética vinha
+/// grudada na pergunta sobre o dado, na mesma frase, e o salto de "o que foi medido lá
+/// fora" para "o que a caixa faz" acontecia sem que ninguém percebesse a travessia. Os
+/// blocos separados obrigam a travessia a ser consciente — que é justamente o ponto.
 /// </summary>
 public sealed record AtividadeConceitual(
     string Titulo,
-    string PerguntaInvestigativa,
+
+    /// <summary>PERGUNTA — o que a turma vai investigar no dado observado.</summary>
+    string Pergunta,
+
+    /// <summary>OBSERVAÇÃO — o que olhar, e o que a tabela não responde.</summary>
+    string Observacao,
+
+    /// <summary>HIPÓTESE — a pergunta hipotética sobre o modelo. Nunca sobre o dado.</summary>
+    string Hipotese,
+
+    /// <summary>EXPERIMENTO — o que o professor faz na caixa, à mão.</summary>
+    string Experimento,
+
     string DeOndeVemOContexto,
     string DeOndeVemORelevo,
     string DeOndeVemAPropagacao)
 {
+    /// <summary>
+    /// O aviso que separa o território selecionado do relevo da areia.
+    ///
+    /// <b>É o mal-entendido mais provável desta tela inteira.</b> Um painel que diz
+    /// "Cerrado · Goiás" ao lado de uma caixa de areia projetada convida à leitura de que
+    /// a areia é Goiás. Nenhum texto dizia o contrário: o mais próximo era "o relevo é o
+    /// que os estudantes moldaram", que descreve a origem sem negar a representação.
+    /// </summary>
+    public const string RelevoNaoRepresentaOTerritorio =
+        "O relevo da caixa foi construído pelos alunos e não representa o território real " +
+        "selecionado. O território aparece aqui só como contexto de leitura.";
+
     /// <summary>
     /// A primeira atividade desenhada sobre contexto externo.
     ///
@@ -43,53 +73,81 @@ public sealed record AtividadeConceitual(
     public static readonly AtividadeConceitual QueimadasNoCerrado = new(
         Titulo: "Queimadas no Cerrado",
 
-        PerguntaInvestigativa:
-            "Como o relevo, a cobertura do solo e as barreiras de água podem alterar a " +
-            "propagação do fogo num cenário de risco elevado?",
+        Pergunta:
+            "O que os satélites registraram neste território, neste período?",
+
+        Observacao:
+            "Leiam os números do quadro acima: quantos focos de calor, quantos dias sem " +
+            "chuva, quanto calor liberado. São medições de um território real.",
+
+        Hipotese:
+            "Agora uma pergunta sobre a caixa, não sobre o território: o que vocês acham " +
+            "que aconteceria com o fogo se o relevo tivesse um vale no meio? E se houvesse " +
+            "água atravessando?",
+
+        Experimento:
+            "Moldem o relevo na areia, escolham a cobertura do solo e a força do vento, e " +
+            "toquem em iniciar. Quem escolhe as condições é a turma — nada aqui é ajustado " +
+            "pelos dados do satélite.",
 
         DeOndeVemOContexto:
-            "Dado externo observado: focos de calor detectados por satélite, publicados " +
-            "pelo INPE. Diz o que foi medido no território real, no período indicado.",
+            "Focos de calor detectados por satélite, publicados pelo INPE. Dizem o que foi " +
+            "medido no território real, no período indicado.",
 
         DeOndeVemORelevo:
-            "Medição da caixa: o relevo é o que os estudantes moldaram na areia, lido pelo " +
-            "sensor de profundidade.",
+            "O relevo é o que os estudantes moldaram na areia, lido pelo sensor. " +
+            RelevoNaoRepresentaOTerritorio,
 
         DeOndeVemAPropagacao:
-            "Modelo didático: a propagação do fogo é uma simulação de sala de aula, " +
-            "calibrada para o fenômeno aparecer numa aula. Não é previsão, e não reproduz " +
-            "os focos observados.");
+            "A propagação do fogo é uma simulação de sala de aula, calibrada para o " +
+            "fenômeno aparecer numa aula. Não é previsão, e não reproduz os focos " +
+            "observados.");
 
     /// <summary>
     /// A atividade que usa dois períodos do mesmo território.
     ///
-    /// A segunda pergunta é <b>hipotética de propósito</b>. Ela convida a mexer numa
-    /// condição da caixa e ver o que muda — mas quem escolhe a condição é o professor. O
-    /// dado observado não configura nada: se ele escolhesse a cobertura ou a força do
-    /// vento, a aula passaria a sugerir que a caixa está reproduzindo aquele período, e
-    /// ela não está.
+    /// A hipótese é <b>sobre a caixa</b>, de propósito, e vive num bloco próprio. Ela
+    /// convida a mexer numa condição e ver o que muda — mas quem escolhe a condição é o
+    /// professor. O dado observado não configura nada: se ele escolhesse a cobertura ou a
+    /// força do vento, a aula passaria a sugerir que a caixa está reproduzindo aquele
+    /// período, e ela não está.
     /// </summary>
     public static readonly AtividadeConceitual MesmoTerritorioPeriodosDiferentes = new(
         Titulo: "O mesmo território em períodos diferentes",
 
-        PerguntaInvestigativa:
-            "O que mudou nas condições observadas entre estes dois períodos? E, mantendo " +
-            "o mesmo relevo na caixa, o que aconteceria se mudássemos apenas uma condição " +
-            "didática — a cobertura do solo, por exemplo?",
+        Pergunta:
+            "O que mudou nas condições observadas entre estes dois períodos?",
+
+        // Bloqueia a conclusão causal com uma pergunta, e não com uma regra de
+        // epistemologia. "Correlação não implica causalidade" é verdade e não muda o que
+        // a pessoa vai concluir; "o que mais mudou e não está aqui?" muda.
+        Observacao:
+            "Comparem os dois períodos lado a lado e listem o que mudou. Antes de dizer " +
+            "por que mudou, vale a pergunta que a tabela não responde: o que mais pode ter " +
+            "mudado entre junho e julho e não aparece nestes números?",
+
+        Hipotese:
+            "Esta pergunta é sobre a caixa, não sobre o território: mantendo o mesmo " +
+            "relevo, o que vocês acham que aconteceria se mudássemos apenas uma condição " +
+            "no modelo — a cobertura do solo, por exemplo?",
+
+        Experimento:
+            "Escolham essa condição à mão e executem. Depois mudem só ela e executem de " +
+            "novo. Nenhum ajuste vem dos dados do satélite: a caixa não está reproduzindo " +
+            "nenhum dos dois períodos.",
 
         DeOndeVemOContexto:
-            "Dado externo observado: os dois períodos vêm do mesmo conjunto do INPE, com a " +
-            "mesma agregação. A comparação descreve o que foi medido em cada um — e só isso. " +
-            "Um período com mais dias sem chuva e também mais focos são duas observações, " +
-            "não uma relação de causa.",
+            "Os dois períodos vêm do mesmo conjunto do INPE, com a mesma agregação. A " +
+            "comparação descreve o que foi medido em cada um — e só isso. Um período com " +
+            "mais dias sem chuva e também mais focos são duas observações, não uma " +
+            "relação de causa.",
 
         DeOndeVemORelevo:
-            "Medição da caixa: o relevo continua sendo o que os estudantes moldaram. Ele não " +
-            "muda entre os dois períodos — é justamente o que permite investigar uma " +
-            "variável de cada vez.",
+            "O relevo é o que os estudantes moldaram, e não muda entre os dois períodos — " +
+            "é justamente o que permite investigar uma condição de cada vez. " +
+            RelevoNaoRepresentaOTerritorio,
 
         DeOndeVemAPropagacao:
-            "Modelo didático: a segunda pergunta é hipotética. A caixa não reproduz nenhum " +
-            "dos dois períodos; ela mostra o que o modelo faz com a condição que o professor " +
-            "escolher.");
+            "A caixa não reproduz nenhum dos dois períodos. Ela mostra o que o modelo faz " +
+            "com a condição que o professor escolher.");
 }
