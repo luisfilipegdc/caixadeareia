@@ -28,8 +28,13 @@ namespace CaixaInterativa.Contexto;
 /// </summary>
 public sealed record PacoteDeContexto
 {
-    /// <summary>Versão do formato que este leitor entende.</summary>
-    public const int VersaoSuportada = 1;
+    /// <summary>
+    /// Versão do formato que este leitor entende.
+    ///
+    /// <b>v2</b> — a procedência passou a ser por período. A v1 tinha um único recurso no
+    /// topo, o que só funcionava com um período só.
+    /// </summary>
+    public const int VersaoSuportada = 2;
 
     public int SchemaVersion { get; init; }
     public Proveniencia? Proveniencia { get; init; }
@@ -47,10 +52,7 @@ public sealed record Proveniencia
     public string Fonte { get; init; } = "";
     public string Organizacao { get; init; } = "";
     public string Conjunto { get; init; } = "";
-    public string Recurso { get; init; } = "";
-    public string Url { get; init; } = "";
     public string FormatoOriginal { get; init; } = "";
-    public string PeriodoObservado { get; init; } = "";
     public string DataDeAcesso { get; init; } = "";
     public string ComandoParaRegenerar { get; init; } = "";
     public IReadOnlyList<string> Filtros { get; init; } = [];
@@ -58,8 +60,36 @@ public sealed record Proveniencia
     public string MetodoDeClassificacao { get; init; } = "";
     public IReadOnlyList<string> Observacoes { get; init; } = [];
 
+    /// <summary>De onde veio cada período presente no pacote.</summary>
+    public IReadOnlyList<PeriodoObservado> Periodos { get; init; } = [];
+
     /// <summary>Uma linha, para caber ao lado do dado sem empurrar o resto da tela.</summary>
-    public string Resumo => $"{Fonte} · {PeriodoObservado} · acesso em {DataDeAcesso}";
+    public string Resumo =>
+        $"{Fonte} · {string.Join(", ", Periodos.Select(p => p.Periodo))} · acesso em {DataDeAcesso}";
+
+    /// <summary>A origem de um período específico, ou nulo se ele não estiver no pacote.</summary>
+    public PeriodoObservado? Origem(string periodo) =>
+        Periodos.FirstOrDefault(p => string.Equals(p.Periodo, periodo, StringComparison.Ordinal));
+}
+
+/// <summary>
+/// De onde veio um período específico.
+///
+/// <b><see cref="DiasObservados"/> existe por causa de um defeito real.</b> O primeiro
+/// pacote deste projeto veio de um único arquivo diário e rotulou o período como
+/// "2026-08" — promoveu um dia a mês inteiro. Contar os dias distintos torna isso
+/// impossível de esconder.
+/// </summary>
+public sealed record PeriodoObservado
+{
+    public string Periodo { get; init; } = "";
+    public string Recurso { get; init; } = "";
+    public string Url { get; init; } = "";
+    public int DiasObservados { get; init; }
+    public int FocosLidos { get; init; }
+
+    /// <summary>Um período representado por poucos dias não descreve o mês.</summary>
+    public bool AmostraParcial => DiasObservados is > 0 and < 20;
 }
 
 /// <summary>Um recorte bioma + UF + período.</summary>

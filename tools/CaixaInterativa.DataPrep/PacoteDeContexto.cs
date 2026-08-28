@@ -30,8 +30,14 @@ public sealed record PacoteDeContexto(
     Proveniencia Proveniencia,
     IReadOnlyList<ContextoTerritorial> Contextos)
 {
-    /// <summary>Versão atual do formato. Mudou a forma, mudou o número.</summary>
-    public const int VersaoAtual = 1;
+    /// <summary>
+    /// Versão atual do formato. Mudou a forma, mudou o número.
+    ///
+    /// <b>v2</b> — a procedência passou a ser <b>por período</b>. Na v1 havia um único
+    /// <c>recurso</c> e um único <c>periodoObservado</c> no topo, o que só funcionava
+    /// enquanto o pacote tivesse um período só.
+    /// </summary>
+    public const int VersaoAtual = 2;
 }
 
 /// <summary>
@@ -39,21 +45,40 @@ public sealed record PacoteDeContexto(
 ///
 /// Existe para responder a uma pergunta que o professor pode fazer em sala: "de onde saiu
 /// isso?". Sem ela, um dado externo na tela é indistinguível de um número inventado.
+///
+/// O que vale para o pacote inteiro fica aqui; o que varia por período fica em
+/// <see cref="Periodos"/>.
 /// </summary>
 public sealed record Proveniencia(
     string Fonte,
     string Organizacao,
     string Conjunto,
-    string Recurso,
-    string Url,
     string FormatoOriginal,
-    string PeriodoObservado,
     string DataDeAcesso,
     string ComandoParaRegenerar,
     IReadOnlyList<string> Filtros,
     string MetodoDeAgregacao,
     string MetodoDeClassificacao,
-    IReadOnlyList<string> Observacoes);
+    IReadOnlyList<string> Observacoes,
+    IReadOnlyList<PeriodoObservado> Periodos);
+
+/// <summary>
+/// De onde veio um período específico.
+///
+/// <b><see cref="DiasObservados"/> existe por causa de um defeito real.</b> O primeiro
+/// pacote deste projeto foi gerado de um único arquivo diário e mesmo assim rotulou o
+/// período como "2026-08" — promoveu um dia a mês inteiro. A procedência nomeava o
+/// recurso, então era auditável, mas o rótulo mentia para quem só olhasse a tela.
+///
+/// Contar os dias distintos presentes no dado torna isso impossível de esconder: um
+/// período com <c>diasObservados = 1</c> anuncia que é uma amostra de um dia.
+/// </summary>
+public sealed record PeriodoObservado(
+    string Periodo,
+    string Recurso,
+    string Url,
+    int DiasObservados,
+    int FocosLidos);
 
 /// <summary>Uma combinação bioma + UF + período, com o que se observou e como se classificou.</summary>
 public sealed record ContextoTerritorial(
