@@ -103,6 +103,39 @@ public sealed record ContextoTerritorial
 
     /// <summary>Rótulo para lista e combo: "Cerrado · GOIÁS · 2026-08".</summary>
     public string Rotulo => $"{Bioma} · {Uf} · {Periodo}";
+
+    /// <summary>Cabeçalho da leitura principal: "Cerrado · GOIÁS · junho de 2026".</summary>
+    public string RotuloPorExtenso => $"{Bioma} · {Uf} · {PeriodoPorExtenso(Periodo)}";
+
+    /// <summary>
+    /// "2026-06" vira "junho de 2026".
+    ///
+    /// O formato ISO é ótimo para ordenar e péssimo para ler em voz alta numa sala. A
+    /// lista de seleção continua em ISO, onde a ordenação importa; a leitura principal e
+    /// a comparação passam a mostrar o mês por extenso.
+    ///
+    /// Devolve o texto original se ele não estiver no formato esperado — inventar um mês
+    /// seria pior do que mostrar "2026-6X".
+    /// </summary>
+    public static string PeriodoPorExtenso(string periodo)
+    {
+        string[] meses =
+        [
+            "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+        ];
+
+        var partes = periodo.Split('-');
+        if (partes.Length != 2
+            || !int.TryParse(partes[0], out int ano)
+            || !int.TryParse(partes[1], out int mes)
+            || mes is < 1 or > 12)
+        {
+            return periodo;
+        }
+
+        return $"{meses[mes - 1]} de {ano}";
+    }
 }
 
 /// <summary>Os números como saíram do dado, depois de descartada a sentinela do INPE.</summary>

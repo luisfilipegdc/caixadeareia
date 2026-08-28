@@ -53,8 +53,11 @@ public sealed record CampoComparado(
         {
             Direcao.Aumentou => "aumentou",
             Direcao.Diminuiu => "diminuiu",
-            Direcao.Semelhante => "semelhante",
-            Direcao.NaoDiscrimina => "sem poder discriminante neste recorte",
+            Direcao.Semelhante => "parecido nos dois",
+            // Antes: "sem poder discriminante neste recorte". Correto e ilegível para quem
+            // dá aula — "poder discriminante" e "recorte" são vocabulário de estatística.
+            // A frase nova diz a mesma coisa: o dado existe, e não separa os períodos.
+            Direcao.NaoDiscrimina => "os dois ficaram no mesmo patamar; este dado não separa os períodos",
             _ => "sem dado",
         };
 
@@ -78,8 +81,15 @@ public sealed record ComparacaoDeContextos(
     /// Não é decoração. Duas observações lado a lado convidam à conclusão de que uma
     /// explica a outra, e este dado não sustenta isso.
     /// </summary>
+    /// <remarks>
+    /// Reescrito na auditoria pedagógica. A frase anterior — "Comparação de observações
+    /// externas. Não estabelece causa." — está correta e é abstrata demais: quem lê a
+    /// tabela já formou a conclusão causal antes de chegar nela. A frase nova nomeia o
+    /// erro que a pessoa está prestes a cometer, em vez de descrever uma categoria.
+    /// </remarks>
     public const string AvisoDeNaoCausalidade =
-        "Comparação de observações externas. Não estabelece causa.";
+        "São duas medições postas lado a lado. Não estabelece causa: duas coisas terem " +
+        "mudado juntas não quer dizer que uma tenha mudado a outra.";
 }
 
 /// <summary>
@@ -126,11 +136,21 @@ public static class ComparadorDeContextos
         _ => 0,
     };
 
-    public const string CampoFocos = "Focos";
-    public const string CampoDiasSemChuva = "Dias sem chuva (mediana)";
-    public const string CampoPrecipitacao = "Precipitação (mediana)";
-    public const string CampoFrp = "Potência radiativa (mediana)";
-    public const string CampoRisco = "Risco de fogo (mediana)";
+    // Os rótulos que vão à tela.
+    //
+    // Trocaram de "(mediana)" para "(valor típico)" na auditoria pedagógica. A conta é a
+    // mesma — continua sendo a mediana, e a procedência diz isso com todas as letras. O
+    // que mudou é quem lê: "mediana" é vocabulário de estatística, e a leitura principal
+    // é de quem dá aula. "Valor típico" é o que a mediana significa, sem prometer menos.
+    //
+    // "Potência radiativa" virou "calor liberado" pelo mesmo motivo, e o risco de fogo
+    // passou a carregar a escala no próprio nome: sem ela, 1,00 é lido como "100% de
+    // chance de incêndio", que não é o que o índice do INPE diz.
+    public const string CampoFocos = "Focos de calor";
+    public const string CampoDiasSemChuva = "Dias sem chuva (valor típico)";
+    public const string CampoPrecipitacao = "Chuva registrada (valor típico)";
+    public const string CampoFrp = "Calor liberado pelos focos (valor típico)";
+    public const string CampoRisco = "Risco de fogo (índice de 0 a 1)";
 
     /// <summary>
     /// Dois contextos são comparáveis quando descrevem o mesmo território em períodos
