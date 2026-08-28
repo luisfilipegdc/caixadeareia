@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>CaixaInterativa.DataPrep</RootNamespace>
+    <AssemblyName>CaixaInterativa.DataPrep</AssemblyName>
+    <IsPackable>false</IsPackable>
+
+    <!-- Console puro, sem WPF: esta ferramenta nao entra no executavel distribuido.
+         Ela roda na mesa de quem desenvolve, gera um arquivo, e sai de cena. -->
+  </PropertyGroup>
+
+</Project>

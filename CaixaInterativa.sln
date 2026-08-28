@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{77DE7DEE
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaixaInterativa.Tests", "tests\CaixaInterativa.Tests\CaixaInterativa.Tests.csproj", "{0E0BC336-305B-46A5-9ACA-8BA4DEAC6C52}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{6641D053-4DC6-4B4E-AF5D-991A358B786E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaixaInterativa.DataPrep", "tools\CaixaInterativa.DataPrep\CaixaInterativa.DataPrep.csproj", "{7EA1B8F8-4DCC-4E70-99D7-F90DB6FE866C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +32,14 @@ Global
 		{0E0BC336-305B-46A5-9ACA-8BA4DEAC6C52}.Debug|Any CPU.Build.0 = Debug|x64
 		{0E0BC336-305B-46A5-9ACA-8BA4DEAC6C52}.Release|Any CPU.ActiveCfg = Release|x64
 		{0E0BC336-305B-46A5-9ACA-8BA4DEAC6C52}.Release|Any CPU.Build.0 = Release|x64
+		{7EA1B8F8-4DCC-4E70-99D7-F90DB6FE866C}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{7EA1B8F8-4DCC-4E70-99D7-F90DB6FE866C}.Debug|Any CPU.Build.0 = Debug|x64
+		{7EA1B8F8-4DCC-4E70-99D7-F90DB6FE866C}.Release|Any CPU.ActiveCfg = Release|x64
+		{7EA1B8F8-4DCC-4E70-99D7-F90DB6FE866C}.Release|Any CPU.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2D169BAC-86E5-436F-9D78-C17833AD7CC7} = {D4A04631-F88A-45C7-A645-5CB51F907CA2}
 		{0E0BC336-305B-46A5-9ACA-8BA4DEAC6C52} = {77DE7DEE-54C1-4834-9B4F-5063900198EA}
+		{7EA1B8F8-4DCC-4E70-99D7-F90DB6FE866C} = {6641D053-4DC6-4B4E-AF5D-991A358B786E}
 	EndGlobalSection
 EndGlobal
