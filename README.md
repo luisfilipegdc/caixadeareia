@@ -14,7 +14,7 @@ A pergunta da aula deixa de ser *"o que é uma bacia hidrográfica?"* e passa a 
 **Projeto Caixa de Areia** — Brasília, DF · 2026 · Licenciado sob
 [GPL-2.0-or-later](LICENSE)
 
-`v1.4` · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
+**Versão estável: [v1.4.0](https://github.com/luisfilipegdc/caixadeareia/releases/latest)** · [Página do projeto](https://luisfilipegdc.com.br/caixa-de-areia) ·
 [Suporte](mailto:contato@luisfilipegdc.com.br) ·
 [Repositório](https://github.com/luisfilipegdc/caixadeareia)
 
@@ -147,8 +147,11 @@ demais deixa parte da caixa fora do campo de visão.
 
 ### Uso em sala — sem compilar nada
 
-**[⬇ CaixaInterativa-v1.3-win-x64.exe](https://github.com/luisfilipegdc/caixadeareia/releases/latest/download/CaixaInterativa-v1.3-win-x64.exe)**
-— 68 MB · Windows 10/11 64 bits
+**[⬇ Baixar a versão mais recente](https://github.com/luisfilipegdc/caixadeareia/releases/latest)**
+— ~68 MB · Windows 10/11 64 bits
+
+O link acima abre sempre a release mais nova; o executável está nos *Assets*, junto do
+`SHA256SUMS.txt` para conferir o download. Hoje: `CaixaInterativa-v1.4.0-win-x64.exe`.
 
 Arquivo único, com o .NET embutido. Só o
 [Kinect SDK 1.8](https://www.microsoft.com/en-us/download/details.aspx?id=40278) é
@@ -311,6 +314,31 @@ O projeto aceita contribuições. Antes de abrir um PR:
 
 Para entender o código antes de mexer, os pontos de entrada mais úteis são
 `SandboxEngine.cs`, `ISimulationModule.cs` e `TopographicRenderer.cs`.
+
+---
+
+## Versionamento
+
+O projeto segue [SemVer](https://semver.org/lang/pt-BR/), com três regras e nada além
+delas:
+
+| Parte | Quando aumenta |
+|---|---|
+| **PATCH** — `1.4.0 → 1.4.1` | Correção sem capacidade nova |
+| **MINOR** — `1.4.0 → 1.5.0` | Capacidade nova, compatível com quem já usa |
+| **MAJOR** — `1.4.0 → 2.0.0` | Mudança incompatível ou reestruturação grande |
+
+A `v1.4.0` é MINOR: trouxe capacidades novas — contexto público offline, comparação
+temporal, queimada na interface, registro em arquivo — e mudanças arquiteturais que não
+quebram nada de fora. Uma caixa que rodava a v1.3 roda a v1.4.0 com a mesma calibração.
+
+**A versão tem uma fonte só:** `<Version>` em
+[`src/CaixaInterativa/CaixaInterativa.csproj`](src/CaixaInterativa/CaixaInterativa.csproj).
+Título da janela, tela de suporte e propriedades do executável leem dali, via `AppInfo`.
+Não há número de versão escrito à mão em lugar nenhum do código.
+
+O histórico de cada versão está no [CHANGELOG](CHANGELOG.md), e o passo a passo para
+publicar uma nova está em [docs/RELEASE.md](docs/RELEASE.md).
 
 ---
 

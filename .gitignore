@@ -42,3 +42,14 @@ desktop.ini
 
 # As imagens de docs/img/ SÃO versionadas: são a evidência
 # visual da documentação e do diário de bordo.
+
+# ─────────────────────────────────────────────────────────────
+# ANEXOS DE RELEASE — gerados, não versionados
+# ─────────────────────────────────────────────────────────────
+# O executável de 68 MB é anexo da GitHub Release, não conteúdo do
+# repositório. O processo para regerá-lo está em docs/RELEASE.md.
+release-*/
+
+# Registro de operação, criado ao lado do executável em tempo de uso.
+registro.txt
+registro.anterior.txt
