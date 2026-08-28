@@ -191,7 +191,7 @@ public class ComparacaoTemporalTests
 
         Assert.Equal(Direcao.NaoDiscrimina, campo.Direcao);
         Assert.NotEqual(Direcao.Semelhante, campo.Direcao);
-        Assert.Contains("sem poder discriminante", campo.Descrever());
+        Assert.Contains("não separa os períodos", campo.Descrever());
     }
 
     [Fact]
