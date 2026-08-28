@@ -24,6 +24,7 @@ Licenciado sob [GPL-2.0-or-later](LICENSE)
 | 🗺️ **[Roadmap](ROADMAP.md)** | As nove etapas até a plataforma de simulações ambientais, com status de cada item |
 | 📐 **[Montagem física](docs/MONTAGEM-FISICA.md)** | Cálculo da altura do sensor, cobertura do campo de visão e throw ratio do projetor |
 | 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, justificativas, os seis bugs e as medições |
+| 🔍 **[Auditoria técnica](docs/AUDITORIA-TECNICA.md)** | Leitura integral do código: arquitetura real, gargalos, dívida técnica e rota de evolução |
 | 🖼️ **[Catálogo de imagens](docs/img/README.md)** | Capturas de cada etapa, com legenda e contexto |
 
 ---
