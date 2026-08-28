@@ -137,12 +137,23 @@ public sealed class KinectV1Source : IDepthSource
         var managed = new ushort[Width * Height];
         long frameCounter = 0;
 
+        // Um sensor que emudece sem desconectar nunca levantava exceção, então a
+        // reconexão automática nunca era acionada e a tela ficava congelada em silêncio.
+        // A regra de quando desistir mora numa classe própria, testável; aqui só a
+        // contagem. Ver PoliticaDeTimeout.
+        const int EsperaMs = 200;
+        var timeout = new PoliticaDeTimeout(EsperaMs);
+
         try
         {
             while (!token.IsCancellationRequested)
             {
-                uint wait = WaitForSingleObject(_frameEvent, 200);
-                if (wait == WAIT_TIMEOUT) continue;
+                uint wait = WaitForSingleObject(_frameEvent, EsperaMs);
+                if (wait == WAIT_TIMEOUT)
+                {
+                    if (timeout.RegistrarTimeout()) Faulted?.Invoke(timeout.Mensagem());
+                    continue;
+                }
                 if (wait != WAIT_OBJECT_0)
                 {
                     Faulted?.Invoke("Falha na espera pelo quadro de profundidade.");
@@ -169,6 +180,9 @@ public sealed class KinectV1Source : IDepthSource
                     {
                         TextureUnlockRect(frame.pFrameTexture);
                     }
+
+                    // Chegou quadro: o sensor está vivo e a contagem de silêncio zera.
+                    timeout.RegistrarQuadro();
 
                     FrameArrived?.Invoke(new RawDepthFrame
                     {
