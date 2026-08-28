@@ -159,6 +159,13 @@ public partial class ProjectionWindow : Window
             case Key.H: p.FlipHorizontal = !p.FlipHorizontal; break;
             case Key.V: p.FlipVertical = !p.FlipVertical; break;
 
+            // A comparação cobre a areia de propósito, e por isso precisa de uma saída
+            // óbvia. ESC já é o gesto de sair na janela de projeção; M é o atalho quando
+            // ESC estiver mapeado para fechar a projeção inteira.
+            case Key.M or Key.Escape when PainelComparacao.Visibility == Visibility.Visible:
+                PainelComparacao.Visibility = Visibility.Collapsed;
+                return;
+
             case Key.D:
                 PainelDados.Visibility = PainelDados.Visibility == Visibility.Visible
                     ? Visibility.Collapsed : Visibility.Visible;
@@ -266,6 +273,57 @@ public partial class ProjectionWindow : Window
         => _engine.Config.Caixa.LarguraMedida ? $"{valor:F1} L" : $"≈ {valor:F1} L";
 
     /// <summary>Uma linha de resultado: rótulo pequeno, número grande.</summary>
+    /// <summary>
+    /// Mostra o estado da atividade para a turma, ou a esconde quando não há atividade.
+    ///
+    /// A projeção mostrava só números da simulação — quanto alagou, quanto infiltrou — e
+    /// nada sobre o que estava sendo investigado. A conclusão da aula ficava na tela do
+    /// professor, de costas para quem deveria vê-la.
+    /// </summary>
+    public void MostrarAtividade(AtividadeUrbanizacao? atividade)
+    {
+        if (atividade is null || !atividade.EmAndamento)
+        {
+            PainelAtividade.Visibility = Visibility.Collapsed;
+            PainelComparacao.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        string nomeA = AtividadeUrbanizacao.NomeDaCobertura(AtividadeUrbanizacao.CoberturaA);
+        string nomeB = AtividadeUrbanizacao.NomeDaCobertura(AtividadeUrbanizacao.CoberturaB);
+
+        AtvTitulo.Text = AtividadeUrbanizacao.Titulo.ToUpperInvariant();
+        PainelAtividade.Visibility = Visibility.Visible;
+
+        bool ehPassoB = atividade.Fase is FaseDaAtividade.PreparadaB
+                                        or FaseDaAtividade.ExecutandoB
+                                        or FaseDaAtividade.Concluida;
+
+        AtvPasso.Text = ehPassoB
+            ? $"B · {nomeB.ToUpperInvariant()}"
+            : $"A · {nomeA.ToUpperInvariant()}";
+
+        // Em A o relevo ainda pode ser ajustado; a partir de B ele está travado pela
+        // comparação, e a frase muda de pedido para constatação.
+        AtvCondicoes.Text = ehPassoB
+            ? "MESMA CHUVA · MESMO RELEVO"
+            : "MESMA CHUVA · MANTENHA O RELEVO";
+
+        if (atividade.ComparacaoDisponivel)
+        {
+            CmpNomeA.Text = nomeA.ToUpperInvariant();
+            CmpNomeB.Text = nomeB.ToUpperInvariant();
+            CmpValorA.Text = $"{atividade.PicoA:F0}%";
+            CmpValorB.Text = $"{atividade.PicoB:F0}%";
+            CmpObservacao.Text = atividade.Observacao();
+            PainelComparacao.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            PainelComparacao.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void Linha(string rotulo, string valor, string cor)
     {
         var painel = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };

@@ -50,7 +50,12 @@ public partial class MainWindow : Window
         _engine.SourceStarted += AplicarCoberturaSelecionada;
 
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _uiTimer.Tick += (_, _) => { AtualizarIndicadores(); AtualizarSimulacao(); };
+        _uiTimer.Tick += (_, _) =>
+        {
+            AtualizarIndicadores();
+            AtualizarSimulacao();
+            VigiarAtividade();
+        };
         _uiTimer.Start();
 
         Loaded += OnWindowLoaded;
@@ -489,6 +494,223 @@ public partial class MainWindow : Window
         ExecutarQueimada((float)(campoX / larguraCampo), (float)(campoY / alturaCampo));
     }
 
+    // ================= Atividade: Urbanização e Enchentes =================
+
+    private readonly AtividadeUrbanizacao _atividade = new();
+
+    /// <summary>
+    /// Índice de "Chuva forte" no controle de intensidade.
+    ///
+    /// A atividade não guarda o valor em mm/s: pega o que este controle já define, para
+    /// não existirem duas verdades sobre quanto chove numa chuva forte.
+    /// </summary>
+    private const int ChuvaForte = 1;
+
+    private void OnIniciarAtividade(object sender, RoutedEventArgs e)
+    {
+        if (_engine.Agua is null)
+        {
+            MessageBox.Show("Ligue a caixa antes de começar a atividade.",
+                            AppInfo.Nome, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var (mm, _) = IntensidadeChuva(ChuvaForte);
+
+        _atividade.Iniciar(mm, AssinaturaAtualDoRelevo(), _engine.SessaoDaFonte);
+        PrepararPassoDaAtividade();
+
+        Registro.Info($"Atividade iniciada: {AtividadeUrbanizacao.Titulo}");
+        AtualizarPainelDaAtividade();
+    }
+
+    private AssinaturaDoRelevo? AssinaturaAtualDoRelevo() =>
+        AssinaturaDoRelevo.De(_engine.Alturas, _engine.LarguraCampo, _engine.AlturaCampo);
+
+    /// <summary>
+    /// Aplica as condições do passo atual: estado hídrico zerado, cobertura oficial e
+    /// passo de tempo fixo. É o protocolo controlado, e é idêntico em A e em B.
+    /// </summary>
+    private void PrepararPassoDaAtividade()
+    {
+        var agua = _engine.Agua;
+        var cobertura = _atividade.CoberturaDoPassoAtual;
+        if (agua is null || cobertura is null) return;
+
+        agua.PrepararExecucaoControlada();
+        agua.Solo.Preencher(cobertura.Value);
+        agua.Ativo = true;
+
+        _engine.PassoFixoSegundos = AtividadeUrbanizacao.PassoSegundos;
+
+        _coberturaAtual = AtividadeUrbanizacao.NomeDaCobertura(cobertura.Value);
+        Registro.Info($"Atividade — preparado {_coberturaAtual} " +
+                      $"({_atividade.IntensidadeMmPorSegundo:F0} mm/s por " +
+                      $"{AtividadeUrbanizacao.DuracaoSegundos:F0}s, passo fixo)");
+    }
+
+    private void OnAcaoDaAtividade(object sender, RoutedEventArgs e)
+    {
+        var agua = _engine.Agua;
+        if (agua is null) return;
+
+        switch (_atividade.Fase)
+        {
+            case FaseDaAtividade.PreparadaA:
+            case FaseDaAtividade.PreparadaB:
+                _atividade.MarcarExecucaoIniciada();
+                agua.IniciarChuva(_atividade.IntensidadeMmPorSegundo,
+                                  AtividadeUrbanizacao.DuracaoSegundos);
+                _chovendoAntes = true;
+                break;
+
+            case FaseDaAtividade.ResultadoA:
+                // Só aqui as invariantes são checadas. Se o relevo mudou ou o sensor
+                // reiniciou, a atividade é invalidada em vez de comparar.
+                if (_atividade.PodePrepararB(AssinaturaAtualDoRelevo(), _engine.SessaoDaFonte))
+                    PrepararPassoDaAtividade();
+                break;
+
+            case FaseDaAtividade.Concluida:
+                EncerrarAtividade();
+                break;
+
+            case FaseDaAtividade.Invalidada:
+                // Recomeçar, e não continuar: o passo A de uma atividade invalidada não
+                // é aproveitável, e oferecer que fosse seria oferecer a comparação errada.
+                EncerrarAtividade();
+                OnIniciarAtividade(sender, e);
+                return;
+        }
+
+        AtualizarPainelDaAtividade();
+    }
+
+    private void OnSairDaAtividade(object sender, RoutedEventArgs e) => EncerrarAtividade();
+
+    /// <summary>
+    /// Vigia, a cada meio segundo, o que pode invalidar a atividade por fora dela.
+    ///
+    /// O reinício da fonte é o caso concreto: a reconexão automática do sensor cria uma
+    /// <c>WaterSimulation</c> nova, com solo e saturação zerados, sem passar por nenhum
+    /// botão. Sem esta vigilância a atividade continuaria como se nada tivesse acontecido,
+    /// e compararia um passo A de antes com um passo B de depois.
+    ///
+    /// Também mantém o painel vivo enquanto a chuva corre, para o contador andar.
+    /// </summary>
+    private void VigiarAtividade()
+    {
+        if (!_atividade.EmAndamento) return;
+
+        var faseAntes = _atividade.Fase;
+        _atividade.VerificarSessao(_engine.SessaoDaFonte);
+
+        if (_atividade.Fase != faseAntes || _atividade.Executando)
+            AtualizarPainelDaAtividade();
+    }
+
+    private void EncerrarAtividade()
+    {
+        _atividade.Encerrar();
+        _engine.PassoFixoSegundos = null;      // o modo livre volta a andar no relógio
+        _engine.Agua?.PrepararExecucaoControlada();
+        AplicarCoberturaSelecionada();         // devolve a cobertura que o combo mostra
+        AtualizarPainelDaAtividade();
+        _projection?.MostrarAtividade(null);
+    }
+
+    /// <summary>Pinta o painel conforme a fase, e nada além disso.</summary>
+    private void AtualizarPainelDaAtividade()
+    {
+        bool ativa = _atividade.EmAndamento || _atividade.Fase == FaseDaAtividade.Invalidada;
+
+        PainelAtividade.Visibility = ativa ? Visibility.Visible : Visibility.Collapsed;
+        PainelAtividadeEntrada.Visibility = ativa ? Visibility.Collapsed : Visibility.Visible;
+        PainelSimulacaoLivre.Visibility = ativa ? Visibility.Collapsed : Visibility.Visible;
+
+        _projection?.MostrarAtividade(ativa ? _atividade : null);
+
+        if (!ativa) return;
+
+        TxtAtvTitulo.Text = AtividadeUrbanizacao.Titulo;
+        TxtAtvPergunta.Text = AtividadeUrbanizacao.PerguntaInvestigativa;
+
+        string nomeA = AtividadeUrbanizacao.NomeDaCobertura(AtividadeUrbanizacao.CoberturaA);
+        string nomeB = AtividadeUrbanizacao.NomeDaCobertura(AtividadeUrbanizacao.CoberturaB);
+
+        switch (_atividade.Fase)
+        {
+            case FaseDaAtividade.PreparadaA:
+                TxtAtvPasso.Text = $"PASSO A · {nomeA.ToUpperInvariant()}";
+                TxtAtvInstrucao.Text = AtividadeUrbanizacao.InstrucaoPassoA;
+                TxtAtvResultado.Text = AtividadeUrbanizacao.RelevoNaoERepresentacao;
+                BtnAtvAcao.Content = "🌧  Fazer chover";
+                BtnAtvAcao.IsEnabled = true;
+                break;
+
+            case FaseDaAtividade.ExecutandoA:
+            case FaseDaAtividade.ExecutandoB:
+                bool ehA = _atividade.Fase == FaseDaAtividade.ExecutandoA;
+                TxtAtvPasso.Text = ehA
+                    ? $"PASSO A · {nomeA.ToUpperInvariant()}"
+                    : $"PASSO B · {nomeB.ToUpperInvariant()}";
+                TxtAtvInstrucao.Text = ehA
+                    ? AtividadeUrbanizacao.InstrucaoPassoA
+                    : AtividadeUrbanizacao.InstrucaoPassoB;
+                TxtAtvResultado.Text =
+                    $"Chovendo… faltam {_engine.Agua?.ChuvaRestanteSegundos:F0}s\n" +
+                    $"Área alagada agora: {_engine.Agua?.AreaAlagadaPercent:F0}%";
+                BtnAtvAcao.Content = "Aguarde…";
+                BtnAtvAcao.IsEnabled = false;
+                break;
+
+            case FaseDaAtividade.ResultadoA:
+                TxtAtvPasso.Text = $"RESULTADO A · {nomeA.ToUpperInvariant()}";
+                TxtAtvInstrucao.Text = "Não mexa no relevo. O passo B usa o mesmo terreno.";
+                TxtAtvResultado.Text = $"Pico da área alagada: {_atividade.PicoA:F0}%";
+                BtnAtvAcao.Content = $"▶  Passo B · {nomeB}";
+                BtnAtvAcao.IsEnabled = true;
+                break;
+
+            case FaseDaAtividade.PreparadaB:
+                TxtAtvPasso.Text = $"PASSO B · {nomeB.ToUpperInvariant()}";
+                TxtAtvInstrucao.Text = AtividadeUrbanizacao.InstrucaoPassoB;
+                TxtAtvResultado.Text = $"{nomeA}: {_atividade.PicoA:F0}% de pico";
+                BtnAtvAcao.Content = "🌧  Fazer chover";
+                BtnAtvAcao.IsEnabled = true;
+                break;
+
+            case FaseDaAtividade.Concluida:
+                TxtAtvPasso.Text = "COMPARAÇÃO";
+                TxtAtvInstrucao.Text = AtividadeUrbanizacao.Experimento;
+                TxtAtvResultado.Text =
+                    $"{nomeA}: {_atividade.PicoA:F0}% da área\n" +
+                    $"{nomeB}: {_atividade.PicoB:F0}% da área\n\n" +
+                    _atividade.Observacao() + "\n\n" +
+                    AtividadeUrbanizacao.PerguntaDeDiscussao + "\n\n" +
+                    AtividadeUrbanizacao.LimiteDoModelo;
+                BtnAtvAcao.Content = "Encerrar atividade";
+                BtnAtvAcao.IsEnabled = true;
+                break;
+
+            case FaseDaAtividade.Invalidada:
+                TxtAtvPasso.Text = "COMPARAÇÃO INTERROMPIDA";
+                TxtAtvInstrucao.Text = _atividade.Motivo switch
+                {
+                    MotivoDeInvalidacao.RelevoMudou => AtividadeUrbanizacao.AvisoRelevoMudou,
+                    MotivoDeInvalidacao.SensorReiniciado => AtividadeUrbanizacao.AvisoSensorReiniciado,
+                    _ => "A atividade foi interrompida.",
+                };
+                TxtAtvResultado.Text = _atividade.PicoA is double p
+                    ? $"O passo A tinha medido {p:F0}%. Esse número não pode ser comparado " +
+                      "com um passo B feito em outras condições."
+                    : "";
+                BtnAtvAcao.Content = "Recomeçar atividade";
+                BtnAtvAcao.IsEnabled = true;
+                break;
+        }
+    }
+
     private void OnSecar(object sender, RoutedEventArgs e)
     {
         // Genérico: limpa todos os módulos registrados. Antes eram duas linhas por
@@ -526,7 +748,23 @@ public partial class MainWindow : Window
         if (agua is not null)
         {
             if (_chovendoAntes && !agua.Chovendo)
-                Registrar("Chuva", _coberturaAtual, $"{agua.PicoAlagamentoPercent:F0}% alagado", agua.PicoAlagamentoPercent);
+            {
+                if (_atividade.Executando)
+                {
+                    // Durante a atividade o resultado vai para ela, congelado. O histórico
+                    // livre fica de fora: ele agrupa por cobertura e sobrescreve, que é
+                    // exatamente o comportamento que a atividade existe para não ter.
+                    _atividade.RegistrarResultado(agua.PicoAlagamentoPercent);
+                    Registro.Info($"Atividade — {_coberturaAtual}: " +
+                                  $"pico {agua.PicoAlagamentoPercent:F1}% da área");
+                    AtualizarPainelDaAtividade();
+                }
+                else
+                {
+                    Registrar("Chuva", _coberturaAtual,
+                              $"{agua.PicoAlagamentoPercent:F0}% alagado", agua.PicoAlagamentoPercent);
+                }
+            }
             _chovendoAntes = agua.Chovendo;
         }
         if (sismo is not null)

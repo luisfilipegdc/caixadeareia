@@ -56,6 +56,84 @@
             </StackPanel>
         </Border>
 
+        <!-- ATIVIDADE: o que a turma precisa ver de longe, na faixa de cima.
+             Fica separado do painel de dados porque responde outra pergunta — não
+             "quanto alagou", mas "o que estamos investigando e em que passo estamos".
+             Faixa larga e baixa, para não cobrir a areia. -->
+        <Border x:Name="PainelAtividade"
+                Background="#D9000000"
+                CornerRadius="8"
+                Padding="30,16"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="28"
+                MaxWidth="620"
+                Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock x:Name="AtvTitulo" Text="URBANIZAÇÃO E ENCHENTES"
+                           FontSize="16" FontWeight="Bold" Foreground="#FF9AA6AE"
+                           Margin="0,0,0,6"/>
+                <TextBlock x:Name="AtvPasso" Text="A · MATA"
+                           FontSize="40" FontWeight="Bold" Foreground="#FF7FCFE8"/>
+                <TextBlock x:Name="AtvCondicoes" Text="MESMA CHUVA · MANTENHA O RELEVO"
+                           FontSize="17" Foreground="#FFDAB463" Margin="0,6,0,0"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <!-- COMPARAÇÃO: a conclusão da aula, grande o suficiente para ler do fundo da
+             sala. Cobre a areia de propósito e sai com uma tecla — um painel permanente
+             sobre o mapa tiraria da turma justamente o que ela veio olhar. -->
+        <Border x:Name="PainelComparacao"
+                Background="#F2000000"
+                CornerRadius="10"
+                Padding="54,40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="900"
+                Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock Text="COMPARAÇÃO" FontSize="20" FontWeight="Bold"
+                           Foreground="#FF9AA6AE" HorizontalAlignment="Center"
+                           Margin="0,0,0,26"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                        <TextBlock x:Name="CmpNomeA" Text="MATA" FontSize="20"
+                                   Foreground="#FF9AA6AE" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="CmpValorA" Text="—" FontSize="84"
+                                   FontWeight="Bold" Foreground="#FF7CC7A2"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="DA ÁREA" FontSize="15" Foreground="#FF6B7680"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <TextBlock x:Name="CmpNomeB" Text="ÁREA URBANA" FontSize="20"
+                                   Foreground="#FF9AA6AE" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="CmpValorB" Text="—" FontSize="84"
+                                   FontWeight="Bold" Foreground="#FF66B8E8"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="DA ÁREA" FontSize="15" Foreground="#FF6B7680"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock x:Name="CmpObservacao" TextWrapping="Wrap" FontSize="19"
+                           Foreground="#FFD7DEE3" TextAlignment="Center"
+                           Margin="0,30,0,0"/>
+
+                <TextBlock Text="Toque em ESC ou M para voltar ao mapa"
+                           FontSize="14" Foreground="#FF6B7680"
+                           HorizontalAlignment="Center" Margin="0,26,0,0"/>
+            </StackPanel>
+        </Border>
+
         <Border x:Name="HelpPanel"
                 Background="#CC000000"
                 CornerRadius="6"
