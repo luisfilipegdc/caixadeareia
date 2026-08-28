@@ -32,6 +32,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Pacote de contexto educacional: gerado ANTES da aula pela ferramenta em
+         tools/CaixaInterativa.DataPrep e versionado junto com o codigo. O aplicativo
+         so le este arquivo; nunca busca dado na rede. -->
+    <Content Include="Dados\contexto-queimadas.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- UseWindowsForms existe apenas para System.Windows.Forms.Screen (enumeracao de
          monitores, que o WPF nao expoe). O using implicito de System.Windows.Forms
          colide com o WPF em Application, KeyEventArgs, MessageBox e outros; referenciamos

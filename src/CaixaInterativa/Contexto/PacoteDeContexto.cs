@@ -1,0 +1,118 @@
+// Caixa de Areia Interativa — sistema de projeção topográfica interativa
+// Copyright (C) 2026 Projeto Caixa de Areia
+//
+// Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
+// sob os termos da Licença Pública Geral GNU, conforme publicada pela Free
+// Software Foundation, na versão 2 da Licença ou (a seu critério) qualquer
+// versão posterior.
+//
+// Este programa é distribuído na esperança de que seja útil, mas SEM QUALQUER
+// GARANTIA; sem sequer a garantia implícita de COMERCIALIZAÇÃO ou ADEQUAÇÃO A
+// UMA FINALIDADE ESPECÍFICA. Consulte a Licença Pública Geral GNU para mais
+// detalhes. Uma cópia acompanha este programa no arquivo LICENSE.
+
+namespace CaixaInterativa.Contexto;
+
+/// <summary>
+/// Contexto externo observado, para a aula — <b>não</b> para a simulação.
+///
+/// Estes tipos são a cópia do lado leitor do formato que a ferramenta
+/// <c>tools/CaixaInterativa.DataPrep</c> produz. <b>A duplicação é proposital:</b> o
+/// contrato entre as duas pontas é o arquivo JSON, e é isso que permite ao aplicativo
+/// não depender do projeto de preparação — que existe só na mesa de quem desenvolve e
+/// não entra no executável distribuído.
+///
+/// <see cref="SchemaVersion"/> é o que torna a duplicação segura: o leitor recusa um
+/// pacote de versão diferente em vez de interpretá-lo torto. E um teste serializa pelo
+/// lado da ferramenta e desserializa por este, provando que os dois lados concordam.
+/// </summary>
+public sealed record PacoteDeContexto
+{
+    /// <summary>Versão do formato que este leitor entende.</summary>
+    public const int VersaoSuportada = 1;
+
+    public int SchemaVersion { get; init; }
+    public Proveniencia? Proveniencia { get; init; }
+    public IReadOnlyList<ContextoTerritorial> Contextos { get; init; } = [];
+}
+
+/// <summary>
+/// De onde veio cada número, e o que foi feito com ele.
+///
+/// Responde à pergunta que o professor pode fazer em sala: "de onde saiu isso?". Sem ela,
+/// um dado externo na tela é indistinguível de um número inventado.
+/// </summary>
+public sealed record Proveniencia
+{
+    public string Fonte { get; init; } = "";
+    public string Organizacao { get; init; } = "";
+    public string Conjunto { get; init; } = "";
+    public string Recurso { get; init; } = "";
+    public string Url { get; init; } = "";
+    public string FormatoOriginal { get; init; } = "";
+    public string PeriodoObservado { get; init; } = "";
+    public string DataDeAcesso { get; init; } = "";
+    public string ComandoParaRegenerar { get; init; } = "";
+    public IReadOnlyList<string> Filtros { get; init; } = [];
+    public string MetodoDeAgregacao { get; init; } = "";
+    public string MetodoDeClassificacao { get; init; } = "";
+    public IReadOnlyList<string> Observacoes { get; init; } = [];
+
+    /// <summary>Uma linha, para caber ao lado do dado sem empurrar o resto da tela.</summary>
+    public string Resumo => $"{Fonte} · {PeriodoObservado} · acesso em {DataDeAcesso}";
+}
+
+/// <summary>Um recorte bioma + UF + período.</summary>
+public sealed record ContextoTerritorial
+{
+    public string Bioma { get; init; } = "";
+    public string Uf { get; init; } = "";
+    public string Periodo { get; init; } = "";
+    public ObservacoesDoRecorte? Observado { get; init; }
+    public ClassesDidaticas? ClassesDidaticas { get; init; }
+
+    /// <summary>Rótulo para lista e combo: "Cerrado · GOIÁS · 2026-08".</summary>
+    public string Rotulo => $"{Bioma} · {Uf} · {Periodo}";
+}
+
+/// <summary>Os números como saíram do dado, depois de descartada a sentinela do INPE.</summary>
+public sealed record ObservacoesDoRecorte
+{
+    public int Focos { get; init; }
+    public double? RiscoFogoMediano { get; init; }
+    public double? RiscoFogoP25 { get; init; }
+    public double? RiscoFogoP75 { get; init; }
+    public double? DiasSemChuvaMediano { get; init; }
+    public double? DiasSemChuvaP75 { get; init; }
+    public double? PrecipitacaoMedianaMm { get; init; }
+    public double? FrpMedianoMw { get; init; }
+    public AmostrasValidas? Amostras { get; init; }
+}
+
+/// <summary>Quantos focos tinham valor utilizável em cada campo.</summary>
+public sealed record AmostrasValidas
+{
+    public int RiscoFogo { get; init; }
+    public int DiasSemChuva { get; init; }
+    public int Precipitacao { get; init; }
+    public int Frp { get; init; }
+}
+
+/// <summary>
+/// A tradução para linguagem de aula.
+///
+/// <b>É com isto que a interface trabalha</b>, não com os números. Os números ficam no
+/// pacote para quem quiser auditar. Essa separação é o que impede um valor observado de
+/// virar coeficiente de simulação por descuido.
+/// </summary>
+public sealed record ClassesDidaticas
+{
+    public string Risco { get; init; } = "";
+    public string Secura { get; init; } = "";
+
+    /// <summary>
+    /// Como a classe foi produzida. Hoje sempre <c>relativa_ao_recorte</c>: os cortes
+    /// vêm dos quartis dos próprios recortes do pacote, não de uma escala oficial.
+    /// </summary>
+    public string Classificacao { get; init; } = "";
+}

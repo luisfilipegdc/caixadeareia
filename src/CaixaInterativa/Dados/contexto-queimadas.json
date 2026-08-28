@@ -1,0 +1,783 @@
+{
+  "schemaVersion": 1,
+  "proveniencia": {
+    "fonte": "INPE — Programa Queimadas",
+    "organizacao": "Instituto Nacional de Pesquisas Espaciais",
+    "conjunto": "Focos de calor detectados por satélite (dados abertos)",
+    "recurso": "focos_diario_br_20260827.csv",
+    "url": "https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/diario/Brasil/focos_diario_br_20260827.csv",
+    "formatoOriginal": "CSV, separado por vírgula, cultura invariante",
+    "periodoObservado": "2026-08",
+    "dataDeAcesso": "2026-08-28",
+    "comandoParaRegenerar": "dotnet run --project tools/CaixaInterativa.DataPrep -- --fonte https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/diario/Brasil/focos_diario_br_20260827.csv --saida src/CaixaInterativa/Dados/contexto-queimadas.json",
+    "filtros": [
+      "descartados os valores -999, que o INPE usa para dado inválido (área urbana, corpo d'água)",
+      "descartados os recortes com menos de 30 focos",
+      "descartadas as linhas sem bioma ou com data ilegível"
+    ],
+    "metodoDeAgregacao": "agrupamento por bioma × UF × mês; mediana e quartis por interpolação linear, arredondados a três casas. Mediana em vez de média porque a distribuição de FRP tem cauda longa: numa amostra real a média foi 43,7 MW contra mediana de 11,5 MW.",
+    "metodoDeClassificacao": "quartis calculados sobre os próprios recortes deste pacote (classificação relativa). Não foram usados os cortes nomeados do INPE porque não foi possível confirmá-los em fonte primária legível; o FAQ do Programa Queimadas informa apenas que o risco de fogo varia de 0 a 1.",
+    "observacoes": [
+      "Foco de calor não é incêndio: é detecção por satélite, sujeita a nuvem, horário de passagem e resolução do sensor.",
+      "Precipitação é o acumulado do dia da detecção, e por isso é quase sempre zero.",
+      "Este pacote é CONTEXTO para a aula. Ele não alimenta nenhum parâmetro das simulações.",
+      "O risco de fogo não discriminou os recortes desta geração (29 de 29): nos focos detectados ele satura perto de 1, porque o fogo acontece justamente onde o risco é alto. A classe foi marcada como \"sem variação suficiente\" em vez de dividida em quatro níveis inventados. Para comparar territórios, use a secura."
+    ]
+  },
+  "contextos": [
+    {
+      "bioma": "Amazônia",
+      "uf": "ACRE",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 1759,
+        "riscoFogoMediano": 0.47,
+        "riscoFogoP25": 0.41,
+        "riscoFogoP75": 0.53,
+        "diasSemChuvaMediano": 2,
+        "diasSemChuvaP75": 2,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 19.6,
+        "amostras": {
+          "riscoFogo": 1759,
+          "diasSemChuva": 1759,
+          "precipitacao": 1759,
+          "frp": 1759
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Amazônia",
+      "uf": "AMAPÁ",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 39,
+        "riscoFogoMediano": 0.94,
+        "riscoFogoP25": 0.635,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 13,
+        "diasSemChuvaP75": 14,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 6,
+        "amostras": {
+          "riscoFogo": 39,
+          "diasSemChuva": 31,
+          "precipitacao": 39,
+          "frp": 39
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Normal",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Amazônia",
+      "uf": "AMAZONAS",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 2505,
+        "riscoFogoMediano": 0.545,
+        "riscoFogoP25": 0.42,
+        "riscoFogoP75": 0.72,
+        "diasSemChuvaMediano": 4,
+        "diasSemChuvaP75": 8,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 8.4,
+        "amostras": {
+          "riscoFogo": 2488,
+          "diasSemChuva": 2505,
+          "precipitacao": 2505,
+          "frp": 2505
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Normal",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Amazônia",
+      "uf": "MARANHÃO",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 95,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 0.68,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 30,
+        "diasSemChuvaP75": 33,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 9.2,
+        "amostras": {
+          "riscoFogo": 95,
+          "diasSemChuva": 67,
+          "precipitacao": 95,
+          "frp": 93
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Amazônia",
+      "uf": "MATO GROSSO",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 2780,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 25,
+        "diasSemChuvaP75": 36,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 27.7,
+        "amostras": {
+          "riscoFogo": 2779,
+          "diasSemChuva": 2780,
+          "precipitacao": 2780,
+          "frp": 2753
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Amazônia",
+      "uf": "PARÁ",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 6403,
+        "riscoFogoMediano": 0.96,
+        "riscoFogoP25": 0.79,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 15,
+        "diasSemChuvaP75": 16,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 9.5,
+        "amostras": {
+          "riscoFogo": 6377,
+          "diasSemChuva": 6354,
+          "precipitacao": 6403,
+          "frp": 6340
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Normal",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Amazônia",
+      "uf": "RONDÔNIA",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 469,
+        "riscoFogoMediano": 0.57,
+        "riscoFogoP25": 0.41,
+        "riscoFogoP75": 0.76,
+        "diasSemChuvaMediano": 2,
+        "diasSemChuvaP75": 2,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 16.5,
+        "amostras": {
+          "riscoFogo": 468,
+          "diasSemChuva": 469,
+          "precipitacao": 469,
+          "frp": 469
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Amazônia",
+      "uf": "RORAIMA",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 88,
+        "riscoFogoMediano": 0.71,
+        "riscoFogoP25": 0.46,
+        "riscoFogoP75": 0.883,
+        "diasSemChuvaMediano": 2,
+        "diasSemChuvaP75": 3,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 6.35,
+        "amostras": {
+          "riscoFogo": 88,
+          "diasSemChuva": 88,
+          "precipitacao": 88,
+          "frp": 88
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Caatinga",
+      "uf": "BAHIA",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 358,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 43,
+        "diasSemChuvaP75": 44,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 6.9,
+        "amostras": {
+          "riscoFogo": 356,
+          "diasSemChuva": 358,
+          "precipitacao": 358,
+          "frp": 355
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Caatinga",
+      "uf": "CEARÁ",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 68,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 0.905,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 34,
+        "diasSemChuvaP75": 36,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 4.85,
+        "amostras": {
+          "riscoFogo": 66,
+          "diasSemChuva": 53,
+          "precipitacao": 68,
+          "frp": 66
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Caatinga",
+      "uf": "PERNAMBUCO",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 56,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 39,
+        "diasSemChuvaP75": 43,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 5.85,
+        "amostras": {
+          "riscoFogo": 56,
+          "diasSemChuva": 56,
+          "precipitacao": 56,
+          "frp": 56
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Caatinga",
+      "uf": "PIAUÍ",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 948,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 43,
+        "diasSemChuvaP75": 43,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 6.6,
+        "amostras": {
+          "riscoFogo": 948,
+          "diasSemChuva": 948,
+          "precipitacao": 948,
+          "frp": 919
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "BAHIA",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 975,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 79,
+        "diasSemChuvaP75": 96,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 76.4,
+        "amostras": {
+          "riscoFogo": 975,
+          "diasSemChuva": 975,
+          "precipitacao": 975,
+          "frp": 961
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Muito seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "GOIÁS",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 523,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 75,
+        "diasSemChuvaP75": 96,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 4.4,
+        "amostras": {
+          "riscoFogo": 519,
+          "diasSemChuva": 523,
+          "precipitacao": 523,
+          "frp": 523
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Muito seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "MARANHÃO",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 1663,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 37,
+        "diasSemChuvaP75": 42,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 10.5,
+        "amostras": {
+          "riscoFogo": 1661,
+          "diasSemChuva": 1661,
+          "precipitacao": 1663,
+          "frp": 1557
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "MATO GROSSO",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 4064,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 46,
+        "diasSemChuvaP75": 70,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 21.3,
+        "amostras": {
+          "riscoFogo": 4057,
+          "diasSemChuva": 4064,
+          "precipitacao": 4064,
+          "frp": 4048
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Muito seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "MATO GROSSO DO SUL",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 45,
+        "riscoFogoMediano": 0.77,
+        "riscoFogoP25": 0.67,
+        "riscoFogoP75": 0.97,
+        "diasSemChuvaMediano": 0,
+        "diasSemChuvaP75": 0,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 6.6,
+        "amostras": {
+          "riscoFogo": 45,
+          "diasSemChuva": 45,
+          "precipitacao": 45,
+          "frp": 45
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "MINAS GERAIS",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 101,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 0.86,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 58,
+        "diasSemChuvaP75": 73,
+        "precipitacaoMedianaMm": 2.4,
+        "frpMedianoMw": 11.8,
+        "amostras": {
+          "riscoFogo": 101,
+          "diasSemChuva": 101,
+          "precipitacao": 101,
+          "frp": 101
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Muito seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "PIAUÍ",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 589,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 43,
+        "diasSemChuvaP75": 43,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 7.8,
+        "amostras": {
+          "riscoFogo": 586,
+          "diasSemChuva": 589,
+          "precipitacao": 589,
+          "frp": 548
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Cerrado",
+      "uf": "TOCANTINS",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 3304,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 45,
+        "diasSemChuvaP75": 91,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 17.4,
+        "amostras": {
+          "riscoFogo": 3302,
+          "diasSemChuva": 3304,
+          "precipitacao": 3304,
+          "frp": 3256
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Muito seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Mata Atlântica",
+      "uf": "BAHIA",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 185,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 0.798,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 10,
+        "diasSemChuvaP75": 14.25,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 6.3,
+        "amostras": {
+          "riscoFogo": 184,
+          "diasSemChuva": 172,
+          "precipitacao": 185,
+          "frp": 185
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Normal",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Mata Atlântica",
+      "uf": "MINAS GERAIS",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 42,
+        "riscoFogoMediano": 1,
+        "riscoFogoP25": 1,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 28,
+        "diasSemChuvaP75": 36.75,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 12.8,
+        "amostras": {
+          "riscoFogo": 42,
+          "diasSemChuva": 42,
+          "precipitacao": 42,
+          "frp": 42
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Seco",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Mata Atlântica",
+      "uf": "PARANÁ",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 197,
+        "riscoFogoMediano": 0.14,
+        "riscoFogoP25": 0.04,
+        "riscoFogoP75": 0.37,
+        "diasSemChuvaMediano": 1,
+        "diasSemChuvaP75": 2,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 5.1,
+        "amostras": {
+          "riscoFogo": 197,
+          "diasSemChuva": 197,
+          "precipitacao": 197,
+          "frp": 197
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Mata Atlântica",
+      "uf": "RIO GRANDE DO SUL",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 298,
+        "riscoFogoMediano": 0.11,
+        "riscoFogoP25": 0.07,
+        "riscoFogoP75": 0.14,
+        "diasSemChuvaMediano": 7,
+        "diasSemChuvaP75": 7,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 4.6,
+        "amostras": {
+          "riscoFogo": 296,
+          "diasSemChuva": 298,
+          "precipitacao": 298,
+          "frp": 298
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Normal",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Mata Atlântica",
+      "uf": "SANTA CATARINA",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 510,
+        "riscoFogoMediano": 0.1,
+        "riscoFogoP25": 0.05,
+        "riscoFogoP75": 0.16,
+        "diasSemChuvaMediano": 3,
+        "diasSemChuvaP75": 7,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 5,
+        "amostras": {
+          "riscoFogo": 510,
+          "diasSemChuva": 509,
+          "precipitacao": 510,
+          "frp": 510
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Mata Atlântica",
+      "uf": "SÃO PAULO",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 44,
+        "riscoFogoMediano": 0.81,
+        "riscoFogoP25": 0.685,
+        "riscoFogoP75": 0.908,
+        "diasSemChuvaMediano": 12,
+        "diasSemChuvaP75": 12,
+        "precipitacaoMedianaMm": 0.64,
+        "frpMedianoMw": 8.45,
+        "amostras": {
+          "riscoFogo": 38,
+          "diasSemChuva": 44,
+          "precipitacao": 44,
+          "frp": 44
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Normal",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Pampa",
+      "uf": "RIO GRANDE DO SUL",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 64,
+        "riscoFogoMediano": 0.81,
+        "riscoFogoP25": 0.568,
+        "riscoFogoP75": 0.88,
+        "diasSemChuvaMediano": 7,
+        "diasSemChuvaP75": 7,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 5.1,
+        "amostras": {
+          "riscoFogo": 64,
+          "diasSemChuva": 64,
+          "precipitacao": 64,
+          "frp": 64
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Normal",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Pantanal",
+      "uf": "MATO GROSSO",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 96,
+        "riscoFogoMediano": 0.94,
+        "riscoFogoP25": 0.93,
+        "riscoFogoP75": 1,
+        "diasSemChuvaMediano": 2,
+        "diasSemChuvaP75": 16,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 12.7,
+        "amostras": {
+          "riscoFogo": 96,
+          "diasSemChuva": 96,
+          "precipitacao": 96,
+          "frp": 96
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    },
+    {
+      "bioma": "Pantanal",
+      "uf": "MATO GROSSO DO SUL",
+      "periodo": "2026-08",
+      "observado": {
+        "focos": 111,
+        "riscoFogoMediano": 0.16,
+        "riscoFogoP25": 0.14,
+        "riscoFogoP75": 0.18,
+        "diasSemChuvaMediano": 0,
+        "diasSemChuvaP75": 0,
+        "precipitacaoMedianaMm": 0,
+        "frpMedianoMw": 50.4,
+        "amostras": {
+          "riscoFogo": 110,
+          "diasSemChuva": 111,
+          "precipitacao": 111,
+          "frp": 111
+        }
+      },
+      "classesDidaticas": {
+        "risco": "Sem variação suficiente",
+        "secura": "Úmido",
+        "classificacao": "relativa_ao_recorte"
+      }
+    }
+  ]
+}
