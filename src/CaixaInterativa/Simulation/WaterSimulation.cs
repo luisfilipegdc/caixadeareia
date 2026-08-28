@@ -553,6 +553,34 @@ public sealed class WaterSimulation : ISimulationModule
         CalcularEstatisticas();
     }
 
+    /// <summary>
+    /// Deixa a simulação no ponto de partida de uma execução controlada.
+    ///
+    /// <b>Por que existe uma operação com nome próprio para isto.</b> A memória hídrica —
+    /// o solo continuar molhado da chuva anterior — é fenômeno real e tem valor de aula:
+    /// no modo livre o professor faz chover, para, faz chover de novo e a turma vê que a
+    /// segunda chuva alaga mais. Isso não é defeito e não foi removido.
+    ///
+    /// O defeito era essa memória entrar <b>invisivelmente</b> numa comparação que afirma
+    /// controlar as demais variáveis. Medido na caixa física: duas execuções idênticas de
+    /// Mata deram 48% e 53% de pico, e a tela dizia que a diferença vinha da cobertura.
+    ///
+    /// Por isso a limpeza não foi para dentro de <see cref="IniciarChuva"/>, onde
+    /// apagaria o fenômeno para todo mundo. Quem quer um experimento controlado pede por
+    /// ele, com este nome, e o nome diz o que está sendo comprado.
+    ///
+    /// <b>Zera:</b> água na superfície, saturação do solo, fluxos, velocidade, erosão,
+    /// litros infiltrados e escoados, erosão total, pico do episódio anterior e a chuva
+    /// em curso.
+    ///
+    /// <b>Preserva:</b> o relevo (reamostrado do sensor a cada quadro, nunca guardado
+    /// aqui como estado), a cobertura do solo, a calibração e a própria instância — a
+    /// sessão da fonte continua a mesma.
+    ///
+    /// <b>Não inicia chuva.</b> Preparar e executar são decisões separadas.
+    /// </summary>
+    public void PrepararExecucaoControlada() => Limpar();
+
     public void Limpar()
     {
         Array.Clear(_agua);

@@ -98,6 +98,25 @@ public sealed class SandboxEngine : IDisposable
     public event Action<EngineState, string>? StateChanged;
 
     /// <summary>
+    /// Passo de tempo fixo, em segundos, para execuções que precisam ser comparáveis.
+    ///
+    /// Nulo em uso normal, e a simulação anda no relógio. A atividade oficial o define
+    /// enquanto executa, porque sem ele A e B recebem sequências de passos diferentes e a
+    /// diferença entre as duas deixa de ser atribuível à cobertura.
+    /// </summary>
+    public float? PassoFixoSegundos { get; set; }
+
+    /// <summary>
+    /// Identidade da sessão da fonte. Muda a cada <see cref="StartSource(IDepthSource)"/>.
+    ///
+    /// Cada início de fonte cria uma <c>WaterSimulation</c> nova, com solo e saturação
+    /// zerados. Um resultado medido antes disso não é comparável com um medido depois, e
+    /// é este número que permite a uma comparação perceber a troca sem guardar referência
+    /// a objeto nenhum.
+    /// </summary>
+    public int SessaoDaFonte { get; private set; }
+
+    /// <summary>
     /// Uma fonte nova comecou. Quem observa precisa reaplicar o que so' a interface sabe.
     ///
     /// Existe por causa de um defeito encontrado com o sensor ligado: cada StartSource cria
@@ -165,6 +184,7 @@ public sealed class SandboxEngine : IDisposable
         StopReconnectTimer();
 
         _source = source;
+        SessaoDaFonte++;
         _processor = new DepthProcessor(source.Width, source.Height)
         {
             Settings = Config.Processing
@@ -367,8 +387,20 @@ public sealed class SandboxEngine : IDisposable
 
         // dt real, limitado a 100ms. Um travamento momentâneo não pode virar um salto
         // que despeja meio segundo de chuva de uma vez e estoura a simulação.
-        float dt = (float)Math.Min(0.1, _simClock.Elapsed.TotalSeconds);
+        float dtReal = (float)Math.Min(0.1, _simClock.Elapsed.TotalSeconds);
         _simClock.Restart();
+
+        // Numa execução controlada o passo deixa de vir do relógio.
+        //
+        // Medido: a mesma chuva sobre o mesmo relevo, só mudando o passo, deu pico de
+        // 0,0% a 9,9% numa encosta e de 67,6% a 79,8% numa bacia fechada. É mais variação
+        // do que a troca de cobertura produz — o solver usa substeps limitados a 12 pelo
+        // CFL, e passos grandes saem da faixa em que ele é preciso.
+        //
+        // Com passo fixo o resultado é exatamente reprodutível: três execuções deram
+        // 79,6875 nas três casas. A simulação passa a andar em tempo de simulação, não em
+        // tempo de parede — a 29 fps, vinte segundos de chuva levam ~20,7s de relógio.
+        float dt = PassoFixoSegundos ?? dtReal;
 
         // O fogo lê a água para saber onde não pode passar, e `WaterSimulation` troca o
         // buffer de profundidade a cada substep (`MoverAgua` faz o swap com `_aguaNova`).
