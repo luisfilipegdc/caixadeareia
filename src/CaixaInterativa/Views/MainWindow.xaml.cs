@@ -671,8 +671,13 @@ public partial class MainWindow : Window
         SldDuracao.IsEnabled = !ativa;
 
         // Só faz sentido quando há uma comparação cobrindo a projeção.
-        BtnAtvVoltarAoMapa.Visibility = _atividade.Fase == FaseDaAtividade.Concluida
-            ? Visibility.Visible : Visibility.Collapsed;
+        bool concluida = _atividade.Fase == FaseDaAtividade.Concluida;
+        BtnAtvVoltarAoMapa.Visibility = concluida ? Visibility.Visible : Visibility.Collapsed;
+
+        // Na conclusão o botão de ação já é "Encerrar atividade"; manter o secundário
+        // deixava dois botões idênticos, e o de baixo saindo pela borda da janela em
+        // 1366x768. Encontrado na conferiência das capturas.
+        BtnAtvSair.Visibility = concluida ? Visibility.Collapsed : Visibility.Visible;
 
         _projection?.MostrarAtividade(ativa ? _atividade : null);
 
