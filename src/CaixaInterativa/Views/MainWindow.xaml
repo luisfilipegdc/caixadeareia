@@ -491,14 +491,29 @@
 
         <!-- Prévia -->
         <Border Grid.Column="1" Grid.Row="1" Background="#FF0E0E11" CornerRadius="6">
-            <Grid>
+            <!-- O clique é medido contra esta grade, e não contra a imagem.
+                 `GetPosition(Preview)` devolveria a coordenada LOCAL da imagem — o WPF
+                 já desfaz o RenderTransform — e o espelho sairia aplicado duas vezes.
+                 Contra a grade, que não tem transformação, a coordenada é a visual: a
+                 mesma que o professor está vendo. -->
+            <Grid x:Name="AreaDaPrevia">
                 <!-- Clicar na prévia ateia fogo naquele ponto. O foco sorteado continua
                      existindo no botão; o clique é para quando a pergunta da aula é "e se
                      começasse aqui?" — que é a pergunta que muda a resposta. -->
+                <!-- A prévia espelha junto com a projeção. Sem isso ela mostra o
+                     inverso do que está na areia, e clicar no morro da direita
+                     acende o fogo no morro da esquerda. Só o espelho é copiado:
+                     rotação, escala e deslocamento são ajuste fino de alguns
+                     pixels para casar com a moldura, e não invertem lados. -->
                 <Image x:Name="Preview" Stretch="Uniform"
                        Cursor="Cross"
+                       RenderTransformOrigin="0.5,0.5"
                        MouseLeftButtonDown="OnPreviewClique"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.RenderTransform>
+                        <ScaleTransform x:Name="EspelhoDaPrevia"/>
+                    </Image.RenderTransform>
+                </Image>
 
                 <!-- Orientação quando não há nada para mostrar -->
                 <Border x:Name="PainelAjuda" Background="#EE0E0E11" CornerRadius="6">

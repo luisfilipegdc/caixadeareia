@@ -19,6 +19,7 @@ using CaixaInterativa.Contexto;
 using CaixaInterativa.Diagnostico;
 using CaixaInterativa.Depth;
 using CaixaInterativa.Processing;
+using CaixaInterativa.Rendering;
 using CaixaInterativa.Simulation;
 
 namespace CaixaInterativa.Views;
@@ -55,6 +56,7 @@ public partial class MainWindow : Window
             AtualizarIndicadores();
             AtualizarSimulacao();
             VigiarAtividade();
+            AtualizarEspelhoDaPrevia();
         };
         _uiTimer.Start();
 
@@ -464,34 +466,49 @@ public partial class MainWindow : Window
         if (_simulacaoAtual != Simulacao.Queimada) return;
         if (Preview.Source is not System.Windows.Media.Imaging.BitmapSource bmp) return;
 
-        var p = e.GetPosition(Preview);
-
-        // Desfaz o encaixe uniforme.
-        double escala = Math.Min(Preview.ActualWidth / bmp.PixelWidth,
-                                 Preview.ActualHeight / bmp.PixelHeight);
-        if (escala <= 0) return;
-
-        double larguraVisivel = bmp.PixelWidth * escala;
-        double alturaVisivel = bmp.PixelHeight * escala;
-        double margemX = (Preview.ActualWidth - larguraVisivel) / 2;
-        double margemY = (Preview.ActualHeight - alturaVisivel) / 2;
-
-        double px = (p.X - margemX) / escala;
-        double py = (p.Y - margemY) / escala;
-
-        // Clique na tarja não é clique no mapa.
-        if (px < 0 || py < 0 || px >= bmp.PixelWidth || py >= bmp.PixelHeight) return;
-
-        // Da ROI de volta para o campo inteiro do sensor.
         var proj = _engine.Config.Projection;
-        int larguraCampo = _engine.LarguraCampo;
-        int alturaCampo = _engine.AlturaCampo;
-        if (larguraCampo <= 0 || alturaCampo <= 0) return;
 
-        double campoX = proj.RoiLeft + px;
-        double campoY = proj.RoiTop + py;
+        // A matemática mora em PontoNaPrevia, onde pode ser testada com números. Aqui
+        // ficam só as leituras da tela: onde o dedo caiu e do que a prévia é feita.
+        //
+        // A posição é medida contra a grade, não contra a imagem. `GetPosition(Preview)`
+        // devolve a coordenada LOCAL do elemento, com o RenderTransform já desfeito pelo
+        // WPF — o espelho sairia aplicado duas vezes e o fogo voltava para o lado errado.
+        // Medido: clique a 15% da prévia acendia a 81%. Contra a grade, que não tem
+        // transformação, a coordenada é a que o professor está vendo.
+        var p = e.GetPosition(AreaDaPrevia);
 
-        ExecutarQueimada((float)(campoX / larguraCampo), (float)(campoY / alturaCampo));
+        bool convertido = PontoNaPrevia.TentarConverter(
+            p.X, p.Y,
+            AreaDaPrevia.ActualWidth, AreaDaPrevia.ActualHeight,
+            bmp.PixelWidth, bmp.PixelHeight,
+            proj.FlipHorizontal, proj.FlipVertical,
+            proj.RoiLeft, proj.RoiTop,
+            _engine.LarguraCampo, _engine.AlturaCampo,
+            out var ponto);
+
+        if (!convertido) return;
+
+        ExecutarQueimada(ponto.U, ponto.V);
+    }
+
+    /// <summary>
+    /// Copia para a prévia o espelhamento que a projeção usa.
+    ///
+    /// A projeção é espelhada para casar com a caixa — no Kinect v1 isso é a regra, não a
+    /// exceção, porque o sensor entrega a profundidade espelhada. A prévia não copiava, e
+    /// ficava sendo a imagem invertida do que a turma via na areia.
+    ///
+    /// Enquanto era só olhar, incomodava pouco. Com o clique para atear fogo passou a
+    /// importar: quem clicava no morro da direita da tela acendia o morro da esquerda da
+    /// areia. Espelhar a prévia resolve os dois de uma vez — ela volta a ser uma cópia
+    /// pequena do que está na caixa, e o clique passa a apontar para o que se vê.
+    /// </summary>
+    private void AtualizarEspelhoDaPrevia()
+    {
+        var proj = _engine.Config.Projection;
+        EspelhoDaPrevia.ScaleX = proj.FlipHorizontal ? -1 : 1;
+        EspelhoDaPrevia.ScaleY = proj.FlipVertical ? -1 : 1;
     }
 
     // ================= Atividade: Urbanização e Enchentes =================

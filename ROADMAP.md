@@ -195,9 +195,59 @@ nível e bacias hidrográficas.
 
 - [ ] Calibração pelos quatro cantos
 - [ ] Homografia para corrigir perspectiva
+- [ ] **Correção do paralaxe de projeção sobre relevo alto** — ver abaixo
 - [ ] Correção da distorção da lente
 - [ ] Legenda de altitude
 - [ ] Escolha do intervalo das curvas de nível *(já ajustável ao vivo no painel)*
+
+### Paralaxe de projeção sobre relevo alto
+
+**É um problema distinto do espelhamento da prévia**, que já foi corrigido. Aquele era erro
+de coordenada; este é geometria óptica, e nenhuma matemática de coordenada o resolve.
+
+A cor de cada ponto do mapa é mirada **no plano de calibração**. Um morro intercepta o raio
+antes de ele chegar lá, então a cor cai deslocada na direção do projetor. O deslocamento
+cresce com a altura do relevo e com o ângulo do raio.
+
+**Medições da montagem atual — não são constantes do software.** Outra sala, outro suporte,
+outros números. Levantadas em 28/08/2026:
+
+| Grandeza | Valor medido |
+|---|---|
+| Altura do Kinect sobre a caixa | 129 cm |
+| Altura do projetor | 155 cm |
+| Distância projetor–Kinect (reta) | 96 cm |
+| Separação horizontal derivada | 92,4 cm |
+| Inclinação do projetor fora da vertical | **30,8°** |
+| Distância projetor–centro da caixa | 180,5 cm |
+| Caixa | 101 × 125 cm |
+
+O trapézio que essa obliquidade produz — a borda distante chega 39% mais larga — **já está
+corrigido pelo keystone do próprio projetor**. O que sobra é o paralaxe.
+
+**Estimativas de deslocamento** para um morro de 7,6 cm, que foi o pico registrado na
+configuração de campo desta montagem:
+
+| Onde na caixa | Ângulo do raio | Deslocamento estimado |
+|---|---|---|
+| Borda próxima do projetor | 10,9° | ~1,5 cm |
+| Centro | 30,8° | **~4,5 cm** |
+| Borda distante | 45,0° | ~7,6 cm |
+
+Com o projetor centrado sobre a caixa, na mesma altura, seria 0 cm no centro e ~3,1 cm nas
+bordas — o paralaxe não desaparece, mas fica simétrico e menor.
+
+**Caminhos possíveis**, em ordem de custo:
+
+1. Aproximar o projetor da vertical. Não precisa ser perfeito: de 92 para 50 cm de
+   separação, o erro no centro cai de ~4,5 para ~2,4 cm.
+2. Trabalhar com relevos mais baixos quando a coincidência precisar ser exata.
+3. Corrigir por software: sabendo a posição do projetor em relação à caixa e o campo de
+   alturas que o Kinect já mede, deformar o mapa para compensar. É capacidade nova, não
+   ajuste — e depende de uma calibração projetor→caixa que hoje não existe.
+
+---
+
 - [ ] Marcação de picos, vales e depressões
 - [ ] Diferentes paletas hipsométricas
 - [ ] Escala de altitude relativa
