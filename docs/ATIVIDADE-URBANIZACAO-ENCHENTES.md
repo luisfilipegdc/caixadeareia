@@ -2,6 +2,10 @@
 
 > Primeira atividade pedagógica oficial da Caixa de Areia Interativa.
 > **Nunca foi usada com uma turma.** É proposta testada em bancada, não material validado.
+>
+> **Estado:** o software, a interface e a projeção estão validados **no simulador**. A
+> validação com o sensor lendo areia de verdade está pendente — o roteiro dela está em
+> [VALIDACAO-KINECT-ATIVIDADE-URBANIZACAO.md](VALIDACAO-KINECT-ATIVIDADE-URBANIZACAO.md).
 
 ## Pergunta investigativa
 
@@ -111,7 +115,16 @@ ainda não foi medida por instalação.
 | O sensor caiu e reconectou | Invalida a atividade | Recomece — o passo A antigo não vale |
 | Quer repetir o passo A | O botão fica desabilitado durante a execução | Encerre e comece de novo |
 | Quer outra cobertura | Os controles ficam travados durante a atividade | Encerre; no modo livre eles voltam |
-| A comparação cobre o mapa | — | **ESC** ou **M** na projeção volta ao mapa |
+| A comparação cobre o mapa | — | Toque em **Voltar ao mapa na projeção**, no seu painel. Na própria projeção, **ESC** ou **M** |
+
+## Encerramento
+
+Toque em **Voltar ao mapa na projeção**: os números continuam no seu painel e a turma volta
+a ver o relevo, que é onde a conversa acontece. Fecha-se perguntando o que fariam
+diferente — e, se houver tempo, testando: molde de novo, mude uma coisa só, repita.
+
+**Encerrar atividade** devolve os controles livres e limpa a simulação. O relevo continua
+como está.
 
 ---
 
@@ -122,5 +135,9 @@ As duas coisas foram medidas antes de serem escolhidas: sem zerar, duas execuç�
 davam 48% e 53%; sem passo fixo, mudar o fps mudava o pico em até 12 pontos.
 
 Com as duas congeladas, três execuções idênticas de Mata deram **52%, 52%, 52%** — com o
-fps oscilando entre 15 e 17. É o que permite atribuir à cobertura a diferença que aparece
-entre A e B.
+fps oscilando entre 15 e 17. Em bancada, sobre terreno constante, a repetição é exata:
+78,5156% nas três.
+
+**Todos esses números são de simulador.** Eles mostram que o software não introduz
+variação; não dizem quanto o ruído do sensor sobre areia real introduz. Essa medição
+continua pendente, e é ela que decide se a comparação se sustenta numa aula.
