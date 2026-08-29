@@ -324,6 +324,16 @@ public partial class ProjectionWindow : Window
         }
     }
 
+    /// <summary>
+    /// Devolve o mapa à turma sem encerrar a atividade.
+    ///
+    /// O painel de comparação cobre a areia de propósito — é a conclusão da aula, e
+    /// precisa ser lida do fundo da sala. Mas a discussão vem logo depois, e ela acontece
+    /// olhando o relevo. ESC e M já fazem isto na própria projeção; este método existe
+    /// porque o professor está no notebook, e a tecla iria para a janela errada.
+    /// </summary>
+    public void OcultarComparacao() => PainelComparacao.Visibility = Visibility.Collapsed;
+
     private void Linha(string rotulo, string valor, string cor)
     {
         var painel = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };

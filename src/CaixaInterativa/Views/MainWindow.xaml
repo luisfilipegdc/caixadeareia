@@ -439,6 +439,14 @@
                             <Button x:Name="BtnAtvAcao" Click="OnAcaoDaAtividade"
                                     Style="{StaticResource BotaoPrimario}"
                                     Content="▶  Executar"/>
+
+                            <!-- A comparação cobre a areia de propósito, e a discussão
+                                 que vem depois acontece olhando o relevo. ESC e M fazem
+                                 isto na projeção; o professor está no notebook, e a tecla
+                                 iria para a janela errada. -->
+                            <Button x:Name="BtnAtvVoltarAoMapa" Click="OnVoltarAoMapa"
+                                    Content="🖺  Voltar ao mapa na projeção"
+                                    Margin="0,6,0,0" Visibility="Collapsed"/>
                             <Button x:Name="BtnAtvSair" Click="OnSairDaAtividade"
                                     Content="Encerrar atividade" Margin="0,6,0,0"/>
                         </StackPanel>

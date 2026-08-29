@@ -524,7 +524,17 @@ public partial class MainWindow : Window
                            AssinaturaAtualDoRelevo(), _engine.SessaoDaFonte);
         PrepararPassoDaAtividade();
 
-        Registro.Info($"Atividade iniciada: {AtividadeUrbanizacao.Titulo}");
+        // Tudo o que a validação com o sensor vai querer reconstruir depois, numa linha
+        // só: a sessão distingue execuções separadas por uma reconexão, o relevo diz se
+        // duas execuções partiram do mesmo terreno, e fps e near mode dizem em que
+        // condições o sensor estava.
+        var relevo = _atividade.RelevoDeReferencia;
+        Registro.Info($"Atividade iniciada: {AtividadeUrbanizacao.Titulo} · " +
+                      $"sessão {_engine.SessaoDaFonte} · {_engine.SourceName} · " +
+                      $"{_engine.Fps:F0} fps · " +
+                      $"near mode {(ChkNearMode.IsChecked == true ? "ligado" : "desligado")} · " +
+                      $"menor profundidade {_engine.MenorProfundidadeMm} mm · " +
+                      $"relevo {(relevo is null ? "sem assinatura" : relevo.Resumo)}");
         AtualizarPainelDaAtividade();
     }
 
@@ -573,6 +583,8 @@ public partial class MainWindow : Window
                 // reiniciou, a atividade é invalidada em vez de comparar.
                 if (_atividade.PodePrepararB(AssinaturaAtualDoRelevo(), _engine.SessaoDaFonte))
                     PrepararPassoDaAtividade();
+                else
+                    Registro.Aviso($"Atividade invalidada antes do passo B: {_atividade.Motivo}");
                 break;
 
             case FaseDaAtividade.Concluida:
@@ -593,6 +605,14 @@ public partial class MainWindow : Window
     private void OnSairDaAtividade(object sender, RoutedEventArgs e) => EncerrarAtividade();
 
     /// <summary>
+    /// Tira a comparação da projeção e devolve o mapa, sem encerrar a atividade.
+    ///
+    /// Os números continuam aqui no painel enquanto a turma volta a olhar o relevo — que
+    /// é onde a discussão acontece.
+    /// </summary>
+    private void OnVoltarAoMapa(object sender, RoutedEventArgs e) => _projection?.OcultarComparacao();
+
+    /// <summary>
     /// Vigia, a cada meio segundo, o que pode invalidar a atividade por fora dela.
     ///
     /// O reinício da fonte é o caso concreto: a reconexão automática do sensor cria uma
@@ -609,8 +629,17 @@ public partial class MainWindow : Window
         var faseAntes = _atividade.Fase;
         _atividade.VerificarSessao(_engine.SessaoDaFonte);
 
-        if (_atividade.Fase != faseAntes || _atividade.Executando)
+        if (_atividade.Fase != faseAntes)
+        {
+            if (_atividade.Fase == FaseDaAtividade.Invalidada)
+                Registro.Aviso($"Atividade invalidada: {_atividade.Motivo} · " +
+                               $"sessão agora {_engine.SessaoDaFonte}");
             AtualizarPainelDaAtividade();
+        }
+        else if (_atividade.Executando)
+        {
+            AtualizarPainelDaAtividade();
+        }
     }
 
     private void EncerrarAtividade()
@@ -640,6 +669,10 @@ public partial class MainWindow : Window
         CmbCobertura.IsEnabled = !ativa;
         CmbIntensidade.IsEnabled = !ativa;
         SldDuracao.IsEnabled = !ativa;
+
+        // Só faz sentido quando há uma comparação cobrindo a projeção.
+        BtnAtvVoltarAoMapa.Visibility = _atividade.Fase == FaseDaAtividade.Concluida
+            ? Visibility.Visible : Visibility.Collapsed;
 
         _projection?.MostrarAtividade(ativa ? _atividade : null);
 

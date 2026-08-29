@@ -129,6 +129,30 @@ public sealed class AssinaturaDoRelevo
     /// Compara com outra assinatura. Assinaturas sempre têm o mesmo tamanho, porque a
     /// grade é fixa — o campo original pode ter qualquer resolução.
     /// </summary>
+    /// <summary>
+    /// Uma linha que identifica este relevo no registro de operação.
+    ///
+    /// Não serve para comparar — quem compara é <see cref="Comparar"/>, bloco a bloco.
+    /// Serve para, lendo o registro depois da aula, reconhecer se duas execuções
+    /// aconteceram sobre o mesmo terreno sem ter as 192 médias na frente.
+    /// </summary>
+    public string Resumo
+    {
+        get
+        {
+            float menor = float.MaxValue, maior = float.MinValue;
+            double soma = 0;
+            foreach (float m in _medias)
+            {
+                if (m < menor) menor = m;
+                if (m > maior) maior = m;
+                soma += m;
+            }
+            return $"{Colunas}x{Linhas} blocos · {menor:F0} a {maior:F0} mm · " +
+                   $"média {soma / _medias.Length:F0} mm";
+        }
+    }
+
     public ComparacaoDeRelevo Comparar(AssinaturaDoRelevo outra)
     {
         ArgumentNullException.ThrowIfNull(outra);
