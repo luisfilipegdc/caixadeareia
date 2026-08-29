@@ -186,6 +186,65 @@ public class ProtocoloControladoTests
         Assert.Equal(antes, EpisodioControlado(agua, terreno), precision: 6);
     }
 
+    /// <summary>
+    /// <b>Preparar prepara; não reconfigura.</b> Os ajustes que definem como a água se
+    /// comporta — e, no caso do limiar, o que a palavra "alagado" significa — precisam
+    /// atravessar a preparação intactos.
+    ///
+    /// Se algum deles passar a ser zerado junto, a atividade rodaria sob uma física
+    /// diferente da que o professor acabou de ver no modo livre, e a métrica comparada
+    /// mudaria de significado sem nada na tela avisar.
+    /// </summary>
+    [Fact]
+    public void PreparacaoPreservaOsAjustesDaAgua()
+    {
+        var agua = Com(TipoDeSolo.Mata);
+
+        // Valores deliberadamente diferentes dos padrões, para que um reset apareça.
+        agua.LimiarAlagamentoMm = 12f;
+        agua.BordasEscoam = false;
+        agua.Amortecimento = 0.31f;
+        agua.DrenagemProfundaPorSegundo = 0.42f;
+        agua.EscalaInfiltracao = 0.77f;
+
+        EpisodioControlado(agua, Bacia());
+        agua.PrepararExecucaoControlada();
+
+        Assert.Equal(12f, agua.LimiarAlagamentoMm);
+        Assert.False(agua.BordasEscoam);
+        Assert.Equal(0.31f, agua.Amortecimento);
+        Assert.Equal(0.42f, agua.DrenagemProfundaPorSegundo);
+        Assert.Equal(0.77f, agua.EscalaInfiltracao);
+    }
+
+    /// <summary>
+    /// A geometria da caixa também atravessa: é ela que converte lâmina em litros, e uma
+    /// preparação que a mexesse tornaria A e B incomparáveis em qualquer unidade absoluta.
+    /// </summary>
+    [Fact]
+    public void PreparacaoPreservaAGeometriaDaCaixa()
+    {
+        var agua = new WaterSimulation(W, H, larguraCaixaMm: 980f);
+        agua.Solo.Preencher(TipoDeSolo.Mata);
+        var terreno = Bacia();
+
+        double litrosAntes = EpisodioLitros();
+        agua.PrepararExecucaoControlada();
+        double litrosDepois = EpisodioLitros();
+
+        Assert.True(litrosAntes > 0);
+        Assert.Equal(litrosAntes, litrosDepois, precision: 6);
+
+        double EpisodioLitros()
+        {
+            agua.PrepararExecucaoControlada();
+            agua.IniciarChuva(8f, 20f);
+            int quadros = (int)(22f / Passo);
+            for (int i = 0; i < quadros; i++) agua.Atualizar(terreno, W, H, Passo);
+            return agua.InfiltradoLitros;
+        }
+    }
+
     [Fact]
     public void PreparacaoNaoIniciaChuva()
     {
