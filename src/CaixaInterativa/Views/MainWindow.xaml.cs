@@ -262,9 +262,9 @@ public partial class MainWindow : Window
         CmbSimulacao.SelectedIndex = 0;
 
         CmbIntensidade.Items.Clear();
-        foreach (var n in new[] { "Garoa", "Chuva forte", "Tempestade" })
-            CmbIntensidade.Items.Add(n);
-        CmbIntensidade.SelectedIndex = 1;
+        foreach (var chuva in IntensidadesDeChuva.Todas)
+            CmbIntensidade.Items.Add(chuva.Nome);
+        CmbIntensidade.SelectedIndex = IntensidadesDeChuva.IndicePadrao;
 
         // O catálogo de coberturas vem do próprio modelo, para que acrescentar um tipo
         // de solo não exija lembrar de editar a interface.
@@ -347,12 +347,6 @@ public partial class MainWindow : Window
                               + "\n" + PropriedadesDoSolo.AvisoDidatico;
     }
 
-    private static (float MmPorSegundo, string Nome) IntensidadeChuva(int indice) => indice switch
-    {
-        0 => (3f, "Garoa"),
-        2 => (18f, "Tempestade"),
-        _ => (8f, "Chuva forte"),
-    };
 
     private void OnExecutarSimulacao(object sender, RoutedEventArgs e)
     {
@@ -392,7 +386,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        var (mm, nome) = IntensidadeChuva(CmbIntensidade.SelectedIndex);
+        var chuva = IntensidadesDeChuva.De(CmbIntensidade.SelectedIndex);
+        float mm = chuva.MmPorSegundo;
+        string nome = chuva.Nome;
         float duracao = (float)SldDuracao.Value;
         agua.IniciarChuva(mm, duracao);
         Registro.Info($"Chuva: {nome} ({mm:F0} mm/s) por {duracao:F0}s sobre {_coberturaAtual}");
@@ -515,14 +511,6 @@ public partial class MainWindow : Window
 
     private readonly AtividadeUrbanizacao _atividade = new();
 
-    /// <summary>
-    /// Índice de "Chuva forte" no controle de intensidade.
-    ///
-    /// A atividade não guarda o valor em mm/s: pega o que este controle já define, para
-    /// não existirem duas verdades sobre quanto chove numa chuva forte.
-    /// </summary>
-    private const int ChuvaForte = 1;
-
     private void OnIniciarAtividade(object sender, RoutedEventArgs e)
     {
         if (_engine.Agua is null)
@@ -532,9 +520,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        var (mm, _) = IntensidadeChuva(ChuvaForte);
-
-        _atividade.Iniciar(mm, AssinaturaAtualDoRelevo(), _engine.SessaoDaFonte);
+        _atividade.Iniciar(AtividadeUrbanizacao.ChuvaOficial.MmPorSegundo,
+                           AssinaturaAtualDoRelevo(), _engine.SessaoDaFonte);
         PrepararPassoDaAtividade();
 
         Registro.Info($"Atividade iniciada: {AtividadeUrbanizacao.Titulo}");

@@ -130,9 +130,18 @@ public sealed class AtividadeUrbanizacao
     public const float PassoSegundos = 1f / 30f;
 
     /// <summary>
-    /// Intensidade da chuva, em mm/s — a mesma que o controle de intensidade chama de
-    /// "Chuva forte". Congelada quando A começa e reutilizada em B sem passar pela
-    /// interface, para que ninguém possa trocá-la no meio do experimento.
+    /// A chuva oficial da atividade, lida da tabela única de presets.
+    ///
+    /// Não é um número escrito aqui: é o mesmo item que o professor veria no controle de
+    /// intensidade. A atividade escolhe qual preset usa; quanto ele chove é assunto da
+    /// tabela, e há uma só.
+    /// </summary>
+    public static IntensidadeDeChuva ChuvaOficial =>
+        IntensidadesDeChuva.De(IntensidadesDeChuva.IndicePadrao);
+
+    /// <summary>
+    /// Intensidade da chuva em mm/s, congelada quando A começa e reutilizada em B sem
+    /// passar pela interface, para que ninguém possa trocá-la no meio do experimento.
     /// </summary>
     public float IntensidadeMmPorSegundo { get; private set; }
 
