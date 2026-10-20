@@ -8,6 +8,16 @@ descrita no [README](README.md#versionamento).
 
 ---
 
+## [Não lançado]
+
+### Corrigido
+
+- **Erro 0x80004005 ao ligar o Kinect.** Com o sensor enumerado pelo driver, a falha
+  genérica do `NuiInitialize` aparecia como "Erro nativo NUI 0x80004005", sem dizer o que
+  fazer. Agora a inicialização é repetida até três vezes quando o erro é do tipo que passa
+  sozinho (sensor ainda iniciando), e, se persistir, a mensagem orienta: reconectar, porta
+  USB 2.0, driver no Gerenciador de Dispositivos. O manual ganhou a mesma seção.
+
 ## [1.4.0] — 2026-08-28
 
 Primeira versão em que a caixa foi montada, ligada e usada com o sensor de verdade. Boa

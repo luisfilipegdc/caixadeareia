@@ -118,6 +118,14 @@ internal static class NuiNative
     public const int E_NUI_ALREADY_INITIALIZED   = unchecked((int)0x800704DF);
     public const int E_NUI_NO_MORE_ITEMS         = unchecked((int)0x80070103);
 
+    // --- genericos do Windows ---
+    /// <summary>
+    /// E_FAIL. O NuiInitialize devolve isto quando o driver enumera o sensor mas a camera
+    /// nao sobe: sensor ainda inicializando logo apos ser ligado, driver da camera
+    /// incompleto no Gerenciador de Dispositivos, ou controlador USB 3.0 incompativel.
+    /// </summary>
+    public const int E_FAIL                      = unchecked((int)0x80004005);
+
     public const int S_OK = 0;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -271,6 +279,15 @@ internal static class NuiNative
                                      + "Toque em Parar e depois em Ligar a caixa.",
         E_NUI_STREAM_NOT_ENABLED    => "O fluxo de profundidade não foi habilitado na inicialização.",
         E_NUI_BADINDEX              => "Índice de sensor inválido. Toque em Procurar Kinect.",
+
+        // O driver viu o sensor, mas a camera nao respondeu — mesmo depois das novas
+        // tentativas de Start. A ordem segue o que mais resolve na pratica.
+        E_FAIL                      => "O driver encontrou o sensor, mas a câmera não respondeu (0x80004005). "
+                                     + "Tente nesta ordem: desconecte o USB e a fonte, aguarde 10 segundos, "
+                                     + "reconecte e espere a luz verde ficar fixa; use uma porta USB 2.0 "
+                                     + "(as portas azuis, USB 3.0, falham com o Kinect v1 em muitos computadores); "
+                                     + "no Gerenciador de Dispositivos, confira se \"Kinect for Windows Camera\" "
+                                     + "aparece sem ponto de exclamação — se aparecer com, reinstale o SDK 1.8.",
 
         _                           => $"Erro nativo NUI 0x{hr:X8}."
     };

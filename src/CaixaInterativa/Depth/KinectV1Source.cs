@@ -82,7 +82,7 @@ public sealed class KinectV1Source : IDepthSource
     {
         if (IsRunning) return;
 
-        int hr = NuiInitialize(NUI_INITIALIZE_FLAG_USE_DEPTH);
+        int hr = InicializarComNovasTentativas();
         if (hr != S_OK) throw new InvalidOperationException(DescribeHResult(hr));
         _nuiInitialized = true;
 
@@ -131,6 +131,32 @@ public sealed class KinectV1Source : IDepthSource
         };
         _thread.Start();
     }
+
+    /// <summary>
+    /// Logo depois de ligado, o sensor aparece para o driver alguns segundos antes de a
+    /// camera aceitar o NuiInitialize, e nesse intervalo a resposta e' E_FAIL ou "nao
+    /// pronto". Era o caso de clicar em Ligar a caixa assim que o cabo entrava: o erro
+    /// aparecia e, na segunda tentativa manual, funcionava. Os outros codigos tem causa
+    /// que esperar nao resolve, e retornam na primeira vez.
+    /// </summary>
+    private static int InicializarComNovasTentativas()
+    {
+        const int Tentativas = 3;
+        const int IntervaloMs = 1000;
+
+        int hr = S_OK;
+        for (int i = 0; i < Tentativas; i++)
+        {
+            if (i > 0) Thread.Sleep(IntervaloMs);
+            hr = NuiInitialize(NUI_INITIALIZE_FLAG_USE_DEPTH);
+            if (hr == S_OK || !VaiPassarSozinho(hr)) return hr;
+            try { NuiShutdown(); } catch { /* inicializacao parcial */ }
+        }
+        return hr;
+    }
+
+    internal static bool VaiPassarSozinho(int hr)
+        => hr is E_FAIL or E_NUI_NOTREADY or E_NUI_DEVICE_NOT_READY;
 
     private void Loop(CancellationToken token)
     {

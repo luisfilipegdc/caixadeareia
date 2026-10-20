@@ -471,6 +471,22 @@ Na ordem:
 5. **Troque de porta USB**, preferencialmente do outro lado do computador.
 6. Toque em **Procurar Kinect** em *Ajustes técnicos*.
 
+### "O Kinect está conectado, mas não pôde ser iniciado" (0x80004005)
+
+O Windows enxerga o sensor, mas a câmera dele não respondeu. O programa já tenta três
+vezes antes de mostrar a mensagem. Na ordem:
+
+1. **Desconecte o USB e a fonte**, aguarde 10 segundos, reconecte e espere a luz verde
+   ficar **fixa** antes de tocar em **Ligar a caixa**.
+2. **Use uma porta USB 2.0.** As portas azuis (USB 3.0) falham com o Kinect v1 em muitos
+   computadores, mesmo enxergando o sensor.
+3. **Confira o driver.** No Gerenciador de Dispositivos, em *Kinect for Windows*, os itens
+   *Kinect for Windows Camera*, *Audio*, *Device* e *Security* devem aparecer sem ponto de
+   exclamação. Se algum estiver com, desinstale e reinstale o SDK 1.8 com o Kinect
+   desconectado.
+4. **Feche outros programas de câmera/Kinect** (Kinect Studio, OBS, drivers OpenNI ou
+   libfreenect instalados para o mesmo sensor).
+
 ### "Banda USB insuficiente"
 
 O Kinect precisa de quase toda a banda de um controlador USB. Mude para uma porta que use
