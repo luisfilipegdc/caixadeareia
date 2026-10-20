@@ -161,6 +161,20 @@ public class NuiErrosTests
         Assert.Equal(repete, KinectV1Source.VaiPassarSozinho(hr));
     }
 
+    /// <summary>
+    /// <b>O caso do ThinkPad.</b> Na porta USB 2.0 a câmera do Kinect apareceu e o erro passou
+    /// a ser de banda. O conselho de "outro controlador" não servia num notebook de poucas
+    /// portas; o que libera a banda é desativar a webcam embutida.
+    /// </summary>
+    [Fact]
+    public void BandaInsuficienteApontaAWebcamEmbutida()
+    {
+        string m = NuiNative.DescribeHResult(NuiNative.E_NUI_INSUFFICIENTBANDWIDTH);
+
+        Assert.Contains("webcam embutida", m);
+        Assert.Contains("Gerenciador de Dispositivos", m);
+    }
+
     [Fact]
     public void CodigoDesconhecidoMostraOHexadecimal()
     {

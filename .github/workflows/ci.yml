@@ -1,0 +1,30 @@
+# Compila e roda os testes em todo pull request e em todo push na main.
+#
+# Roda em Windows porque o aplicativo é WPF (net8.0-windows): é o mesmo ambiente do
+# professor, e os testes rodam com o runtime de desktop de verdade.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-e-testes:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # O RELEASE.md pede zero avisos: aqui isso vira regra, não lembrete.
+      - name: Build
+        run: dotnet build CaixaInterativa.sln -c Release -warnaserror
+
+      - name: Testes
+        run: dotnet test CaixaInterativa.sln -c Release --no-build

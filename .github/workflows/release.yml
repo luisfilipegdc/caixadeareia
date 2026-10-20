@@ -1,0 +1,132 @@
+# Gera a release a partir de uma tag vX.Y.Z — os passos 2, 6 e 7 do docs/RELEASE.md.
+#
+# O que este fluxo NÃO faz, de propósito: escrever as notas e publicar. A release sai
+# como rascunho; quem confere o anexo e escreve as notas é uma pessoa (passo 11).
+#
+# Assinatura: quando os segredos do SignPath existem, o .exe é assinado antes de entrar
+# no zip e no SHA256SUMS. Sem eles, o fluxo funciona igual e o .exe sai sem assinatura.
+# Como configurar: docs/ASSINATURA.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Versão
+        id: versao
+        shell: pwsh
+        run: |
+          [xml]$proj = Get-Content src/CaixaInterativa/CaixaInterativa.csproj
+          $versao = ($proj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+          # A tag e o <Version> precisam concordar: o título da janela lê do assembly,
+          # e uma tag v1.5.0 com um .exe que diz 1.4.0 é o tipo de erro que só o
+          # professor percebe.
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$versao") {
+            throw "A tag $env:GITHUB_REF_NAME não bate com <Version>$versao</Version> do csproj."
+          }
+          "versao=$versao" >> $env:GITHUB_OUTPUT
+          "nome=CaixaInterativa-v$versao-win-x64" >> $env:GITHUB_OUTPUT
+
+      - name: Build e testes
+        run: |
+          dotnet build CaixaInterativa.sln -c Release -warnaserror
+          dotnet test CaixaInterativa.sln -c Release --no-build
+
+      - name: Publicar executável
+        run: >
+          dotnet publish src/CaixaInterativa/CaixaInterativa.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=none -p:DebugSymbols=false
+          -o publicado
+
+      - name: Renomear
+        shell: pwsh
+        run: Rename-Item publicado/CaixaInterativa.exe "${{ steps.versao.outputs.nome }}.exe"
+
+      # --- assinatura (opcional) ---
+
+      - name: Enviar para assinatura
+        if: env.SIGNPATH_API_TOKEN != ''
+        id: nao-assinado
+        uses: actions/upload-artifact@v4
+        with:
+          name: nao-assinado
+          path: publicado/${{ steps.versao.outputs.nome }}.exe
+
+      - name: Assinar no SignPath
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.nao-assinado.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: assinado
+
+      - name: Usar o executável assinado
+        if: env.SIGNPATH_API_TOKEN != ''
+        shell: pwsh
+        run: |
+          Copy-Item "assinado/${{ steps.versao.outputs.nome }}.exe" publicado/ -Force
+          $assinatura = Get-AuthenticodeSignature "publicado/${{ steps.versao.outputs.nome }}.exe"
+          if ($assinatura.Status -ne 'Valid') { throw "Assinatura inválida: $($assinatura.Status)" }
+          "Assinado por: $($assinatura.SignerCertificate.Subject)"
+
+      # --- pacote ---
+
+      - name: Montar zip e SHA256SUMS
+        shell: pwsh
+        run: |
+          $nome = "${{ steps.versao.outputs.nome }}"
+          New-Item -ItemType Directory saida | Out-Null
+          New-Item -ItemType Directory "pacote/$nome" -Force | Out-Null
+          Copy-Item "publicado/$nome.exe" saida/
+          # O zip leva exatamente o que o RELEASE.md lista: executável, Dados/ e o
+          # config.default.json. Nada de config.json pessoal, calibração ou registro.
+          Copy-Item "publicado/$nome.exe", config.default.json "pacote/$nome/"
+          Copy-Item publicado/Dados "pacote/$nome/Dados" -Recurse
+          Compress-Archive -Path "pacote/$nome" -DestinationPath "saida/$nome.zip"
+          $linhas = Get-ChildItem saida -File | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          }
+          # UTF-8 sem BOM, como o passo 7 pede.
+          [IO.File]::WriteAllLines("$PWD/saida/SHA256SUMS.txt", $linhas)
+          Get-Content saida/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.versao.outputs.nome }}
+          path: saida/
+
+      - name: Criar release em rascunho
+        if: github.ref_type == 'tag'
+        # bash para o glob saida/* chegar expandido ao gh.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create ${{ github.ref_name }} saida/*
+          --draft --verify-tag
+          --title "Caixa de Areia Interativa ${{ github.ref_name }}"
+          --notes "Rascunho gerado pelo fluxo de release. Escreva as notas (estável x experimental) antes de publicar."

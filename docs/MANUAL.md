@@ -70,9 +70,12 @@ Baixe o arquivo mais recente:
 bibliotecas. Basta salvar em qualquer pasta e executar.
 
 > **O Windows vai avisar na primeira vez.** Aparece uma tela azul dizendo "O Windows
-> protegeu o computador". Isso acontece porque o programa não tem certificado de
-> assinatura comercial, que custa caro e é anual. Clique em **Mais informações** e depois
-> em **Executar assim mesmo**.
+> protegeu o computador". Isso acontece porque o programa ainda não tem assinatura
+> digital. Clique em **Mais informações** e depois em **Executar assim mesmo**.
+>
+> **Para não ver o aviso:** se você baixou o `.zip`, antes de extrair clique nele com o
+> botão direito → **Propriedades** → marque **Desbloquear** → **OK**. O Windows só avisa
+> sobre arquivos que vieram da internet; desbloqueado, ele deixa de perguntar.
 
 ### Passo 2 — Instalar o driver do Kinect
 
@@ -503,6 +506,11 @@ Nos outros casos, na ordem:
 O Kinect precisa de quase toda a banda de um controlador USB. Mude para uma porta que use
 outro controlador — em notebooks, normalmente as de lados opostos. Desconecte outros
 dispositivos USB que estejam em uso.
+
+**Em notebooks, desative a webcam embutida.** Ela fica no mesmo controlador USB e reserva
+banda mesmo sem nenhum programa aberto. No Gerenciador de Dispositivos, em *Câmeras*,
+clique com o botão direito na webcam → *Desabilitar dispositivo*. Depois da aula, reative
+do mesmo jeito.
 
 ### A cobertura ficou baixa
 
