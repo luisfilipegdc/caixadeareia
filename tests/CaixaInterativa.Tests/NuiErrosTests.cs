@@ -126,9 +126,39 @@ public class NuiErrosTests
     [InlineData(NuiNative.E_NUI_FEATURE_NOT_INITIALIZED)]
     [InlineData(NuiNative.E_NUI_STREAM_NOT_ENABLED)]
     [InlineData(NuiNative.E_NUI_BADINDEX)]
+    [InlineData(NuiNative.E_FAIL)]
     public void CodigoConhecidoTemMensagemPropria(int hr)
     {
         Assert.DoesNotContain("Erro nativo NUI", NuiNative.DescribeHResult(hr));
+    }
+
+    /// <summary>
+    /// <b>O caso da segunda tela.</b> O driver enumerou o sensor, o NuiInitialize devolveu
+    /// E_FAIL, e a mensagem era só "Erro nativo NUI 0x80004005" — nada que se pudesse seguir.
+    /// </summary>
+    [Fact]
+    public void FalhaGenericaComSensorEnumeradoDizOQueFazer()
+    {
+        Assert.Equal(unchecked((int)0x80004005), NuiNative.E_FAIL);
+
+        string m = NuiNative.DescribeHResult(NuiNative.E_FAIL);
+
+        Assert.Contains("USB 2.0", m);
+        Assert.Contains("Gerenciador de Dispositivos", m);
+        Assert.Contains("0x80004005", m);
+    }
+
+    [Theory]
+    [InlineData(NuiNative.E_FAIL, true)]
+    [InlineData(NuiNative.E_NUI_NOTREADY, true)]
+    [InlineData(NuiNative.E_NUI_DEVICE_NOT_READY, true)]
+    // Esperar não resolve estes: repetir só atrasaria a mensagem certa.
+    [InlineData(NuiNative.E_NUI_DEVICE_IN_USE, false)]
+    [InlineData(NuiNative.E_NUI_NOTPOWERED, false)]
+    [InlineData(NuiNative.E_NUI_DEVICE_NOT_CONNECTED, false)]
+    public void SoRepeteOQueEsperarResolve(int hr, bool repete)
+    {
+        Assert.Equal(repete, KinectV1Source.VaiPassarSozinho(hr));
     }
 
     [Fact]
