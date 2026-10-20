@@ -8,6 +8,12 @@ um exemplo genérico.
 
 Substitua `1.4.0` pela versão nova em todos os comandos.
 
+> **Automático a partir da próxima versão.** Os passos 2, 6 e 7 rodam sozinhos no GitHub
+> Actions ao enviar a tag (`.github/workflows/release.yml`), e o executável sai assinado
+> quando o SignPath está configurado — ver [ASSINATURA.md](ASSINATURA.md). O fluxo cria a
+> release em **rascunho**: as notas e a conferência do anexo (passo 11) continuam sendo de
+> uma pessoa. Os comandos abaixo valem para fazer à mão.
+
 ---
 
 ## 1. Confirmar o estado

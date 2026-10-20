@@ -158,8 +158,10 @@ Arquivo único, com o .NET embutido. Só o
 necessário à parte, porque traz o driver do sensor.
 
 > Na primeira execução o Windows pode exibir um aviso do SmartScreen, por ser um
-> executável sem certificado de assinatura comercial. Clique em *Mais informações* →
-> *Executar assim mesmo*.
+> executável ainda sem assinatura digital. Clique em *Mais informações* → *Executar assim
+> mesmo*. Se baixou o `.zip`, dá para evitar o aviso: antes de extrair, botão direito no
+> zip → *Propriedades* → marque *Desbloquear*. O porquê e o plano de assinatura estão em
+> [docs/ASSINATURA.md](docs/ASSINATURA.md).
 
 Todas as versões: [Releases](https://github.com/luisfilipegdc/caixadeareia/releases).
 
@@ -294,6 +296,7 @@ tests/CaixaInterativa.Tests/      regressão visual e comportamento
 | 📓 **[Diário de bordo](docs/DIARIO-DE-BORDO.md)** | O registro da construção: decisões, bugs e medições |
 | 🔍 **[Auditoria técnica](docs/AUDITORIA-TECNICA.md)** | Leitura integral do código: arquitetura real, gargalos, dívida |
 | 🛠 **[Guia de desenvolvimento](docs/DESENVOLVIMENTO.md)** | Caminho de um quadro, como acrescentar um fenômeno, regras de performance e de teste |
+| 🔏 **[Assinatura do executável](docs/ASSINATURA.md)** | Por que o Windows avisa, e como ligar a assinatura gratuita do SignPath na release |
 | 🖼️ **[Catálogo de imagens](docs/img/README.md)** | Capturas de cada etapa, com contexto |
 
 ---

@@ -70,9 +70,12 @@ Baixe o arquivo mais recente:
 bibliotecas. Basta salvar em qualquer pasta e executar.
 
 > **O Windows vai avisar na primeira vez.** Aparece uma tela azul dizendo "O Windows
-> protegeu o computador". Isso acontece porque o programa não tem certificado de
-> assinatura comercial, que custa caro e é anual. Clique em **Mais informações** e depois
-> em **Executar assim mesmo**.
+> protegeu o computador". Isso acontece porque o programa ainda não tem assinatura
+> digital. Clique em **Mais informações** e depois em **Executar assim mesmo**.
+>
+> **Para não ver o aviso:** se você baixou o `.zip`, antes de extrair clique nele com o
+> botão direito → **Propriedades** → marque **Desbloquear** → **OK**. O Windows só avisa
+> sobre arquivos que vieram da internet; desbloqueado, ele deixa de perguntar.
 
 ### Passo 2 — Instalar o driver do Kinect
 

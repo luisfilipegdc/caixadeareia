@@ -10,6 +10,15 @@ descrita no [README](README.md#versionamento).
 
 ## [Não lançado]
 
+### Adicionado
+
+- **CI no GitHub Actions:** build sem avisos e testes em Windows a cada pull request.
+- **Release automática por tag:** compila, testa, gera o executável, o zip e o
+  `SHA256SUMS.txt` e cria a release em rascunho. Recusa a tag se ela não bater com a versão
+  do projeto. Pronta para assinar o executável pelo SignPath assim que o projeto for
+  aprovado — passo a passo em `docs/ASSINATURA.md`.
+- README e manual explicam como desbloquear o zip para evitar o aviso do SmartScreen.
+
 ### Corrigido
 
 - **Erro 0x80004005 ao ligar o Kinect.** Com o sensor enumerado pelo driver, a falha
