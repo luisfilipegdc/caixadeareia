@@ -266,7 +266,13 @@ internal static class NuiNative
         E_NUI_DEVICE_NOT_READY or E_NUI_NOTREADY
                                     => "Sensor encontrado mas não está pronto. Aguarde a inicialização ou reconecte.",
         E_NUI_NOTPOWERED            => "Sensor sem alimentação. O adaptador de energia externo é obrigatório.",
-        E_NUI_INSUFFICIENTBANDWIDTH => "Banda USB insuficiente. Use uma porta USB em outro controlador (não compartilhada).",
+        // Em notebook o "outro dispositivo" quase sempre e' a webcam embutida, que fica no
+        // mesmo controlador e reserva banda mesmo sem nenhum programa usando a camera.
+        E_NUI_INSUFFICIENTBANDWIDTH => "Banda USB insuficiente: outro aparelho no mesmo controlador USB está ocupando a banda. "
+                                     + "Em notebooks, é quase sempre a webcam embutida — desative-a no Gerenciador de "
+                                     + "Dispositivos (Câmeras → botão direito → Desabilitar dispositivo) e toque em "
+                                     + "“Ligar a caixa”. Desconecte também outros aparelhos USB, como webcam externa ou "
+                                     + "fone USB.",
         E_NUI_NOTGENUINE            => "Sensor não reconhecido como original.",
         E_NUI_NOTSUPPORTED          => "Este modelo de sensor não é suportado pelo driver instalado.",
 

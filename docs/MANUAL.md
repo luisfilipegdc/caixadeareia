@@ -504,6 +504,11 @@ O Kinect precisa de quase toda a banda de um controlador USB. Mude para uma port
 outro controlador — em notebooks, normalmente as de lados opostos. Desconecte outros
 dispositivos USB que estejam em uso.
 
+**Em notebooks, desative a webcam embutida.** Ela fica no mesmo controlador USB e reserva
+banda mesmo sem nenhum programa aberto. No Gerenciador de Dispositivos, em *Câmeras*,
+clique com o botão direito na webcam → *Desabilitar dispositivo*. Depois da aula, reative
+do mesmo jeito.
+
 ### A cobertura ficou baixa
 
 O sistema conseguiu medir menos de 80% da caixa. Verifique:

@@ -22,6 +22,8 @@ descrita no [README](README.md#versionamento).
   porta USB e como a luz do sensor separa as duas, em vez da lista genérica de causas.
   Inclui o aviso de que notebooks com controlador USB AMD costumam não funcionar com o
   Kinect v1.
+- **"Banda USB insuficiente" agora aponta a webcam embutida** do notebook, que divide o
+  controlador USB com o Kinect, e diz como desativá-la no Gerenciador de Dispositivos.
 - A barra de status não corta mais a mensagem de falha do Kinect: ela remete às
   instruções completas no painel central.
 
