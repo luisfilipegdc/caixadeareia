@@ -83,7 +83,12 @@ public sealed class KinectV1Source : IDepthSource
         if (IsRunning) return;
 
         int hr = InicializarComNovasTentativas();
-        if (hr != S_OK) throw new InvalidOperationException(DescribeHResult(hr));
+        if (hr != S_OK)
+        {
+            // E_FAIL nao diz qual parte falhou; a lista de dispositivos do Windows diz.
+            string? diagnostico = hr == E_FAIL ? DispositivosKinect.DiagnosticarAgora() : null;
+            throw new InvalidOperationException(diagnostico ?? DescribeHResult(hr));
+        }
         _nuiInitialized = true;
 
         _frameEvent = CreateEvent(IntPtr.Zero, true, false, null);

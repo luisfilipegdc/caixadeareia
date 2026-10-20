@@ -474,7 +474,18 @@ Na ordem:
 ### "O Kinect está conectado, mas não pôde ser iniciado" (0x80004005)
 
 O Windows enxerga o sensor, mas a câmera dele não respondeu. O programa já tenta três
-vezes antes de mostrar a mensagem. Na ordem:
+vezes antes de mostrar a mensagem.
+
+Se a mensagem disser que **o áudio do Kinect aparece, mas a câmera não**, olhe a luz do
+sensor:
+
+- **Apagada** — a fonte não está chegando. Confira a tomada e o encaixe na emenda do cabo.
+- **Verde** — a energia está boa e o problema é a porta USB. Troque de porta, prefira uma
+  USB 2.0 ou use um hub USB 2.0. Em notebooks com processador **AMD** o Kinect v1 muitas
+  vezes não funciona em porta nenhuma: a câmera não aparece, ou aparece com erro e some.
+  Teste num computador com processador Intel.
+
+Nos outros casos, na ordem:
 
 1. **Desconecte o USB e a fonte**, aguarde 10 segundos, reconecte e espere a luz verde
    ficar **fixa** antes de tocar em **Ligar a caixa**.
