@@ -46,7 +46,7 @@ jobs:
       - name: Build e testes
         run: |
           dotnet build CaixaInterativa.sln -c Release -warnaserror
-          dotnet test tests/CaixaInterativa.Tests/CaixaInterativa.Tests.csproj -c Release --no-build
+          dotnet test CaixaInterativa.sln -c Release --no-build
 
       - name: Publicar executável
         run: >
