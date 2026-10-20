@@ -474,7 +474,13 @@ Na ordem:
 ### "O Kinect está conectado, mas não pôde ser iniciado" (0x80004005)
 
 O Windows enxerga o sensor, mas a câmera dele não respondeu. O programa já tenta três
-vezes antes de mostrar a mensagem. Na ordem:
+vezes antes de mostrar a mensagem.
+
+Se a mensagem disser que o Kinect **está recebendo energia só pelo USB**, o problema é a
+fonte: sem ela, o áudio do sensor aparece no Windows, mas a câmera não. Confira a fonte na
+tomada e o encaixe na emenda do cabo do Kinect, e veja se a luz verde acende.
+
+Nos outros casos, na ordem:
 
 1. **Desconecte o USB e a fonte**, aguarde 10 segundos, reconecte e espere a luz verde
    ficar **fixa** antes de tocar em **Ligar a caixa**.

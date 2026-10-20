@@ -146,7 +146,9 @@ public partial class MainWindow : Window
         {
             // Na abertura automática não interrompemos com caixa de diálogo.
             TxtAjuda.Text = $"{cabecalho}\n\n{motivo}\n\n{conselho}";
-            SetStatus((enumerado ? "Kinect não iniciou — " : "Kinect indisponível — ") + motivo);
+            // A barra de status tem uma linha; o motivo inteiro já está no painel central.
+            SetStatus(enumerado ? "Kinect não iniciou — veja as instruções na tela."
+                                : "Kinect indisponível — veja as instruções na tela.");
             return;
         }
 

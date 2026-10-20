@@ -17,6 +17,11 @@ descrita no [README](README.md#versionamento).
   fazer. Agora a inicialização é repetida até três vezes quando o erro é do tipo que passa
   sozinho (sensor ainda iniciando), e, se persistir, a mensagem orienta: reconectar, porta
   USB 2.0, driver no Gerenciador de Dispositivos. O manual ganhou a mesma seção.
+- **Fonte do Kinect desconectada agora é reconhecida.** Quando o erro 0x80004005 acontece
+  e o Windows mostra o áudio do Kinect mas não a câmera, a mensagem diz que a fonte de
+  energia externa não está chegando ao sensor, em vez da lista genérica de causas.
+- A barra de status não corta mais a mensagem de falha do Kinect: ela remete às
+  instruções completas no painel central.
 
 ## [1.4.0] — 2026-08-28
 
