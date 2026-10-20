@@ -23,11 +23,12 @@ namespace CaixaInterativa.Tests;
 public class DispositivosKinectTests
 {
     /// <summary>
-    /// <b>O caso que aconteceu.</b> Fonte de 12 V sem chegar ao sensor: só a parte alimentada
-    /// pelo USB aparece. A mensagem tem de mandar olhar a fonte, não reinstalar o SDK.
+    /// <b>O caso que aconteceu.</b> Só a parte alimentada pelo USB aparece. A primeira versão
+    /// afirmava "é a fonte" — e na mesa a luz estava verde fixa: era o controlador USB AMD
+    /// do notebook. A mensagem tem de cobrir as duas causas e dizer como separá-las.
     /// </summary>
     [Fact]
-    public void SoAudioPresenteApontaAFonte()
+    public void SoAudioPresenteSeparaFonteDePortaPelaLuz()
     {
         string[] presentes =
         [
@@ -40,7 +41,9 @@ public class DispositivosKinectTests
         string? m = DispositivosKinect.Diagnosticar(presentes);
 
         Assert.NotNull(m);
+        Assert.Contains("luz", m);
         Assert.Contains("fonte", m);
+        Assert.Contains("porta USB", m);
         Assert.DoesNotContain("SDK", m);
     }
 

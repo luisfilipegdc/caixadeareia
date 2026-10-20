@@ -18,8 +18,10 @@ descrita no [README](README.md#versionamento).
   sozinho (sensor ainda iniciando), e, se persistir, a mensagem orienta: reconectar, porta
   USB 2.0, driver no Gerenciador de Dispositivos. O manual ganhou a mesma seção.
 - **Fonte do Kinect desconectada agora é reconhecida.** Quando o erro 0x80004005 acontece
-  e o Windows mostra o áudio do Kinect mas não a câmera, a mensagem diz que a fonte de
-  energia externa não está chegando ao sensor, em vez da lista genérica de causas.
+  e o Windows mostra o áudio do Kinect mas não a câmera, a mensagem diz que é a fonte ou a
+  porta USB e como a luz do sensor separa as duas, em vez da lista genérica de causas.
+  Inclui o aviso de que notebooks com controlador USB AMD costumam não funcionar com o
+  Kinect v1.
 - A barra de status não corta mais a mensagem de falha do Kinect: ela remete às
   instruções completas no painel central.
 

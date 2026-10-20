@@ -21,8 +21,8 @@ namespace CaixaInterativa.Depth;
 /// <b>Por que existe.</b> Sem a fonte de 12 V, o Kinect v1 ainda aparece pelo USB: o audio
 /// e o controle de seguranca sao alimentados pelo cabo, a camera e o motor nao. O driver
 /// conta o sensor, o NuiInitialize devolve E_FAIL (0x80004005), e o HRESULT sozinho nao
-/// diz qual das causas e'. A lista de dispositivos diz: camera ausente com audio presente
-/// e' a fonte, e o conselho certo e' um so.
+/// diz qual das causas e'. A lista de dispositivos estreita: camera ausente com audio
+/// presente e' fonte ou porta USB, e a luz do sensor decide entre as duas.
 ///
 /// O caso real tinha, presentes, "Security Control", "USB Audio" e "Audio Array Control";
 /// "Camera" e "Audio Control" so como instalados, sem estar conectados.
@@ -40,11 +40,16 @@ internal static class DispositivosKinect
 
         if (camera || !audio) return null;
 
-        return "O Kinect está recebendo energia só pelo USB: o áudio dele aparece no Windows, "
-             + "mas a câmera não. A fonte de energia externa não está chegando ao sensor. "
-             + "Confira se a fonte está na tomada e bem encaixada na emenda do cabo do Kinect "
-             + "(sem extensão ou filtro de linha) e se a luz verde do sensor acende. "
-             + "Se a luz acender e o erro continuar, troque para uma porta USB 2.0.";
+        // As duas causas deixam a mesma lista; quem separa e' a luz do sensor. O primeiro
+        // texto afirmava "a fonte" e errou na mesa: luz verde fixa, fonte boa, e a camera
+        // ausente por causa do controlador USB (AMD) do notebook.
+        return "O áudio do Kinect aparece no Windows, mas a câmera não. Olhe a luz do sensor. "
+             + "Apagada: a fonte de energia externa não está chegando — confira a tomada e o "
+             + "encaixe na emenda do cabo do Kinect. "
+             + "Verde: a energia está boa e o problema é a porta USB — troque de porta, "
+             + "prefira uma USB 2.0 ou use um hub USB 2.0. Em notebooks com processador AMD, "
+             + "o Kinect v1 muitas vezes não funciona em nenhuma porta; teste num computador "
+             + "com processador Intel.";
     }
 
     /// <summary>Le os dispositivos conectados e diagnostica. Nunca lanca.</summary>
